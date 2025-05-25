@@ -7,7 +7,7 @@
 {% let total_likes = total_likes %}
 {% let total_downloads = total_downloads %}
 {% let description = format!("{owner_name}'s mods") %}
-{% call base::draw_embed(owner.display_name, description, owner.avatar) %}
+{% call base::draw_embed(owner.display_name, description) %}
 {% endblock head %}
 
 {% block content %}

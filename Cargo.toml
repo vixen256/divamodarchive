@@ -1,20 +1,21 @@
 [package]
 name = "divamodarchive2"
 version = "1.0.0"
-edition = "2021"
+edition = "2024"
 
 [dependencies]
-askama = { version = "0.12", features = ["with-axum", "markdown"] }
-askama_axum = "0.4"
-axum = { version = "0.7", features = ["macros", "ws"] }
-axum-extra = { version = "0.9", features = ["cookie", "query"] }
+askama = "0.14"
+askama_web = { version = "0.14", features = ["axum-0.8"] }
+axum = { version = "0.8", features = ["macros", "ws"] }
+axum-extra = { version = "0.10", features = ["cookie", "query"] }
 base64 = "0.22"
+comrak = "0.39"
 dotenvy = "0.15"
 itertools = "0.14"
 jsonwebtoken = "9.3"
-meilisearch-sdk = "0.27"
-module_db = { git = "https://github.com/BroGamer4256/module_db" }
-pv_db = { git = "https://github.com/BroGamer4256/pv_db" }
+meilisearch-sdk = "0.28"
+module_db = { git = "https://github.com/vixen256/module_db" }
+pv_db = { git = "https://github.com/vixen256/pv_db" }
 quick-xml = { version = "0.37", features = ["serialize"] }
 reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
@@ -28,7 +29,7 @@ sqlx = { version = "0.8", features = [
 ] }
 temp-dir = "0.1"
 time = { version = "0.3", features = ["serde", "serde-human-readable"] }
-tokio = { version = "1.42", features = ["full"] }
+tokio = { version = "1.45", features = ["full"] }
 toml = "0.8"
 tower-http = { version = "0.6", features = ["full"] }
 url = "2.5"

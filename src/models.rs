@@ -1,8 +1,8 @@
 use crate::{AppState, Config};
-use axum::extract::*;
-use axum::http::{header::*, request::*, StatusCode};
-use axum::response::*;
 use axum::RequestPartsExt;
+use axum::extract::*;
+use axum::http::{StatusCode, header::*, request::*};
+use axum::response::*;
 use axum_extra::extract::cookie::{Cookie, CookieJar};
 use jsonwebtoken::*;
 use serde::{Deserialize, Serialize};
@@ -467,14 +467,13 @@ impl User {
 	}
 }
 
-#[derive(askama::Template)]
+#[derive(askama::Template, askama_web::WebTemplate)]
 #[template(path = "error.html")]
 pub struct ErrorTemplate {
 	pub base: crate::web::BaseTemplate,
 	pub status: StatusCode,
 }
 
-#[axum::async_trait]
 impl<S> FromRequestParts<S> for User
 where
 	S: Send + Sync,
@@ -483,17 +482,14 @@ where
 	type Rejection = ErrorTemplate;
 
 	async fn from_request_parts(parts: &mut Parts, state: &S) -> Result<Self, Self::Rejection> {
-		let auth = parts.headers.remove(AUTHORIZATION);
-		let cookie = parts.headers.remove(COOKIE);
-		let base = crate::web::BaseTemplate::from_request_parts(parts, state)
-			.await
-			.unwrap();
-		if let Some(cookie) = cookie {
-			parts.headers.insert(COOKIE, cookie);
-		}
-		if let Some(auth) = auth {
-			parts.headers.insert(AUTHORIZATION, auth);
-		}
+		let app_state: AppState = AppState::from_ref(state);
+		let base = crate::web::BaseTemplate {
+			user: None,
+			config: app_state.config.clone(),
+			jwt: None,
+			report_count: None,
+			has_reservations: false,
+		};
 
 		let cookies = parts.extract::<CookieJar>().await.unwrap();
 		let cookie = cookies.get(&AUTHORIZATION.to_string());
@@ -515,7 +511,6 @@ where
 				auth.replace("Bearer ", "")
 			}
 		};
-		let app_state: AppState = AppState::from_ref(state);
 
 		let Ok(user) = Self::parse(&token, &app_state).await else {
 			return Err(ErrorTemplate {

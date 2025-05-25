@@ -5,7 +5,7 @@
 {% block head %}
 {% let owner_name = owner.display_name.as_str() %}
 {% let description = format!("{owner_name}'s reservations") %}
-{% call base::draw_embed(owner.display_name, description, owner.avatar) %}
+{% call base::draw_embed(owner.display_name, description) %}
 {% endblock head %}
 
 {% block content %}

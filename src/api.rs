@@ -1,5 +1,5 @@
 use crate::AppState;
-use axum::{routing::*, Router};
+use axum::{Router, routing::*};
 use ids::*;
 use posts::*;
 
@@ -10,19 +10,19 @@ pub fn route(state: AppState) -> Router {
 	Router::new()
 		.route("/api/v1/posts", get(search_posts))
 		.route("/api/v1/posts/count", get(count_posts))
-		.route("/api/v1/posts/:id", get(get_post).delete(delete_post))
+		.route("/api/v1/posts/{id}", get(get_post).delete(delete_post))
 		.route("/api/v1/posts/posts", get(get_multiple_posts))
 		.route("/api/v1/posts/edit", post(edit))
 		.route("/api/v1/posts/upload_image", get(upload_image))
 		.route("/api/v1/posts/upload", get(upload_ws))
-		.route("/api/v1/posts/:id/download/:variant", get(download))
-		.route("/api/v1/posts/:id/like", post(like))
-		.route("/api/v1/posts/:id/comment", post(comment))
-		.route("/api/v1/posts/:id/author", post(add_author))
-		.route("/api/v1/posts/:id/dependency", post(add_dependency))
-		.route("/api/v1/posts/:id/report", post(report))
+		.route("/api/v1/posts/{id}/download/{variant}", get(download))
+		.route("/api/v1/posts/{id}/like", post(like))
+		.route("/api/v1/posts/{id}/comment", post(comment))
+		.route("/api/v1/posts/{id}/author", post(add_author))
+		.route("/api/v1/posts/{id}/dependency", post(add_dependency))
+		.route("/api/v1/posts/{id}/report", post(report))
 		.route(
-			"/api/v1/posts/:post/comment/:comment",
+			"/api/v1/posts/{post}/comment/{comment}",
 			delete(delete_comment),
 		)
 		.route("/api/v1/users/settings", post(user_settings))

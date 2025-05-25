@@ -2,12 +2,13 @@ use crate::api::ids::*;
 use crate::models::*;
 use crate::{AppState, Config};
 use askama::Template;
+use askama_web::WebTemplate;
 use axum::{
+	RequestPartsExt, Router,
 	extract::*,
-	http::{header::*, StatusCode},
+	http::{StatusCode, header::*},
 	response::*,
 	routing::*,
-	RequestPartsExt, Router,
 };
 use axum_extra::extract::CookieJar;
 use itertools::*;
@@ -17,13 +18,13 @@ pub fn route(state: AppState) -> Router {
 	Router::new()
 		.route("/", get(search))
 		.route("/about", get(about))
-		.route("/post/:id", get(post_detail))
-		.route("/posts/:id", get(post_redirect))
-		.route("/post/:id/edit", get(upload))
-		.route("/post/:id/report", get(report))
-		.route("/liked/:id", get(liked))
-		.route("/user/:id", get(user))
-		.route("/reservations/:id", get(user_reservations))
+		.route("/post/{id}", get(post_detail))
+		.route("/posts/{id}", get(post_redirect))
+		.route("/post/{id}/edit", get(upload))
+		.route("/post/{id}/report", get(report))
+		.route("/liked/{id}", get(liked))
+		.route("/user/{id}", get(user))
+		.route("/reservations/{id}", get(user_reservations))
 		.route("/upload", get(upload))
 		.route("/settings", get(settings))
 		.route("/pvs", get(pvs))
@@ -36,7 +37,10 @@ pub fn route(state: AppState) -> Router {
 }
 
 mod filters {
-	pub fn prettify_num<T: std::fmt::Display>(s: T) -> askama::Result<String> {
+	pub fn prettify_num<T: std::fmt::Display>(
+		s: T,
+		_: &dyn askama::Values,
+	) -> askama::Result<String> {
 		let num: u64 = match s.to_string().parse() {
 			Ok(num) => num,
 			Err(e) => return Err(askama::Error::Custom(Box::new(e))),
@@ -70,7 +74,6 @@ pub struct BaseTemplate {
 	pub has_reservations: bool,
 }
 
-#[axum::async_trait]
 impl<S> FromRequestParts<S> for BaseTemplate
 where
 	S: Send + Sync,
@@ -149,7 +152,7 @@ impl BaseTemplate {
 	}
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "about.html")]
 struct AboutTemplate {
 	base: BaseTemplate,
@@ -159,7 +162,7 @@ async fn about(base: BaseTemplate) -> AboutTemplate {
 	AboutTemplate { base }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "liked.html")]
 struct LikedTemplate {
 	base: BaseTemplate,
@@ -213,7 +216,7 @@ async fn liked(
 	Ok(LikedTemplate { base, posts, owner })
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "user.html")]
 struct UserTemplate {
 	base: BaseTemplate,
@@ -280,7 +283,7 @@ async fn user(
 	})
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "user_reservations.html")]
 struct UserReservationsTemplate {
 	base: BaseTemplate,
@@ -398,7 +401,7 @@ async fn user_reservations(
 	})
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "upload.html")]
 struct UploadTemplate {
 	base: BaseTemplate,
@@ -448,7 +451,7 @@ async fn upload(
 	})
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "post.html")]
 struct PostTemplate {
 	base: BaseTemplate,
@@ -480,7 +483,6 @@ async fn post_redirect(Path(id): Path<i32>) -> Redirect {
 
 async fn post_detail(
 	Path(id): Path<i32>,
-	user: Option<User>,
 	State(state): State<AppState>,
 	base: BaseTemplate,
 ) -> Result<PostTemplate, ErrorTemplate> {
@@ -491,7 +493,7 @@ async fn post_detail(
 		});
 	};
 
-	let has_liked = if let Some(user) = &user {
+	let has_liked = if let Some(user) = &base.user {
 		let Ok(has_liked) = sqlx::query!(
 			"SELECT COUNT(*) FROM liked_posts WHERE post_id = $1 AND user_id = $2",
 			post.id,
@@ -511,7 +513,7 @@ async fn post_detail(
 		false
 	};
 
-	let is_author = if let Some(user) = &user {
+	let is_author = if let Some(user) = &base.user {
 		post.authors.iter().any(|u| u.id == user.id)
 	} else {
 		false
@@ -529,7 +531,7 @@ async fn post_detail(
 	.await
 	.unwrap_or_default();
 
-	let Json(modules) = crate::api::ids::search_modules(
+	let Json(modules) = search_modules(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
@@ -541,7 +543,7 @@ async fn post_detail(
 	.await
 	.unwrap_or_default();
 
-	let Json(cstm_items) = crate::api::ids::search_cstm_items(
+	let Json(cstm_items) = search_cstm_items(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
@@ -598,7 +600,7 @@ async fn post_detail(
 			.intersperse(String::from(" OR "))
 			.collect::<String>();
 
-		let Json(conflicting_modules) = crate::api::ids::search_modules(
+		let Json(conflicting_modules) = search_modules(
 			axum_extra::extract::Query(SearchParams {
 				query: None,
 				filter: Some(filter),
@@ -629,7 +631,7 @@ async fn post_detail(
 			.intersperse(String::from(" OR "))
 			.collect::<String>();
 
-		let Json(conflicting_cstm_items) = crate::api::ids::search_cstm_items(
+		let Json(conflicting_cstm_items) = search_cstm_items(
 			axum_extra::extract::Query(SearchParams {
 				query: None,
 				filter: Some(filter),
@@ -761,7 +763,7 @@ async fn post_detail(
 	}
 
 	Ok(PostTemplate {
-		user,
+		user: base.user.clone(),
 		jwt: base.jwt.clone(),
 		has_liked,
 		is_author,
@@ -785,7 +787,7 @@ async fn post_detail(
 	})
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "search.html")]
 struct SearchTemplate {
 	base: BaseTemplate,
@@ -845,7 +847,7 @@ async fn search(
 	})
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "settings.html")]
 struct SettingsTemplate {
 	base: BaseTemplate,
@@ -856,7 +858,7 @@ async fn settings(base: BaseTemplate, user: User) -> SettingsTemplate {
 	SettingsTemplate { base, user }
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "report.html")]
 struct ReportTemplate {
 	base: BaseTemplate,
@@ -879,7 +881,7 @@ async fn report(
 	Ok(ReportTemplate { base, post })
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "pvs.html")]
 struct PvsTemplate {
 	base: BaseTemplate,
@@ -887,7 +889,7 @@ struct PvsTemplate {
 }
 
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
-	let Json(pvs) = crate::api::ids::search_pvs(
+	let Json(pvs) = search_pvs(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: None,
@@ -902,7 +904,7 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
 	return PvsTemplate { base, pvs };
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "modules.html")]
 struct ModulesTemplate {
 	base: BaseTemplate,
@@ -910,7 +912,7 @@ struct ModulesTemplate {
 }
 
 async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTemplate {
-	let Json(modules) = crate::api::ids::search_modules(
+	let Json(modules) = search_modules(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: None,
@@ -925,7 +927,7 @@ async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTe
 	return ModulesTemplate { base, modules };
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "cstm_items.html")]
 struct CstmItemsTemplate {
 	base: BaseTemplate,
@@ -933,7 +935,7 @@ struct CstmItemsTemplate {
 }
 
 async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmItemsTemplate {
-	let Json(cstm_items) = crate::api::ids::search_cstm_items(
+	let Json(cstm_items) = search_cstm_items(
 		axum_extra::extract::Query(SearchParams {
 			query: None,
 			filter: None,
@@ -949,7 +951,7 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 }
 
 // This code fucking sucks
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "pv_spreadsheet.html")]
 struct PvSpreadsheet {
 	base: BaseTemplate,
@@ -1023,7 +1025,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	}
 }
 
-#[derive(Template)]
+#[derive(Template, WebTemplate)]
 #[template(path = "reserve.html")]
 struct ReserveTemplate {
 	base: BaseTemplate,

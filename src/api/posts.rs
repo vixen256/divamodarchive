@@ -1,8 +1,8 @@
-use crate::models::*;
 use crate::AppState;
+use crate::models::*;
 use axum::{
 	extract::*,
-	http::{header, StatusCode},
+	http::{StatusCode, header},
 	response::*,
 };
 use serde::{Deserialize, Serialize};
@@ -208,30 +208,22 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		else {
 			return;
 		};
-		_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
+		_ = socket.send(ws::Message::Text("Ready".into())).await;
 
 		while let Some(message) = socket.recv().await {
-			let message = match message {
-				Ok(message) => message,
-				Err(e) => {
-					dbg!(e);
-					_ = socket.close().await;
-					return;
-				}
+			let Ok(message) = message else {
+				return;
 			};
 
 			if let ws::Message::Binary(chunk) = message {
 				let Ok(_) = file.write_all(&chunk).await else {
-					_ = socket.close().await;
 					return;
 				};
 				let Ok(_) = file.sync_data().await else {
-					_ = socket.close().await;
 					return;
 				};
-				_ = socket.send(ws::Message::Text(String::from("Ready"))).await;
+				_ = socket.send(ws::Message::Text("Ready".into())).await;
 			} else if let ws::Message::Close(_) = message {
-				_ = socket.close().await;
 				return;
 			} else {
 				break;
@@ -343,10 +335,8 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	tokio::spawn(crate::api::ids::extract_post_data(post_id, state.clone()));
 
 	_ = socket
-		.send(ws::Message::Text(format!("/post/{post_id}")))
+		.send(ws::Message::Text(format!("/post/{post_id}").into()))
 		.await;
-
-	_ = socket.close().await;
 }
 
 pub async fn download(
@@ -758,7 +748,16 @@ pub async fn comment(
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	_ = sqlx::query!("INSERT INTO post_comments (post_id, user_id, text, parent, time) VALUES ($1, $2, $3, $4, $5)", id, user.id, comment.text, comment.parent, time).execute(&state.db).await;
+	_ = sqlx::query!(
+		"INSERT INTO post_comments (post_id, user_id, text, parent, time) VALUES ($1, $2, $3, $4, $5)",
+		id,
+		user.id,
+		comment.text,
+		comment.parent,
+		time
+	)
+	.execute(&state.db)
+	.await;
 
 	Ok(())
 }

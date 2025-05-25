@@ -1,4 +1,4 @@
-{% macro draw_embed(title, description, image) %}
+{% macro draw_embed(title, description) %}
 {% if title != "" %}
 <title>{{ title }} - DIVA Mod Archive</title>
 <meta property="og:title" content="{{ title }}">
@@ -10,11 +10,6 @@
 {% if description != "" %}
 <meta name="description" content="{{ description }}">
 <meta property="og:description" content="{{ description }}">
-{% endif %}
-
-{% if image != "" %}
-<meta property="og:image" content="{{ image }}">
-<meta name="twitter:card" content="summary_large_image">
 {% endif %}
 <meta property="og:site_name" content="DIVA Mod Archive">
 {% endmacro %}

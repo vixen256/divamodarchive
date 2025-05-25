@@ -3,7 +3,7 @@ pub mod models;
 pub mod sitemap;
 pub mod web;
 
-use axum::{http::HeaderMap, routing::*, Router};
+use axum::{Router, http::HeaderMap, routing::*};
 use meilisearch_sdk::client::*;
 use models::*;
 use sqlx::postgres::PgPoolOptions;
