@@ -460,7 +460,7 @@
 		</div>
 	</div>
 
-	<div class="card card-body text">{{ comrak::markdown_to_html(post.text, &comrak::Options::default()) }}</div>
+	<div class="card card-body text">{{ comrak::markdown_to_html(post.text, &comrak::Options::default()) | safe }}</div>
 
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">
