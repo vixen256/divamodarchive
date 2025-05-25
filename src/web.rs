@@ -61,7 +61,7 @@ mod filters {
 			value /= 1000;
 		}
 
-		Ok(String::new())
+		Ok(format!("{num}"))
 	}
 }
 
@@ -520,7 +520,7 @@ async fn post_detail(
 	};
 
 	let Json(pvs) = search_pvs(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: Some(format!("post={}", post.id)),
 			limit: Some(2000),
@@ -532,7 +532,7 @@ async fn post_detail(
 	.unwrap_or_default();
 
 	let Json(modules) = search_modules(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(2000),
@@ -544,7 +544,7 @@ async fn post_detail(
 	.unwrap_or_default();
 
 	let Json(cstm_items) = search_cstm_items(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(2000),
@@ -570,7 +570,7 @@ async fn post_detail(
 			.collect::<String>();
 
 		let Json(conflicting_pvs) = search_pvs(
-			axum_extra::extract::Query(SearchParams {
+			Query(SearchParams {
 				query: None,
 				filter: Some(filter),
 				limit: Some(2000),
@@ -601,7 +601,7 @@ async fn post_detail(
 			.collect::<String>();
 
 		let Json(conflicting_modules) = search_modules(
-			axum_extra::extract::Query(SearchParams {
+			Query(SearchParams {
 				query: None,
 				filter: Some(filter),
 				limit: Some(2000),
@@ -632,7 +632,7 @@ async fn post_detail(
 			.collect::<String>();
 
 		let Json(conflicting_cstm_items) = search_cstm_items(
-			axum_extra::extract::Query(SearchParams {
+			Query(SearchParams {
 				query: None,
 				filter: Some(filter),
 				limit: Some(2000),
@@ -796,20 +796,18 @@ struct SearchTemplate {
 }
 
 async fn search(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<crate::api::posts::SearchParams>,
+	Query(query): Query<crate::api::posts::SearchParams>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<SearchTemplate, ErrorTemplate> {
 	if query.query.is_some() || query.sort.is_some() || query.filter.is_some() {
-		let Json(posts) = crate::api::posts::search_posts(
-			axum_extra::extract::Query(query.clone()),
-			State(state.clone()),
-		)
-		.await
-		.map_err(|(status, _)| ErrorTemplate {
-			base: base.clone(),
-			status,
-		})?;
+		let Json(posts) =
+			crate::api::posts::search_posts(Query(query.clone()), State(state.clone()))
+				.await
+				.map_err(|(status, _)| ErrorTemplate {
+					base: base.clone(),
+					status,
+				})?;
 
 		return Ok(SearchTemplate {
 			base,
@@ -890,7 +888,7 @@ struct PvsTemplate {
 
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
 	let Json(pvs) = search_pvs(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(20),
@@ -913,7 +911,7 @@ struct ModulesTemplate {
 
 async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTemplate {
 	let Json(modules) = search_modules(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(20),
@@ -936,7 +934,7 @@ struct CstmItemsTemplate {
 
 async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmItemsTemplate {
 	let Json(cstm_items) = search_cstm_items(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(20),
@@ -990,7 +988,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	.collect::<BTreeMap<_, _>>();
 
 	let Json(search) = search_pvs(
-		axum_extra::extract::Query(SearchParams {
+		Query(SearchParams {
 			query: None,
 			filter: None,
 			limit: Some(100_000),

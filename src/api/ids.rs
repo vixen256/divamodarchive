@@ -582,7 +582,7 @@ pub struct PvSearch {
 }
 
 pub async fn search_pvs(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<PvSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("pvs");
@@ -666,7 +666,7 @@ pub struct ModuleSearch {
 }
 
 pub async fn search_modules(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<ModuleSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("modules");
@@ -754,7 +754,7 @@ pub struct CstmItemSearch {
 }
 
 pub async fn search_cstm_items(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<CstmItemSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("cstm_items");
@@ -872,7 +872,7 @@ pub async fn search_cstm_items(
 			.collect::<String>();
 
 		let Json(modules) = crate::api::ids::search_modules(
-			axum_extra::extract::Query(crate::api::ids::SearchParams {
+			Query(crate::api::ids::SearchParams {
 				query: None,
 				filter: Some(filter),
 				limit: Some(pending_bound_modules.len()),
@@ -1160,7 +1160,7 @@ pub async fn delete_reservation(
 }
 
 pub async fn web_check_reserve_range(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<ReserveRangeArgs>,
+	Query(query): Query<ReserveRangeArgs>,
 	user: User,
 	State(state): State<AppState>,
 ) -> Json<ReserveRangeResult> {
@@ -1437,7 +1437,7 @@ pub async fn get_user_max_reservations(
 }
 
 pub async fn web_find_reserve_range(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<ReserveRangeArgs>,
+	Query(query): Query<ReserveRangeArgs>,
 	user: User,
 	State(state): State<AppState>,
 ) -> Json<i32> {

@@ -441,7 +441,7 @@ pub struct MultiplePostsParams {
 }
 
 pub async fn get_multiple_posts(
-	axum_extra::extract::Query(posts): axum_extra::extract::Query<MultiplePostsParams>,
+	Query(posts): Query<MultiplePostsParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
 	let filter = posts
@@ -457,7 +457,7 @@ pub async fn get_multiple_posts(
 		limit: Some(posts.post_id.len()),
 		offset: None,
 	};
-	search_posts(axum_extra::extract::Query(params), State(state)).await
+	search_posts(Query(params), State(state)).await
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -470,7 +470,7 @@ pub struct SearchParams {
 }
 
 pub async fn search_posts(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<Vec<Post>>, (StatusCode, String)> {
 	let index = state.meilisearch.index("posts");
@@ -534,7 +534,7 @@ pub async fn search_posts(
 }
 
 pub async fn count_posts(
-	axum_extra::extract::Query(query): axum_extra::extract::Query<SearchParams>,
+	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
 ) -> Result<Json<usize>, (StatusCode, String)> {
 	let index = state.meilisearch.index("posts");
