@@ -251,7 +251,7 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 	for filepath in &filepaths {
 		let download = get_download_link(filepath).await;
 		let Some(download) = download else {
-			println!("Failed to get public link for {filepath}");
+			eprintln!("Failed to get public link for {filepath}");
 			return;
 		};
 		downloads.push(download);
