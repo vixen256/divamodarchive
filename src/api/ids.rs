@@ -1183,7 +1183,7 @@ pub async fn web_check_reserve_range(
 /*
 - Must be aligned, e.g. less than 10 means no alignment, 10+ means the first id must be aligned to 10 and end with `0`, 100+ means the first id must be aligned to 100 and end with `00`
 - Can go through mods the user is an author of
-- Max number of reserved ids is 30 + half of how many items the user has already uploaded rounded up to the nearest multiple of 10, e.g. if a user has uploaded a song pack with 30 songs they can reserve 50 song ids and 30 module/cstm_item ids
+- Max number of reserved ids is 50 + half of how many items the user has already uploaded rounded up to the nearest multiple of 10, e.g. if a user has uploaded a song pack with 30 songs they can reserve 70 song ids and 50 module/cstm_item ids
 */
 
 pub async fn check_reserve_range(
@@ -1433,7 +1433,7 @@ pub async fn get_user_max_reservations(
 		.filter(|reservation| !ids.contains(reservation))
 		.count();
 
-	30 + (ids.len() / 2).next_multiple_of(10) as i32 - existing_reservations as i32
+	50 + (ids.len() / 2).next_multiple_of(10) as i32 - existing_reservations as i32
 }
 
 pub async fn web_find_reserve_range(
