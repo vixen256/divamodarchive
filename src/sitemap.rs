@@ -1,6 +1,6 @@
 use crate::AppState;
 use axum::{extract::*, http::HeaderMap, response::*};
-use reqwest::{header, StatusCode};
+use reqwest::{StatusCode, header};
 use serde::Serialize;
 
 #[derive(Serialize)]

@@ -119,6 +119,22 @@
 		document.getElementById("authorTxt").innerText = `Sucessfully added author ${user.name}`;
 	}
 	{% endif %}
+	{% if user.is_admin(config) %}
+	function extractPostData() {
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			}
+		}
+		fetch("/api/v1/posts/{{ post.id }}/extract", options)
+			.then(response => {
+				window.location.href = "/admin"
+			})
+			.catch(error => console.error(error))
+	}
+	{% endif %}
 
 	async function submitComment(text, parent) {
 		var data = {
@@ -454,6 +470,11 @@
 			{% if is_author || user.is_admin(config) %}
 			<div class="btn btn-sm btn-outline-danger btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal">
 				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Delete</button>
+			</div>
+			{% endif %}
+			{% if user.is_admin(config) %}
+			<div class="btn btn-sm btn-outline-danger btn-danger" onclick="extractPostData()">
+				<button type="button" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Extract Post Data<button>
 			</div>
 			{% endif %}
 			{% endif %}

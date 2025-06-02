@@ -21,6 +21,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/posts/{id}/author", post(add_author))
 		.route("/api/v1/posts/{id}/dependency", post(add_dependency))
 		.route("/api/v1/posts/{id}/report", post(report))
+		.route("/api/v1/posts/{id}/extract", post(extract_post))
 		.route(
 			"/api/v1/posts/{post}/comment/{comment}",
 			delete(delete_comment),

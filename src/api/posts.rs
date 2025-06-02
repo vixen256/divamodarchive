@@ -339,6 +339,20 @@ pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
 		.await;
 }
 
+pub async fn extract_post(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+) -> StatusCode {
+	if !user.is_admin(&state.config) {
+		return StatusCode::UNAUTHORIZED;
+	}
+
+	tokio::spawn(crate::api::ids::extract_post_data(id, state.clone()));
+
+	StatusCode::OK
+}
+
 pub async fn download(
 	Path((id, variant)): Path<(i32, i32)>,
 	State(state): State<AppState>,
