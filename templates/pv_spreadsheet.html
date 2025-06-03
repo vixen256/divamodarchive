@@ -46,9 +46,15 @@
 	{% endif -%}
 
 	{% for i in 1..=last %}
-	{% if i != 700 && i != 701 && i != 988 && i != 999 && (reservations.contains_key(i) || pvs.contains_key(i)) %}
+	{% if i != 700 && i != 701 && i != 988 && i != 999 && (i <= 10000 || reservations.contains_key(i) || pvs.contains_key(i)) %}
 		<tr>
 			<td>{{ i }}</td>
+
+			{% if reservations.get(i).is_none() && pvs.get(i).is_none() %}
+				<td />
+				<td />
+				<td>Unused</td>
+			{% endif %}
 
 			{% if let Some(reservation) = reservations.get(i) %}
 				<td class="red-background">Reserved by {{ reservation.user.display_name }}</td>
