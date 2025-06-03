@@ -33,6 +33,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/pv_spreadsheet", get(pv_spreadsheet))
 		.route("/reserve", get(reserve))
 		//.route("/admin", get(admin))
+		.layer(axum::middleware::from_fn(axum_html_minifier::html_minifier))
 		.with_state(state)
 }
 
