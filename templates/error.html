@@ -10,8 +10,8 @@
 	<div class="text-center">
 		<h3 class="text mb-0">{{ status.as_str() }} {{ status.canonical_reason().unwrap_or_default() }}</h3>
 		{% if status == StatusCode::UNAUTHORIZED %}
-		<p>
-			You do not have access to this page.
+		<p class="text mt-1">
+			You do not have access to this page.<br>
 			You may have to <a href="/login">login</a> to access this content.
 		</p>
 		{% endif %}
