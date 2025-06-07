@@ -476,6 +476,7 @@ struct PostTemplate {
 	conflicting_pv_reservations: BTreeMap<User, Vec<i32>>,
 	conflicting_module_reservations: BTreeMap<User, Vec<i32>>,
 	conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>>,
+	body_markdown: String,
 }
 
 async fn post_redirect(Path(id): Path<i32>) -> Redirect {
@@ -763,6 +764,27 @@ async fn post_detail(
 		}
 	}
 
+	let options = comrak::Options {
+		extension: comrak::ExtensionOptions::builder()
+			.strikethrough(true)
+			.table(true)
+			.autolink(true)
+			.tasklist(true)
+			.superscript(true)
+			.underline(true)
+			.subscript(true)
+			.spoiler(true)
+			.build(),
+		parse: comrak::ParseOptions::builder()
+			.smart(true)
+			.relaxed_autolinks(true)
+			.build(),
+		render: comrak::RenderOptions::builder().escape(true).build(),
+	};
+
+	let body_markdown = comrak::markdown_to_html(&post.text, &options)
+		.replace("<img src", "<img style=\"width: 100%\" src");
+
 	Ok(PostTemplate {
 		user: base.user.clone(),
 		jwt: base.jwt.clone(),
@@ -785,6 +807,7 @@ async fn post_detail(
 		conflicting_pv_reservations,
 		conflicting_module_reservations,
 		conflicting_cstm_item_reservations,
+		body_markdown,
 	})
 }
 

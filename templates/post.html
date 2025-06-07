@@ -481,7 +481,7 @@
 		</div>
 	</div>
 
-	<div class="card card-body text">{{ comrak::markdown_to_html(post.text, &comrak::Options::default()).replace("<img src", "<img style=\"width: 100%\" src") | safe }}</div>
+	<div class="card card-body text">{{ body_markdown | safe }}</div>
 
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">
