@@ -944,7 +944,7 @@ pub enum ReserveRangeResult {
 	ValidRange,                  // Completly empty
 	PartialValidRange(Vec<i32>), // Range contains content that the user is an author of, returns which ids those are
 	InvalidRange,                // Range containts content that the user is not an author
-	InvalidLength(i32),          // The length is too high, returns the users max remaining length
+	InvalidLength(usize),        // The length is too high, returns the users max remaining length
 	InvalidAlignment(u32),       // Start was improperly aligned
 }
 
@@ -1194,7 +1194,7 @@ pub async fn check_reserve_range(
 	state: &AppState,
 ) -> ReserveRangeResult {
 	let max = get_user_max_reservations(reservation_type, &user, &state).await;
-	if max < length as i32 {
+	if max < length as usize {
 		return ReserveRangeResult::InvalidLength(max);
 	}
 
@@ -1324,20 +1324,11 @@ pub async fn check_reserve_range(
 	ReserveRangeResult::ValidRange
 }
 
-pub async fn get_user_max_reservations(
+pub async fn get_user_uploads(
 	reservation_type: ReservationType,
 	user: &User,
 	state: &AppState,
-) -> i32 {
-	let existing_reservations = sqlx::query!(
-		"SELECT range_start, length FROM reservations WHERE reservation_type = $1 AND user_id = $2 AND time != '1970-01-01'",
-		reservation_type as i32,
-		user.id
-	)
-	.fetch_all(&state.db)
-	.await
-	.unwrap_or_default();
-
+) -> BTreeSet<i32> {
 	let user_posts = sqlx::query!(
 		"SELECT post_id FROM post_authors WHERE user_id = $1",
 		user.id
@@ -1346,7 +1337,7 @@ pub async fn get_user_max_reservations(
 	.await
 	.unwrap_or_default();
 
-	let ids = if user_posts.len() > 0 {
+	if user_posts.len() > 0 {
 		match reservation_type {
 			ReservationType::Song => {
 				let index = state.meilisearch.index("pvs");
@@ -1423,17 +1414,44 @@ pub async fn get_user_max_reservations(
 		}
 	} else {
 		BTreeSet::new()
-	};
+	}
+}
 
-	let existing_reservations = existing_reservations
+pub async fn get_user_reservations(
+	reservation_type: ReservationType,
+	user: &User,
+	state: &AppState,
+) -> BTreeSet<i32> {
+	let existing_reservations = sqlx::query!(
+		"SELECT range_start, length FROM reservations WHERE reservation_type = $1 AND user_id = $2 AND time != '1970-01-01'",
+		reservation_type as i32,
+		user.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default();
+
+	let uploads = get_user_uploads(reservation_type, user, state).await;
+
+	existing_reservations
 		.iter()
 		.flat_map(|reservation| {
 			(reservation.range_start)..(reservation.range_start + reservation.length)
 		})
-		.filter(|reservation| !ids.contains(reservation))
-		.count();
+		.filter(|reservation| !uploads.contains(reservation))
+		.collect()
+}
 
-	50 + (ids.len() / 2).next_multiple_of(10) as i32 - existing_reservations as i32
+pub async fn get_user_max_reservations(
+	reservation_type: ReservationType,
+	user: &User,
+	state: &AppState,
+) -> usize {
+	let uploads = get_user_uploads(reservation_type, user, state).await;
+	let reservations = get_user_reservations(reservation_type, user, state)
+		.await
+		.len();
+	50 + (uploads.len() / 2).next_multiple_of(10) - reservations
 }
 
 pub async fn web_find_reserve_range(
@@ -1455,7 +1473,7 @@ pub async fn find_reservable_range(
 	state: &AppState,
 ) -> i32 {
 	let max = get_user_max_reservations(reservation_type, &user, &state).await;
-	if max < length as i32 {
+	if max < length as usize {
 		return -1;
 	}
 

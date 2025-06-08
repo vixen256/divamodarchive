@@ -6,24 +6,38 @@
 
 {% block content %}
 <script>
-	const song_reservations = {{ remaining_song_reservations }};
-	const module_reservations = {{ remaining_module_reservations }};
-	const cstm_reservations = {{ remaining_cstm_item_reservations }};
 	var reservation_type = 'Song';
 	var current_max = {{ remaining_song_reservations }};
 
 	function update_dropdown(type) {
 		reservation_type = type;
+
 		var reservation_count = document.getElementById('reservation_count');
+		var guide_type = document.getElementById('guide_type');
+		var upload_total = document.getElementById('upload_total');
+		var existing_reservations = document.getElementById('existing_reservations');
+
 		if (type == 'Song') {
-			reservation_count.innerText = song_reservations + ' Songs';
-			current_max = song_reservations;
+			reservation_count.innerText = '{{ remaining_song_reservations }} Song IDs';
+			guide_type.innerText = 'Songs';
+			upload_total.innerText = '{{ uploaded_songs }} Songs';
+			existing_reservations.innerText = '{{ existing_song_reservations}} Song IDs';
+
+			current_max = {{ remaining_song_reservations }};
 		} else if (type == 'Module') {
-			reservation_count.innerText = module_reservations + ' Modules';
-			current_max = module_reservations;
+			reservation_count.innerText = '{{ remaining_module_reservations }} Module IDs';
+			guide_type.innerText = 'Modules';
+			upload_total.innerText = '{{ uploaded_modules }} Modules';
+			existing_reservations.innerText = '{{ existing_module_reservations}} Module IDs';
+
+			current_max = {{ remaining_module_reservations }};
 		} else if (type == 'CstmItem') {
-			reservation_count.innerText = cstm_reservations + ' Customize Items';
-			current_max = cstm_reservations;
+			reservation_count.innerText = '{{ remaining_cstm_item_reservations }} Customize Item IDs';
+			guide_type.innerText = 'Customize Items';
+			upload_total.innerText = '{{ uploaded_cstm_items }} Customize Items';
+			existing_reservations.innerText = '{{ existing_cstm_item_reservations}} Customize Item IDs';
+
+			current_max = {{ remaining_cstm_item_reservations }};
 		}
 
 		var start = document.getElementById('start_input');
@@ -33,12 +47,10 @@
 
 		var length_div = document.getElementById('length_div');
 		var length_feedback = document.getElementById('length_feedback');
-		var get_recommendation_button = document.getElementById('get_recommendation_button');
 
 		length.classList = 'form-control';
 		length_div.classList = '';
 		length_feedback.hidden = true;
-		get_recommendation_button.hidden = true;
 
 		var submit = document.getElementById('submit_reservation_button');
 		var start_div = document.getElementById('start_div');
@@ -51,6 +63,24 @@
 	}
 
 	async function get_recommendation() {
+		var length = document.getElementById('length_input');
+		var length_div = document.getElementById('length_div');
+		var length_feedback = document.getElementById('length_feedback');
+
+		var start = document.getElementById('start_input');
+		var start_div = document.getElementById('start_div');
+		var start_feedback = document.getElementById('start_feedback');
+
+		if (length.value == undefined || length.value <= 0 || isNaN(length.value)) {
+			length.classList = 'form-control is-invalid';
+			length_div.classList = 'has-danger';
+
+			length_feedback.hidden = false;
+			length_feedback.classList = 'invalid-feedback';
+			length_feedback.innerText = 'Must enter length first';
+			return;
+		}
+
 		var options = {
 			method: 'GET',
 			headers: {
@@ -58,17 +88,19 @@
 			}
 		}
 
-		var length = document.getElementById('length_input');
 		var query = {
 			'reservation_type': reservation_type,
 			'start': 0,
 			'length': Number(length.value),
 		};
 
-		var start = document.getElementById('start_input');
-		var start_div = document.getElementById('start_div');
-		var start_feedback = document.getElementById('start_feedback');
-		start.value = await fetch('/api/v1/reserve/find?' + new URLSearchParams(query).toString(), options).then(response => response.json());
+		var start_id = await fetch('/api/v1/reserve/find?' + new URLSearchParams(query).toString(), options).then(response => response.json());
+		if (start_id != -1) {
+			start.value = start_id;
+		} else {
+			start_id = undefined;
+			return;
+		}
 
 		var submit = document.getElementById('submit_reservation_button');
 		submit.hidden = false;
@@ -87,17 +119,16 @@
 			length.classList = 'form-control';
 			length_div.classList = '';
 			length_feedback.hidden = false;
-			get_recommendation_button.hidden = true;
+			length_feedback.innerText = 'Too long for current max, if you require more than you can currently reserve please contact an admin';
 		} else if (length.value > current_max) {
 			length.classList = 'form-control is-invalid';
 			length_div.classList = 'has-danger';
 			length_feedback.hidden = false;
-			get_recommendation_button.hidden = true;
+			length_feedback.innerText = 'Too long for current max, if you require more than you can currently reserve please contact an admin';
 		} else {
 			length.classList = 'form-control is-valid';
 			length_div.classList = '';
 			length_feedback.hidden = true;
-			get_recommendation_button.hidden = false;
 		}
 
 		await check_id_valid();
@@ -239,7 +270,7 @@
 			length.classList = 'form-control is-invalid';
 			length_div.classList = 'has-danger';
 			length_feedback.hidden = false;
-			get_recommendation_button.hidden = true;
+			length_feedback.innerText = 'Too long for current max, if you require more than you can currently reserve please contact an admin';
 
 			submit.hidden = true;
 		}
@@ -259,19 +290,21 @@
 	</div>
 	-->
 
-	<p>You can reserve up to <b id="reservation_count">{{ remaining_song_reservations }} Songs</b></p>
+	<p>You can reserve up to <b id="reservation_count">{{ remaining_song_reservations }} Song IDs</b>.</p>
+	<p>You have currently uploaded <b id="upload_total">{{ uploaded_songs }} Songs</b> and reserved <b id="existing_reservations">{{ existing_song_reservations }} Song IDs</b>.</p>
+	<p>You get access to more reservations as you upload mods, equal to 50 plus half of your total uploaded <b id="guide_type">Songs</b> rounded up to 10</p>
 
-	<div id="length_div">
-		<label class="form-label mt-2" for="length_input">Length</label>
+	<div id="length_div" class="mt-3 mb-1">
+		<label class="form-label mt-2" for="length_input">Amount of IDs to reserve</label>
 		<input type="number" value="" class="form-control" id="length_input" onchange="check_length_valid()">
 		<div class="invalid-feedback" id="length_feedback" hidden>Too long for current max, if you require more than you can currently reserve please contact an admin</div>
 	</div>
-	<div id="start_div">
-		<label class="form-label mt-2" for="start_input">Starting ID</label>
+	<div id="start_div" class="mt-1 mb-1">
+		<label class="form-label mt-2" for="start_input">First ID to reserve</label>
 		<input type="number" value="" class="form-control" id="start_input" onchange="check_id_valid()">
 		<div class="invalid-feedback" id="start_feedback" hidden></div>
 	</div>
-	<button class="mt-2 btn btn-secondary" type="button" id="get_recommendation_button" onclick="get_recommendation()" hidden>Get first free IDs for length</button>
+	<button class="mt-2 btn btn-success" type="button" id="get_recommendation_button" onclick="get_recommendation()">Get first free IDs for length</button>
 	<button class="mt-2 btn btn-primary" type="button" id="submit_reservation_button" onclick="submit_reservation()" hidden>Submit</button>
 </div>
 {% endblock content %}

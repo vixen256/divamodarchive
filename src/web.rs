@@ -1051,22 +1051,59 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 #[template(path = "reserve.html")]
 struct ReserveTemplate {
 	base: BaseTemplate,
-	remaining_song_reservations: i32,
-	remaining_module_reservations: i32,
-	remaining_cstm_item_reservations: i32,
+	remaining_song_reservations: usize,
+	remaining_module_reservations: usize,
+	remaining_cstm_item_reservations: usize,
+	existing_song_reservations: usize,
+	existing_module_reservations: usize,
+	existing_cstm_item_reservations: usize,
+	uploaded_songs: usize,
+	uploaded_modules: usize,
+	uploaded_cstm_items: usize,
 }
 
 async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) -> ReserveTemplate {
-	let remaining_song_reservations =
-		get_user_max_reservations(ReservationType::Song, &user, &state).await;
-	let remaining_module_reservations =
-		get_user_max_reservations(ReservationType::Module, &user, &state).await;
-	let remaining_cstm_item_reservations =
-		get_user_max_reservations(ReservationType::CstmItem, &user, &state).await;
 	ReserveTemplate {
 		base,
-		remaining_song_reservations,
-		remaining_module_reservations,
-		remaining_cstm_item_reservations,
+		remaining_song_reservations: get_user_max_reservations(
+			ReservationType::Song,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_module_reservations: get_user_max_reservations(
+			ReservationType::Module,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cstm_item_reservations: get_user_max_reservations(
+			ReservationType::CstmItem,
+			&user,
+			&state,
+		)
+		.await,
+		existing_song_reservations: get_user_reservations(ReservationType::Song, &user, &state)
+			.await
+			.len(),
+		existing_module_reservations: get_user_reservations(ReservationType::Module, &user, &state)
+			.await
+			.len(),
+		existing_cstm_item_reservations: get_user_reservations(
+			ReservationType::CstmItem,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		uploaded_songs: get_user_uploads(ReservationType::Song, &user, &state)
+			.await
+			.len(),
+		uploaded_modules: get_user_uploads(ReservationType::Module, &user, &state)
+			.await
+			.len(),
+		uploaded_cstm_items: get_user_uploads(ReservationType::CstmItem, &user, &state)
+			.await
+			.len(),
 	}
 }
