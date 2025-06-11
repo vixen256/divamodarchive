@@ -23,7 +23,7 @@
 			<h5 class="text">
 				<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>{{ total_likes|prettify_num }} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>{{ total_downloads|prettify_num }}
 			</h5>
-			{% if owner.public_likes %}
+			{% if owner.public_likes && has_likes %}
 			<a class="text" href="/liked/{{ owner.id }}">{{ owner.display_name }}'s Liked Mods</a><br>
 			{% endif %}
 			{% if has_reservations %}

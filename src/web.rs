@@ -225,6 +225,7 @@ struct UserTemplate {
 	owner: User,
 	total_likes: i64,
 	total_downloads: i64,
+	has_likes: bool,
 	has_reservations: bool,
 }
 
@@ -268,6 +269,11 @@ async fn user(
 		(acc.0 + post.like_count, acc.1 + post.download_count)
 	});
 
+	let has_likes = sqlx::query!("SELECT COUNT(*) FROM liked_posts WHERE user_id = $1", id)
+		.fetch_one(&state.db)
+		.await
+		.map_or(false, |record| record.count.unwrap_or(0) > 0);
+
 	let reservation_count =
 		sqlx::query!("SELECT COUNT(*) FROM reservations WHERE user_id = $1", id)
 			.fetch_one(&state.db)
@@ -280,6 +286,7 @@ async fn user(
 		owner,
 		total_likes,
 		total_downloads,
+		has_likes,
 		has_reservations: reservation_count > 0,
 	})
 }
