@@ -58,7 +58,11 @@
 
 			{% if let Some(reservation) = reservations.get(i) %}
 				<td class="red-background">Reserved by {{ reservation.user.display_name }}</td>
+				{% if let Some(label) = reservation_labels.get(i) %}
+				<td class="red-background">{{ label }}</td>
+				{% else %}
 				<td class="red-background"/>
+				{% endif %}
 				<td class="red-background">{{ reservation.time.date() }}</td>
 			{% endif %}
 

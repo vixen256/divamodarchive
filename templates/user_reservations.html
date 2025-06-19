@@ -9,8 +9,19 @@
 {% endblock head %}
 
 {% block content %}
-{% if let Some(user) = base.user %}
-{% if user.id == owner.id %}
+
+{% let is_owner -%}
+{% if let Some(user) = base.user -%}
+	{% if user.id == owner.id -%}
+		{% let is_owner = true -%}
+	{% else -%}
+		{% let is_owner = false -%}
+	{% endif -%}
+{% else -%}
+	{% let is_owner = false %}
+{% endif -%}
+
+{% if is_owner %}
 <script>
 	async function delete_reservation(type, id) {
 		var query = {
@@ -31,8 +42,26 @@
 		await fetch('/api/v1/reserve', options);
 		document.getElementById(type + id).hidden = true;
 	}
+
+	async function label_reservation(type, id) {
+		var query = {
+			'reservation_type': type,
+			'label': document.getElementById(type + id + 'Label').value,
+		};
+
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ base.jwt.as_ref().unwrap() }}'
+			},
+			body: JSON.stringify(query),
+		}
+
+		await fetch('/api/v1/reservations/' + id  + '/label', options);
+		document.getElementById(type + id + 'Label').parentElement.innerHTML = document.getElementById(type + id + 'Label').value;
+	}
 </script>
-{% endif %}
 {% endif %}
 
 {% if song_reservations.len() > 0 %}
@@ -41,11 +70,12 @@
 	<thead>
 		<tr>
 			<th>ID</th>
-			<th>Time</th>
-			{% if let Some(user) = base.user %}
-			{% if user.id == owner.id %}
-			<th />
+			{% if song_reservation_labels.len() > 0 || is_owner %}
+			<th>Label</th>
 			{% endif %}
+			<th>Time</th>
+			{% if is_owner %}
+			<th />
 			{% endif %}
 		</tr>
 	</thead>
@@ -53,11 +83,25 @@
 	{% for (id, reservation) in song_reservations %}
 		<tr id="Song{{id}}">
 			<td>{{ id }}</td>
-			<td>{{ reservation.time.date() }}</td>
-			{% if let Some(user) = base.user %}
-			{% if user.id == owner.id %}
-			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }})">Delete</button></td>
+			{% if is_owner %}
+				<td>
+					{% if let Some(label) = song_reservation_labels.get(id) %}
+						<input class="w-50" type="text" id="Song{{ id }}Label" autocomplete="off" value="{{ label }}">
+					{% else %}
+						<input class="w-50" type="text" id="Song{{ id }}Label" autocomplete="off">
+					{% endif %}
+					<button id="" class="btn btn-primary btn-sm" type="button" onclick="label_reservation('Song', {{ id }})">Update</button>
+				</td>
+			{% else if song_reservation_labels.len() > 0 %}
+				{% if let Some(label) = song_reservation_labels.get(id) %}
+					<td>{{ label }}</td>
+				{% else %}
+					<td />
+				{% endif %}
 			{% endif %}
+			<td>{{ reservation.time.date() }}</td>
+			{% if is_owner %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
 	{% endfor %}
@@ -70,11 +114,12 @@
 	<thead>
 		<tr>
 			<th>ID</th>
-			<th>Time</th>
-			{% if let Some(user) = base.user %}
-			{% if user.id == owner.id %}
-			<th />
+			{% if module_reservation_labels.len() > 0 || is_owner %}
+			<th>Label</th>
 			{% endif %}
+			<th>Time</th>
+			{% if is_owner %}
+			<th />
 			{% endif %}
 		</tr>
 	</thead>
@@ -82,11 +127,25 @@
 	{% for (id, reservation) in module_reservations %}
 		<tr id="Module{{id}}">
 			<td>{{ id }}</td>
-			<td>{{ reservation.time.date() }}</td>
-			{% if let Some(user) = base.user %}
-			{% if user.id == owner.id %}
-			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }})">Delete</button></td>
+			{% if is_owner %}
+				<td>
+					{% if let Some(label) = module_reservation_labels.get(id) %}
+						<input class="w-50" type="text" id="Module{{ id }}Label" autocomplete="off" value="{{ label }}">
+					{% else %}
+						<input class="w-50" type="text" id="Module{{ id }}Label" autocomplete="off">
+					{% endif %}
+					<button id="" class="btn btn-primary btn-sm" type="button" onclick="label_reservation('Module', {{ id }})">Update</button>
+				</td>
+			{% else if module_reservation_labels.len() > 0 %}
+				{% if let Some(label) = module_reservation_labels.get(id) %}
+					<td>{{ label }}</td>
+				{% else %}
+					<td />
+				{% endif %}
 			{% endif %}
+			<td>{{ reservation.time.date() }}</td>
+			{% if is_owner %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
 	{% endfor %}
@@ -99,11 +158,12 @@
 	<thead>
 		<tr>
 			<th>ID</th>
-			<th>Time</th>
-			{% if let Some(user) = base.user %}
-			{% if user.id == owner.id %}
-			<th />
+			{% if cstm_item_reservation_labels.len() > 0 || is_owner %}
+			<th>Label</th>
 			{% endif %}
+			<th>Time</th>
+			{% if is_owner %}
+			<th />
 			{% endif %}
 		</tr>
 	</thead>
@@ -111,11 +171,25 @@
 	{% for (id, reservation) in cstm_item_reservations %}
 		<tr id="CstmItem{{id}}">
 			<td>{{ id }}</td>
-			<td>{{ reservation.time.date() }}</td>
-			{% if let Some(user) = base.user %}
-			{% if user.id == owner.id %}
-			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }})">Delete</button></td>
+			{% if is_owner %}
+				<td>
+					{% if let Some(label) = cstm_item_reservation_labels.get(id) %}
+						<input class="w-50" type="text" id="CstmItem{{ id }}Label" autocomplete="off" value="{{ label }}">
+					{% else %}
+						<input class="w-50" type="text" id="CstmItem{{ id }}Label" autocomplete="off">
+					{% endif %}
+					<button id="" class="btn btn-primary btn-sm" type="button" onclick="label_reservation('CstmItem', {{ id }})">Update</button>
+				</td>
+			{% else if cstm_item_reservation_labels.len() > 0 %}
+				{% if let Some(label) = cstm_item_reservation_labels.get(id) %}
+					<td>{{ label }}</td>
+				{% else %}
+					<td />
+				{% endif %}
 			{% endif %}
+			<td>{{ reservation.time.date() }}</td>
+			{% if is_owner %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
 	{% endfor %}

@@ -945,14 +945,14 @@ pub enum ReserveRangeResult {
 	PartialValidRange(Vec<i32>), // Range contains content that the user is an author of, returns which ids those are
 	InvalidRange,                // Range containts content that the user is not an author
 	InvalidLength(usize),        // The length is too high, returns the users max remaining length
-	InvalidAlignment(u32),       // Start was improperly aligned
+	InvalidAlignment(i32),       // Start was improperly aligned
 }
 
 #[derive(Serialize, Deserialize)]
 pub struct ReserveRangeArgs {
 	pub reservation_type: ReservationType,
-	pub start: u32,
-	pub length: u32,
+	pub start: i32,
+	pub length: i32,
 }
 
 pub async fn create_reservation(
@@ -960,7 +960,7 @@ pub async fn create_reservation(
 	State(state): State<AppState>,
 	Json(query): Json<ReserveRangeArgs>,
 ) -> Json<ReserveRangeResult> {
-	if query.reservation_type != ReservationType::Song || query.start == 0 || query.length == 0 {
+	if query.reservation_type != ReservationType::Song || query.start < 1 || query.length < 1 {
 		return Json(ReserveRangeResult::InvalidRange);
 	}
 
@@ -981,8 +981,8 @@ pub async fn create_reservation(
 				"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
 				user.id,
 				query.reservation_type as i32,
-				query.start as i32,
-				query.length as i32,
+				query.start,
+				query.length,
 				time
 			)
 			.execute(&state.db)
@@ -990,8 +990,7 @@ pub async fn create_reservation(
 		}
 		ReserveRangeResult::PartialValidRange(ref old_ids) => {
 			let old_ids = old_ids.iter().cloned().collect::<BTreeSet<_>>();
-			let new_ids = (query.start as i32..(query.start as i32 + query.length as i32))
-				.collect::<BTreeSet<_>>();
+			let new_ids = (query.start..(query.start + query.length)).collect::<BTreeSet<_>>();
 
 			let time = time::OffsetDateTime::now_utc();
 
@@ -1050,18 +1049,29 @@ pub async fn delete_reservation(
 		return;
 	}
 
+	for id in query.start..(query.start + query.length) {
+		_ = sqlx::query!(
+			"DELETE FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+			query.reservation_type as i32,
+			id,
+			user.id
+		)
+		.execute(&state.db)
+		.await;
+	}
+
 	let reservered_ids = sqlx::query!(
 		r#"
 		SELECT * FROM reservations r
 		LEFT JOIN users u ON r.user_id = u.id
 		WHERE r.reservation_type = $1
 		AND r.user_id = $2
-		AND (r.range_start >= $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
 		"#,
 		query.reservation_type as i32,
 		user.id,
-		query.start as i32,
-		(query.start + query.length) as i32
+		query.start,
+		(query.start + query.length)
 	)
 	.fetch_all(&state.db)
 	.await
@@ -1073,8 +1083,7 @@ pub async fn delete_reservation(
 	})
 	.collect::<BTreeMap<_, _>>();
 
-	let ids =
-		(query.start as i32..(query.start as i32 + query.length as i32)).collect::<BTreeSet<_>>();
+	let ids = (query.start..(query.start + query.length)).collect::<BTreeSet<_>>();
 
 	if ids.len() > reservered_ids.len() {
 		return;
@@ -1119,12 +1128,12 @@ pub async fn delete_reservation(
 		SET time = '2000-01-01'
 		WHERE r.reservation_type = $1
 		AND r.user_id = $2
-		AND (r.range_start >= $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
 		"#,
 		query.reservation_type as i32,
 		user.id,
-		query.start as i32,
-		(query.start + query.length) as i32
+		query.start,
+		(query.start + query.length)
 	)
 	.execute(&state.db)
 	.await;
@@ -1148,15 +1157,63 @@ pub async fn delete_reservation(
 		WHERE time = '2000-01-01'
 		AND r.reservation_type = $1
 		AND r.user_id = $2
-		AND (r.range_start >= $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
 		"#,
 		query.reservation_type as i32,
 		user.id,
-		query.start as i32,
-		(query.start + query.length) as i32
+		query.start,
+		(query.start + query.length)
 	)
 	.execute(&state.db)
 	.await;
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct LabelReservationArgs {
+	pub reservation_type: ReservationType,
+	pub label: String,
+}
+
+pub async fn label_reservation(
+	axum::extract::Path(id): axum::extract::Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(query): Json<LabelReservationArgs>,
+) -> StatusCode {
+	if id < 1 {
+		return StatusCode::BAD_REQUEST;
+	}
+
+	let has_reservation = sqlx::query!(
+		r#"
+		SELECT COUNT(*) FROM reservations r
+		WHERE r.reservation_type = $1
+		AND r.user_id = $2
+		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $3 + 1
+		"#,
+		query.reservation_type as i32,
+		user.id,
+		id,
+	)
+	.fetch_one(&state.db)
+	.await
+	.map_or(false, |count| count.count.unwrap_or(0) > 0);
+
+	if !has_reservation {
+		return StatusCode::BAD_REQUEST;
+	}
+
+	_ = sqlx::query!(
+		"INSERT INTO reservation_labels VALUES ($1, $2, $3, $4)",
+		user.id,
+		query.reservation_type as i32,
+		id,
+		query.label
+	)
+	.execute(&state.db)
+	.await;
+
+	StatusCode::OK
 }
 
 pub async fn web_check_reserve_range(
@@ -1164,7 +1221,7 @@ pub async fn web_check_reserve_range(
 	user: User,
 	State(state): State<AppState>,
 ) -> Json<ReserveRangeResult> {
-	if query.start == 0 || query.length == 0 {
+	if query.start < 0 || query.length < 0 {
 		return Json(ReserveRangeResult::InvalidRange);
 	}
 
@@ -1188,17 +1245,21 @@ pub async fn web_check_reserve_range(
 
 pub async fn check_reserve_range(
 	reservation_type: ReservationType,
-	start: u32,
-	length: u32,
+	start: i32,
+	length: i32,
 	user: &User,
 	state: &AppState,
 ) -> ReserveRangeResult {
+	if start < 1 || length < 1 {
+		return ReserveRangeResult::InvalidRange;
+	}
+
 	let max = get_user_max_reservations(reservation_type, &user, &state).await;
 	if max < length as usize {
 		return ReserveRangeResult::InvalidLength(max);
 	}
 
-	let alignment = 10_u32
+	let alignment = 10_i32
 		.checked_pow(length.checked_ilog10().unwrap_or(0))
 		.unwrap_or(1);
 	if start % alignment != 0 {
@@ -1293,9 +1354,9 @@ pub async fn check_reserve_range(
 	}
 
 	let conflicts = sqlx::query!(
-		"SELECT u.id, r.range_start, r.length FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE (r.range_start >= $1 OR r.range_start + r.length > $1) AND r.range_start < $2",
-		start as i32,
-		(start + length) as i32
+		"SELECT u.id, r.range_start, r.length FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE (r.range_start = $1 OR r.range_start + r.length > $1) AND r.range_start < $2",
+		start,
+		(start + length)
 	)
 	.fetch_all(&state.db)
 	.await
@@ -1304,7 +1365,7 @@ pub async fn check_reserve_range(
 	for conflict in conflicts {
 		if conflict.id == user.id {
 			for conflict in conflict.range_start..(conflict.range_start + conflict.length) {
-				if conflict >= start as i32 && conflict < (start + length) as i32 {
+				if conflict >= start && conflict < (start + length) {
 					partial_range.push(conflict);
 				}
 			}
@@ -1313,7 +1374,7 @@ pub async fn check_reserve_range(
 		}
 	}
 
-	if partial_range == ((start as i32)..(start as i32 + length as i32)).collect::<Vec<_>>() {
+	if partial_range == ((start)..(start + length)).collect::<Vec<_>>() {
 		return ReserveRangeResult::InvalidRange;
 	}
 
@@ -1459,19 +1520,19 @@ pub async fn web_find_reserve_range(
 	user: User,
 	State(state): State<AppState>,
 ) -> Json<i32> {
-	if query.start != 0 || query.length == 0 {
-		return Json(0);
-	}
-
 	Json(find_reservable_range(query.reservation_type, query.length, &user, &state).await)
 }
 
 pub async fn find_reservable_range(
 	reservation_type: ReservationType,
-	length: u32,
+	length: i32,
 	user: &User,
 	state: &AppState,
 ) -> i32 {
+	if length < 1 {
+		return -1;
+	}
+
 	let max = get_user_max_reservations(reservation_type, &user, &state).await;
 	if max < length as usize {
 		return -1;
@@ -1486,8 +1547,7 @@ pub async fn find_reservable_range(
 	.unwrap_or_default()
 	.iter()
 	.flat_map(|reservation| {
-		(reservation.range_start as u32)
-			..(reservation.range_start as u32 + reservation.length as u32)
+		(reservation.range_start)..(reservation.range_start + reservation.length)
 	})
 	.collect::<BTreeSet<_>>();
 
@@ -1505,7 +1565,7 @@ pub async fn find_reservable_range(
 				search
 					.hits
 					.into_iter()
-					.map(|pv| pv.result.pv_id as u32)
+					.map(|pv| pv.result.pv_id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
@@ -1522,7 +1582,7 @@ pub async fn find_reservable_range(
 				search
 					.hits
 					.into_iter()
-					.map(|module| module.result.module_id as u32)
+					.map(|module| module.result.module_id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
@@ -1539,7 +1599,7 @@ pub async fn find_reservable_range(
 				search
 					.hits
 					.into_iter()
-					.map(|cstm_item| cstm_item.result.customize_item_id as u32)
+					.map(|cstm_item| cstm_item.result.customize_item_id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
@@ -1552,15 +1612,23 @@ pub async fn find_reservable_range(
 		.unwrap_or(1);
 
 	for (id, next) in ids.iter().tuple_windows() {
-		let res = (id + 1).next_multiple_of(alignment);
+		let res = i32::try_from(
+			u32::try_from(id + 1)
+				.unwrap_or(0)
+				.next_multiple_of(alignment),
+		)
+		.unwrap_or(-1);
 		if res + length <= *next {
-			return res as i32;
+			return res;
 		}
 	}
 
-	ids.last()
-		.map_or(0, |id| id + 1)
-		.next_multiple_of(alignment) as i32
+	i32::try_from(
+		u32::try_from(ids.last().map_or(0, |id| id + 1))
+			.unwrap_or(0)
+			.next_multiple_of(alignment),
+	)
+	.unwrap_or(-1)
 }
 
 pub async fn optimise_reservations(reservation_type: ReservationType, state: &AppState) {

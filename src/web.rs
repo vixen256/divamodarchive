@@ -297,8 +297,11 @@ struct UserReservationsTemplate {
 	base: BaseTemplate,
 	owner: User,
 	song_reservations: BTreeMap<i32, Reservation>,
+	song_reservation_labels: BTreeMap<i32, String>,
 	module_reservations: BTreeMap<i32, Reservation>,
+	module_reservation_labels: BTreeMap<i32, String>,
 	cstm_item_reservations: BTreeMap<i32, Reservation>,
+	cstm_item_reservation_labels: BTreeMap<i32, String>,
 }
 
 async fn user_reservations(
@@ -342,6 +345,18 @@ async fn user_reservations(
 	})
 	.collect::<BTreeMap<_, _>>();
 
+	let song_reservation_labels = sqlx::query!(
+		"SELECT rl.id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1 AND rl.user_id = $2",
+		ReservationType::Song as i32,
+		owner.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|label| (label.id, label.label.clone()))
+	.collect::<BTreeMap<_, _>>();
+
 	let module_reservations = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
 		ReservationType::Module as i32,
@@ -369,6 +384,18 @@ async fn user_reservations(
 		(reservation.range_start..(reservation.range_start + reservation.length))
 			.map(move |i| (i, reservation.clone()))
 	})
+	.collect::<BTreeMap<_, _>>();
+
+	let module_reservation_labels = sqlx::query!(
+		"SELECT rl.id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1 AND rl.user_id = $2",
+		ReservationType::Module as i32,
+		owner.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|label| (label.id, label.label.clone()))
 	.collect::<BTreeMap<_, _>>();
 
 	let cstm_item_reservations = sqlx::query!(
@@ -400,12 +427,27 @@ async fn user_reservations(
 	})
 	.collect::<BTreeMap<_, _>>();
 
+	let cstm_item_reservation_labels = sqlx::query!(
+		"SELECT rl.id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1 AND rl.user_id = $2",
+		ReservationType::CstmItem as i32,
+		owner.id
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.map(|label| (label.id, label.label.clone()))
+	.collect::<BTreeMap<_, _>>();
+
 	Ok(UserReservationsTemplate {
 		base,
 		owner,
 		song_reservations,
+		song_reservation_labels,
 		module_reservations,
+		module_reservation_labels,
 		cstm_item_reservations,
+		cstm_item_reservation_labels,
 	})
 }
 
@@ -985,6 +1027,7 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 struct PvSpreadsheet {
 	base: BaseTemplate,
 	reservations: BTreeMap<i32, Reservation>,
+	reservation_labels: BTreeMap<i32, String>,
 	pvs: BTreeMap<i32, Vec<Pv>>,
 	posts: BTreeMap<i32, Post>,
 }
@@ -1046,9 +1089,26 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 		}
 	}
 
+	let reservation_labels = sqlx::query!(
+		"SELECT rl.id, rl.label, rl.user_id FROM reservation_labels rl WHERE rl.reservation_type = $1",
+		ReservationType::Song as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.filter(|label| {
+		reservations
+			.get(&label.id)
+			.map_or(false, |reservation| reservation.user.id == label.user_id)
+	})
+	.map(|label| (label.id, label.label.clone()))
+	.collect::<BTreeMap<_, _>>();
+
 	PvSpreadsheet {
 		base,
 		reservations,
+		reservation_labels,
 		pvs,
 		posts: search.posts,
 	}
