@@ -2,6 +2,7 @@
 {% import "base.html" as base %}
 
 {% block head %}
+{% call base::draw_embed("", "PV Spreadsheet") %}
 <style>
 	.red-background {
 		background-color: #FF6D6D !important;
@@ -59,7 +60,7 @@
 			{% if let Some(reservation) = reservations.get(i) %}
 				<td class="red-background">Reserved by {{ reservation.user.display_name }}</td>
 				{% if let Some(label) = reservation_labels.get(i) %}
-				<td class="red-background">{{ label }}</td>
+				<td class="red-background">{{ label | autolink }}</td>
 				{% else %}
 				<td class="red-background"/>
 				{% endif %}

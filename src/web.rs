@@ -38,6 +38,8 @@ pub fn route(state: AppState) -> Router {
 }
 
 mod filters {
+	use askama::filters::*;
+
 	pub fn prettify_num<T: std::fmt::Display>(
 		s: T,
 		_: &dyn askama::Values,
@@ -63,6 +65,24 @@ mod filters {
 		}
 
 		Ok(format!("{num}"))
+	}
+
+	pub fn autolink<T: std::fmt::Display>(
+		s: T,
+		_: &dyn askama::Values,
+	) -> askama::Result<Safe<String>> {
+		let escaped = format!("{}", escape(s, Html)?);
+		let re = regex::Regex::new(
+			"https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)",
+		).unwrap();
+
+		let mut output = escaped.clone();
+		for m in re.find_iter(&escaped) {
+			let m = m.as_str();
+			output = output.replace(m, &format!("<a href=\"{m}\">{m}</a>"));
+		}
+
+		Ok(Safe(output))
 	}
 }
 
