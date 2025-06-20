@@ -489,6 +489,7 @@ where
 			jwt: None,
 			report_count: None,
 			has_reservations: false,
+			has_likes: false,
 		};
 
 		let cookies = parts.extract::<CookieJar>().await.unwrap();

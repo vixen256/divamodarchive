@@ -225,7 +225,9 @@
 						<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">{{ user.display_name }}</a>
 						<div class="dropdown-menu">
 							<a class="dropdown-item" href="/user/{{ user.id }}">Profile</a>
+							{% if base.has_likes %}
 							<a class="dropdown-item" href="/liked/{{ user.id }}">Liked Mods</a>
+							{% endif %}
 							{% if base.has_reservations %}
 							<a class="dropdown-item" href="/reservations/{{ user.id }}">Reserved IDs</a>
 							{% endif %}

@@ -93,6 +93,7 @@ pub struct BaseTemplate {
 	pub jwt: Option<String>,
 	pub report_count: Option<i64>,
 	pub has_reservations: bool,
+	pub has_likes: bool,
 }
 
 impl<S> FromRequestParts<S> for BaseTemplate
@@ -154,12 +155,25 @@ where
 			false
 		};
 
+		let has_likes = if let Some(user) = &user {
+			sqlx::query!(
+				"SELECT COUNT(*) FROM liked_posts WHERE user_id = $1",
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			.map_or(false, |record| record.count.unwrap_or(0) > 0)
+		} else {
+			false
+		};
+
 		Ok(Self {
 			user,
 			config: state.config,
 			jwt,
 			report_count,
 			has_reservations,
+			has_likes,
 		})
 	}
 }
