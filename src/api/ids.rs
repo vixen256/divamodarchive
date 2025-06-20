@@ -1203,15 +1203,31 @@ pub async fn label_reservation(
 		return StatusCode::BAD_REQUEST;
 	}
 
-	_ = sqlx::query!(
-		"INSERT INTO reservation_labels VALUES ($1, $2, $3, $4)",
+	if sqlx::query!(
+		r#"
+		UPDATE reservation_labels SET label=$1 WHERE user_id=$2 AND reservation_type=$3 AND id=$4
+		"#,
+		query.label,
 		user.id,
 		query.reservation_type as i32,
-		id,
-		query.label
+		id
 	)
 	.execute(&state.db)
-	.await;
+	.await
+	.unwrap_or_default()
+	.rows_affected()
+		== 0
+	{
+		_ = sqlx::query!(
+			"INSERT INTO reservation_labels VALUES ($1, $2, $3, $4)",
+			user.id,
+			query.reservation_type as i32,
+			id,
+			query.label
+		)
+		.execute(&state.db)
+		.await;
+	}
 
 	StatusCode::OK
 }
