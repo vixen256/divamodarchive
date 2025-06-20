@@ -1067,15 +1067,16 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 
 #[derive(Template, WebTemplate)]
 #[template(path = "pv_spreadsheet.html")]
-pub struct PvSpreadsheet {
+struct PvSpreadsheet {
 	base: BaseTemplate,
 	reservations: HashMap<i32, Reservation>,
 	users: HashMap<i64, User>,
 	pvs: HashMap<i32, Vec<Pv>>,
 	posts: BTreeMap<i32, Post>,
+	last: i32,
 }
 
-pub async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
+async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
 	let mut users = HashMap::new();
 
 	let mut reservations = sqlx::query!(
@@ -1161,12 +1162,24 @@ pub async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -
 		}
 	}
 
+	let reservation_set = reservations.keys().collect::<BTreeSet<_>>();
+	let largest_reservation = reservation_set.last().unwrap_or(&&1000);
+	let pv_set = pvs.keys().collect::<BTreeSet<_>>();
+	let largest_pv = pv_set.last().unwrap_or(&&1000);
+
+	let last = if largest_reservation >= largest_pv {
+		**largest_reservation
+	} else {
+		**largest_pv
+	};
+
 	PvSpreadsheet {
 		base,
 		reservations,
 		users,
 		pvs,
 		posts: search.posts,
+		last,
 	}
 }
 

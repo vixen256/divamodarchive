@@ -32,7 +32,8 @@ async fn main() {
 
 	let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must exist");
 	let db = PgPoolOptions::new()
-		.max_connections(128)
+		.min_connections(4)
+		.max_connections(32)
 		.connect(&database_url)
 		.await
 		.expect("Could not connect to database");

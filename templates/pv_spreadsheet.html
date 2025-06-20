@@ -29,22 +29,6 @@
 		</tr>
 	</thead>
 	<tbody>
-	{% let last -%}
-	{% if let Some((reservation, _)) = reservations.iter().last() -%}
-		{% if let Some((pv, _)) = pvs.iter().last() -%}
-			{% if reservation > pv -%}
-				{% let last = reservation.clone().clone() -%}
-			{% else -%}
-				{% let last = pv.clone().clone() -%}
-			{% endif -%}
-		{% else -%}
-			{% let last = reservation.clone().clone() -%}
-		{% endif -%}
-	{% else if let Some((pv, _)) = pvs.iter().last() -%}
-		{% let last = pv.clone().clone() -%}
-	{% else -%}
-		{% let last = 1000 -%}
-	{% endif -%}
 
 	{% for i in 1..=last %}
 	{% if i != 700 && i != 701 && i != 988 && i != 999 %}
