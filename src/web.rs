@@ -1067,16 +1067,16 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 
 #[derive(Template, WebTemplate)]
 #[template(path = "pv_spreadsheet.html")]
-struct PvSpreadsheet {
+pub struct PvSpreadsheet {
 	base: BaseTemplate,
-	reservations: BTreeMap<i32, Reservation>,
-	users: BTreeMap<i64, User>,
-	pvs: BTreeMap<i32, Vec<Pv>>,
+	reservations: HashMap<i32, Reservation>,
+	users: HashMap<i64, User>,
+	pvs: HashMap<i32, Vec<Pv>>,
 	posts: BTreeMap<i32, Post>,
 }
 
-async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
-	let mut users = BTreeMap::new();
+pub async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
+	let mut users = HashMap::new();
 
 	let mut reservations = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
@@ -1112,7 +1112,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 			)
 		})
 	})
-	.collect::<BTreeMap<_, _>>();
+	.collect::<HashMap<_, _>>();
 
 	let Json(search) = search_pvs(
 		Query(SearchParams {
@@ -1126,7 +1126,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	.await
 	.unwrap_or_default();
 
-	let mut pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
+	let mut pvs: HashMap<i32, Vec<Pv>> = HashMap::new();
 	for pv in &search.pvs {
 		if let Some(reservation) = reservations.get(&pv.id) {
 			if let Some(post) = pv.post {
