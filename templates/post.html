@@ -6,9 +6,9 @@
 {% import "cstm_item_helpers.html" as cstm_item_helpers %}
 
 {% block head %}
-{% let text = post.text.clone() %}
-{% let description = format!("{:.50}", text) %}
-{% call base::draw_embed(post.name, description) %}
+{% let text = post.text.trim().replace('\n', " ").replace('#', "") %}
+{% let description = format!("{:.100}", text) %}
+{% call base::draw_embed(post.name, description.trim()) %}
 <meta property="og:image" content="{{ post.images[0] }}">
 <meta name="twitter:card" content="summary_large_image">
 {% endblock head %}

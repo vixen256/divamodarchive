@@ -331,11 +331,8 @@ struct UserReservationsTemplate {
 	base: BaseTemplate,
 	owner: User,
 	song_reservations: BTreeMap<i32, Reservation>,
-	song_reservation_labels: BTreeMap<i32, String>,
 	module_reservations: BTreeMap<i32, Reservation>,
-	module_reservation_labels: BTreeMap<i32, String>,
 	cstm_item_reservations: BTreeMap<i32, Reservation>,
-	cstm_item_reservation_labels: BTreeMap<i32, String>,
 }
 
 async fn user_reservations(
@@ -350,8 +347,10 @@ async fn user_reservations(
 		});
 	};
 
-	let song_reservations = sqlx::query!(
-		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
+	let mut users = BTreeMap::new();
+
+	let mut song_reservations = sqlx::query!(
+		"SELECT * FROM reservations r WHERE reservation_type = $1 AND r.user_id = $2",
 		ReservationType::Song as i32,
 		owner.id
 	)
@@ -359,39 +358,22 @@ async fn user_reservations(
 	.await
 	.unwrap_or_default()
 	.iter()
-	.map(|reservation| Reservation {
-		user: User {
-			id: reservation.user_id,
-			name: reservation.name.clone(),
-			avatar: reservation.avatar.clone(),
-			display_name: reservation.display_name.clone(),
-			public_likes: reservation.public_likes,
-			theme: reservation.theme.into(),
-		},
-		reservation_type: reservation.reservation_type.into(),
-		range_start: reservation.range_start,
-		length: reservation.length,
-		time: reservation.time.assume_offset(time::UtcOffset::UTC),
-	})
 	.flat_map(|reservation| {
-		(reservation.range_start..(reservation.range_start + reservation.length))
-			.map(move |i| (i, reservation.clone()))
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
 	})
 	.collect::<BTreeMap<_, _>>();
 
-	let song_reservation_labels = sqlx::query!(
-		"SELECT rl.id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1 AND rl.user_id = $2",
-		ReservationType::Song as i32,
-		owner.id
-	)
-	.fetch_all(&state.db)
-	.await
-	.unwrap_or_default()
-	.iter()
-	.map(|label| (label.id, label.label.clone()))
-	.collect::<BTreeMap<_, _>>();
-
-	let module_reservations = sqlx::query!(
+	let mut module_reservations = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
 		ReservationType::Module as i32,
 		owner.id
@@ -400,39 +382,35 @@ async fn user_reservations(
 	.await
 	.unwrap_or_default()
 	.iter()
-	.map(|reservation| Reservation {
-		user: User {
-			id: reservation.user_id,
-			name: reservation.name.clone(),
-			avatar: reservation.avatar.clone(),
-			display_name: reservation.display_name.clone(),
-			public_likes: reservation.public_likes,
-			theme: reservation.theme.into(),
-		},
-		reservation_type: reservation.reservation_type.into(),
-		range_start: reservation.range_start,
-		length: reservation.length,
-		time: reservation.time.assume_offset(time::UtcOffset::UTC),
-	})
 	.flat_map(|reservation| {
-		(reservation.range_start..(reservation.range_start + reservation.length))
-			.map(move |i| (i, reservation.clone()))
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
 	})
 	.collect::<BTreeMap<_, _>>();
 
-	let module_reservation_labels = sqlx::query!(
-		"SELECT rl.id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1 AND rl.user_id = $2",
-		ReservationType::Module as i32,
-		owner.id
-	)
-	.fetch_all(&state.db)
-	.await
-	.unwrap_or_default()
-	.iter()
-	.map(|label| (label.id, label.label.clone()))
-	.collect::<BTreeMap<_, _>>();
-
-	let cstm_item_reservations = sqlx::query!(
+	let mut cstm_item_reservations = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
 		ReservationType::CstmItem as i32,
 		owner.id
@@ -441,47 +419,79 @@ async fn user_reservations(
 	.await
 	.unwrap_or_default()
 	.iter()
-	.map(|reservation| Reservation {
-		user: User {
-			id: reservation.user_id,
-			name: reservation.name.clone(),
-			avatar: reservation.avatar.clone(),
-			display_name: reservation.display_name.clone(),
-			public_likes: reservation.public_likes,
-			theme: reservation.theme.into(),
-		},
-		reservation_type: reservation.reservation_type.into(),
-		range_start: reservation.range_start,
-		length: reservation.length,
-		time: reservation.time.assume_offset(time::UtcOffset::UTC),
-	})
 	.flat_map(|reservation| {
-		(reservation.range_start..(reservation.range_start + reservation.length))
-			.map(move |i| (i, reservation.clone()))
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
 	})
 	.collect::<BTreeMap<_, _>>();
 
-	let cstm_item_reservation_labels = sqlx::query!(
-		"SELECT rl.id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1 AND rl.user_id = $2",
-		ReservationType::CstmItem as i32,
-		owner.id
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl"
 	)
 	.fetch_all(&state.db)
 	.await
 	.unwrap_or_default()
-	.iter()
-	.map(|label| (label.id, label.label.clone()))
-	.collect::<BTreeMap<_, _>>();
+	{
+		let reservation_type: ReservationType = record.reservation_type.into();
+		match reservation_type {
+			ReservationType::Song => {
+				let Some(reservation) = song_reservations.get_mut(&record.id) else {
+					continue;
+				};
+				if reservation.user != record.user_id {
+					continue;
+				};
+				reservation.label = Some(record.label.clone());
+			}
+			ReservationType::Module => {
+				let Some(reservation) = module_reservations.get_mut(&record.id) else {
+					continue;
+				};
+				if reservation.user != record.user_id {
+					continue;
+				};
+				reservation.label = Some(record.label.clone());
+			}
+			ReservationType::CstmItem => {
+				let Some(reservation) = cstm_item_reservations.get_mut(&record.id) else {
+					continue;
+				};
+				if reservation.user != record.user_id {
+					continue;
+				};
+				reservation.label = Some(record.label.clone());
+			}
+		}
+	}
 
 	Ok(UserReservationsTemplate {
 		base,
 		owner,
 		song_reservations,
-		song_reservation_labels,
 		module_reservations,
-		module_reservation_labels,
 		cstm_item_reservations,
-		cstm_item_reservation_labels,
 	})
 }
 
@@ -1055,18 +1065,19 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 	return CstmItemsTemplate { base, cstm_items };
 }
 
-// This code fucking sucks
 #[derive(Template, WebTemplate)]
 #[template(path = "pv_spreadsheet.html")]
 struct PvSpreadsheet {
 	base: BaseTemplate,
 	reservations: BTreeMap<i32, Reservation>,
-	reservation_labels: BTreeMap<i32, String>,
+	users: BTreeMap<i64, User>,
 	pvs: BTreeMap<i32, Vec<Pv>>,
 	posts: BTreeMap<i32, Post>,
 }
 
 async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
+	let mut users = BTreeMap::new();
+
 	let mut reservations = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
 		ReservationType::Song as i32,
@@ -1075,23 +1086,31 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	.await
 	.unwrap_or_default()
 	.iter()
-	.map(|reservation| Reservation {
-		user: User {
-			id: reservation.user_id,
-			name: reservation.name.clone(),
-			avatar: reservation.avatar.clone(),
-			display_name: reservation.display_name.clone(),
-			public_likes: reservation.public_likes,
-			theme: reservation.theme.into(),
-		},
-		reservation_type: reservation.reservation_type.into(),
-		range_start: reservation.range_start,
-		length: reservation.length,
-		time: reservation.time.assume_offset(time::UtcOffset::UTC),
-	})
 	.flat_map(|reservation| {
-		(reservation.range_start..(reservation.range_start + reservation.length))
-			.map(move |i| (i, reservation.clone()))
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
 	})
 	.collect::<BTreeMap<_, _>>();
 
@@ -1111,8 +1130,10 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	for pv in &search.pvs {
 		if let Some(reservation) = reservations.get(&pv.id) {
 			if let Some(post) = pv.post {
-				if search.posts[&post].authors.contains(&reservation.user) {
-					reservations.remove(&pv.id);
+				if let Some(user) = users.get(&reservation.user) {
+					if search.posts[&post].authors.contains(user) {
+						reservations.remove(&pv.id);
+					}
 				}
 			}
 		}
@@ -1123,26 +1144,27 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 		}
 	}
 
-	let reservation_labels = sqlx::query!(
-		"SELECT rl.id, rl.label, rl.user_id FROM reservation_labels rl WHERE rl.reservation_type = $1",
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl WHERE reservation_type = $1",
 		ReservationType::Song as i32,
 	)
 	.fetch_all(&state.db)
 	.await
 	.unwrap_or_default()
-	.iter()
-	.filter(|label| {
-		reservations
-			.get(&label.id)
-			.map_or(false, |reservation| reservation.user.id == label.user_id)
-	})
-	.map(|label| (label.id, label.label.clone()))
-	.collect::<BTreeMap<_, _>>();
+	{
+		if let Some(reservation) = reservations.get_mut(&record.id) {
+			if reservation.user != record.user_id
+			{
+				continue;
+			};
+			reservation.label = Some(record.label.clone());
+		}
+	}
 
 	PvSpreadsheet {
 		base,
 		reservations,
-		reservation_labels,
+		users,
 		pvs,
 		posts: search.posts,
 	}

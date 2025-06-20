@@ -37,6 +37,7 @@ pub fn route(state: AppState) -> Router {
 			post(create_reservation).delete(delete_reservation),
 		)
 		.route("/api/v1/reservations/{id}/label", post(label_reservation))
+		.route("/api/v1/reservations", get(reservations_json))
 		.layer(tower_http::cors::CorsLayer::permissive())
 		.with_state(state)
 }

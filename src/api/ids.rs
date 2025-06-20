@@ -8,7 +8,7 @@ use std::collections::*;
 use std::path::Path;
 use tokio::process::Command;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct SearchParams {
 	pub query: Option<String>,
 	pub filter: Option<String>,
@@ -559,7 +559,7 @@ impl Pv {
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Module {
 	pub uid: String,
 	pub post: Option<i32>,
@@ -567,7 +567,7 @@ pub struct Module {
 	pub module: module_db::Module,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct CstmItem {
 	pub uid: String,
 	pub post: Option<i32>,
@@ -911,7 +911,7 @@ pub async fn search_cstm_items(
 	}))
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
 #[repr(i32)]
 pub enum ReservationType {
 	Song = 0,
@@ -930,7 +930,7 @@ impl From<i32> for ReservationType {
 }
 
 #[derive(Serialize, Deserialize, Clone)]
-pub struct Reservation {
+pub struct ReservationRange {
 	pub user: User,
 	pub reservation_type: ReservationType,
 	pub range_start: i32,
@@ -994,13 +994,13 @@ pub async fn create_reservation(
 
 			let time = time::OffsetDateTime::now_utc();
 
-			let mut ranges: Vec<Reservation> = Vec::new();
+			let mut ranges: Vec<ReservationRange> = Vec::new();
 			for id in new_ids.difference(&old_ids) {
 				if let Some(last) = ranges.last_mut() {
 					if last.range_start + last.length == *id {
 						last.length += 1;
 					} else {
-						ranges.push(Reservation {
+						ranges.push(ReservationRange {
 							user: user.clone(),
 							reservation_type: query.reservation_type,
 							range_start: *id,
@@ -1009,7 +1009,7 @@ pub async fn create_reservation(
 						});
 					}
 				} else {
-					ranges.push(Reservation {
+					ranges.push(ReservationRange {
 						user: user.clone(),
 						reservation_type: query.reservation_type,
 						range_start: *id,
@@ -1089,7 +1089,7 @@ pub async fn delete_reservation(
 		return;
 	}
 
-	let mut ranges: Vec<Reservation> = Vec::new();
+	let mut ranges: Vec<ReservationRange> = Vec::new();
 	for id in reservered_ids
 		.keys()
 		.cloned()
@@ -1103,7 +1103,7 @@ pub async fn delete_reservation(
 					last.time = reservered_ids[id];
 				}
 			} else {
-				ranges.push(Reservation {
+				ranges.push(ReservationRange {
 					user: user.clone(),
 					reservation_type: query.reservation_type,
 					range_start: *id,
@@ -1112,7 +1112,7 @@ pub async fn delete_reservation(
 				});
 			}
 		} else {
-			ranges.push(Reservation {
+			ranges.push(ReservationRange {
 				user: user.clone(),
 				reservation_type: query.reservation_type,
 				range_start: *id,
@@ -1774,7 +1774,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 			BTreeSet::new()
 		};
 
-		let mut ranges: Vec<Reservation> = Vec::new();
+		let mut ranges: Vec<ReservationRange> = Vec::new();
 		for id in reservered_ids
 			.keys()
 			.cloned()
@@ -1788,7 +1788,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 						last.time = reservered_ids[id];
 					}
 				} else {
-					ranges.push(Reservation {
+					ranges.push(ReservationRange {
 						user: user.clone(),
 						reservation_type,
 						range_start: *id,
@@ -1797,7 +1797,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 					});
 				}
 			} else {
-				ranges.push(Reservation {
+				ranges.push(ReservationRange {
 					user: user.clone(),
 					reservation_type,
 					range_start: *id,
@@ -1846,4 +1846,246 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 		.execute(&state.db)
 		.await;
 	}
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct Reservation {
+	pub user: i64,
+	pub reservation_type: ReservationType,
+	#[serde(with = "time::serde::rfc3339")]
+	pub time: time::OffsetDateTime,
+	pub label: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct UsedIdData {
+	reserved_pvs: BTreeMap<i32, Reservation>,
+	uploaded_pvs: BTreeMap<i32, Vec<Pv>>,
+	reserved_modules: BTreeMap<i32, Reservation>,
+	uploaded_modules: BTreeMap<i32, Vec<Module>>,
+	reserved_cstm_items: BTreeMap<i32, Reservation>,
+	uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>>,
+	users: BTreeMap<i64, User>,
+	posts: BTreeMap<i32, Post>,
+}
+
+pub async fn reservations_json(
+	State(state): State<AppState>,
+) -> Result<Json<UsedIdData>, (StatusCode, String)> {
+	let mut users = BTreeMap::new();
+	let mut posts = BTreeMap::new();
+
+	let mut reserved_pvs = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		ReservationType::Song as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	let mut reserved_modules = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		ReservationType::Module as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	let mut reserved_cstm_items = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		ReservationType::CstmItem as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl"
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	{
+		let reservation_type: ReservationType = record.reservation_type.into();
+		match reservation_type {
+			ReservationType::Song => {
+				let Some(reservation) = reserved_pvs.get_mut(&record.id) else {
+					continue;
+				};
+				if reservation.user != record.user_id {
+					continue;
+				};
+				reservation.label = Some(record.label.clone());
+			}
+			ReservationType::Module => {
+				let Some(reservation) = reserved_modules.get_mut(&record.id) else {
+					continue;
+				};
+				if reservation.user != record.user_id {
+					continue;
+				};
+				reservation.label = Some(record.label.clone());
+			}
+			ReservationType::CstmItem => {
+				let Some(reservation) = reserved_cstm_items.get_mut(&record.id) else {
+					continue;
+				};
+				if reservation.user != record.user_id {
+					continue;
+				};
+				reservation.label = Some(record.label.clone());
+			}
+		}
+	}
+
+	let search = SearchParams {
+		query: None,
+		filter: None,
+		limit: Some(100_000),
+		offset: None,
+	};
+
+	let Json(pvs) = search_pvs(Query(search.clone()), State(state.clone())).await?;
+	let Json(modules) = search_modules(Query(search.clone()), State(state.clone())).await?;
+	let Json(cstm_items) = search_cstm_items(Query(search), State(state.clone())).await?;
+
+	let mut uploaded_pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
+	for pv in &pvs.pvs {
+		if let Some(original) = uploaded_pvs.get_mut(&pv.id) {
+			original.push(pv.clone());
+		} else {
+			uploaded_pvs.insert(pv.id, vec![pv.clone()]);
+		}
+	}
+
+	for (id, post) in pvs.posts {
+		if !posts.contains_key(&id) {
+			posts.insert(id, post);
+		}
+	}
+
+	let mut uploaded_modules: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
+	for module in &modules.modules {
+		if let Some(original) = uploaded_modules.get_mut(&module.id) {
+			original.push(module.clone());
+		} else {
+			uploaded_modules.insert(module.id, vec![module.clone()]);
+		}
+	}
+
+	for (id, post) in modules.posts {
+		if !posts.contains_key(&id) {
+			posts.insert(id, post);
+		}
+	}
+
+	let mut uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>> = BTreeMap::new();
+	for cstm_items in &cstm_items.cstm_items {
+		if let Some(original) = uploaded_cstm_items.get_mut(&cstm_items.id) {
+			original.push(cstm_items.clone());
+		} else {
+			uploaded_cstm_items.insert(cstm_items.id, vec![cstm_items.clone()]);
+		}
+	}
+
+	for (id, post) in cstm_items.posts {
+		if !posts.contains_key(&id) {
+			posts.insert(id, post);
+		}
+	}
+
+	Ok(Json(UsedIdData {
+		reserved_pvs,
+		uploaded_pvs,
+		reserved_modules,
+		uploaded_modules,
+		reserved_cstm_items,
+		uploaded_cstm_items,
+		users,
+		posts,
+	}))
 }

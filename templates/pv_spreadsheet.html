@@ -58,8 +58,12 @@
 			{% endif %}
 
 			{% if let Some(reservation) = reservations.get(i) %}
-				<td class="red-background">Reserved by <a href="/user/{{ reservation.user.id }}">{{ reservation.user.display_name }}</a></td>
-				{% if let Some(label) = reservation_labels.get(i) %}
+				{% if let Some(user) = users.get(reservation.user) %}
+				<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+				{% else %}
+				<td class="red-background">Reserved</td>
+				{% endif %}
+				{% if let Some(label) = reservation.label %}
 				<td class="red-background">{{ label | autolink }}</td>
 				{% else %}
 				<td class="red-background"/>
