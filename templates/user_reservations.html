@@ -94,7 +94,7 @@
 				</td>
 			{% else if song_reservation_labels.len() > 0 %}
 				{% if let Some(label) = song_reservation_labels.get(id) %}
-					<td>{{ label }}</td>
+					<td>{{ label | autolink  }}</td>
 				{% else %}
 					<td />
 				{% endif %}
