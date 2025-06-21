@@ -222,7 +222,7 @@
 	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
-		var pvs = await search(document.getElementById("searchQuery").value, document.getElementById("pvs").children.length);
+		var pvs = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("pvs").children.length);
 		if (clear) {
 			document.getElementById("pvs").innerHTML = "";
 			document.getElementById("offcanvasList").innerHTML = "";
