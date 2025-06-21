@@ -960,7 +960,11 @@ pub async fn create_reservation(
 	State(state): State<AppState>,
 	Json(query): Json<ReserveRangeArgs>,
 ) -> Json<ReserveRangeResult> {
-	if query.reservation_type != ReservationType::Song || query.start < 1 || query.length < 1 {
+	if query.reservation_type != ReservationType::Song
+		|| query.start < 1
+		|| query.length < 1
+		|| query.start.checked_add(query.length).is_none()
+	{
 		return Json(ReserveRangeResult::InvalidRange);
 	}
 
@@ -1266,7 +1270,7 @@ pub async fn check_reserve_range(
 	user: &User,
 	state: &AppState,
 ) -> ReserveRangeResult {
-	if start < 1 || length < 1 {
+	if start < 1 || length < 1 || start.checked_add(length).is_none() {
 		return ReserveRangeResult::InvalidRange;
 	}
 
