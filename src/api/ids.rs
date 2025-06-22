@@ -1862,20 +1862,14 @@ pub struct Reservation {
 }
 
 #[derive(Serialize, Deserialize)]
-pub struct UsedIdData {
-	reserved_pvs: BTreeMap<i32, Reservation>,
-	uploaded_pvs: BTreeMap<i32, Vec<Pv>>,
-	reserved_modules: BTreeMap<i32, Reservation>,
-	uploaded_modules: BTreeMap<i32, Vec<Module>>,
-	reserved_cstm_items: BTreeMap<i32, Reservation>,
-	uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>>,
-	users: BTreeMap<i64, User>,
-	posts: BTreeMap<i32, Post>,
+pub struct AllPvs {
+	pub reserved_pvs: BTreeMap<i32, Reservation>,
+	pub uploaded_pvs: BTreeMap<i32, Vec<Pv>>,
+	pub users: BTreeMap<i64, User>,
+	pub posts: BTreeMap<i32, Post>,
 }
 
-pub async fn reservations_json(
-	State(state): State<AppState>,
-) -> Result<Json<UsedIdData>, (StatusCode, String)> {
+pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (StatusCode, String)> {
 	let mut users = BTreeMap::new();
 	let mut posts = BTreeMap::new();
 
@@ -1915,6 +1909,69 @@ pub async fn reservations_json(
 	})
 	.collect::<BTreeMap<_, _>>();
 
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1",
+		ReservationType::Song as i32
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	{
+		let Some(reservation) = reserved_pvs.get_mut(&record.id) else {
+			continue;
+		};
+		if reservation.user != record.user_id {
+			continue;
+		};
+		reservation.label = Some(record.label.clone());
+	}
+
+	let search = SearchParams {
+		query: None,
+		filter: None,
+		limit: Some(100_000),
+		offset: None,
+	};
+
+	let Json(pvs) = search_pvs(Query(search), State(state.clone())).await?;
+
+	let mut uploaded_pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
+	for pv in &pvs.pvs {
+		if let Some(original) = uploaded_pvs.get_mut(&pv.id) {
+			original.push(pv.clone());
+		} else {
+			uploaded_pvs.insert(pv.id, vec![pv.clone()]);
+		}
+	}
+
+	for (id, post) in pvs.posts {
+		if !posts.contains_key(&id) {
+			posts.insert(id, post);
+		}
+	}
+
+	Ok(Json(AllPvs {
+		reserved_pvs,
+		uploaded_pvs,
+		users,
+		posts,
+	}))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AllModules {
+	pub reserved_modules: BTreeMap<i32, Reservation>,
+	pub uploaded_modules: BTreeMap<i32, Vec<Module>>,
+	pub users: BTreeMap<i64, User>,
+	pub posts: BTreeMap<i32, Post>,
+}
+
+pub async fn all_modules(
+	State(state): State<AppState>,
+) -> Result<Json<AllModules>, (StatusCode, String)> {
+	let mut users = BTreeMap::new();
+	let mut posts = BTreeMap::new();
+
 	let mut reserved_modules = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
 		ReservationType::Module as i32,
@@ -1950,6 +2007,69 @@ pub async fn reservations_json(
 		})
 	})
 	.collect::<BTreeMap<_, _>>();
+
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1",
+		ReservationType::Module as i32
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	{
+		let Some(reservation) = reserved_modules.get_mut(&record.id) else {
+			continue;
+		};
+		if reservation.user != record.user_id {
+			continue;
+		};
+		reservation.label = Some(record.label.clone());
+	}
+
+	let search = SearchParams {
+		query: None,
+		filter: None,
+		limit: Some(100_000),
+		offset: None,
+	};
+
+	let Json(modules) = search_modules(Query(search), State(state.clone())).await?;
+
+	let mut uploaded_modules: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
+	for module in &modules.modules {
+		if let Some(original) = uploaded_modules.get_mut(&module.id) {
+			original.push(module.clone());
+		} else {
+			uploaded_modules.insert(module.id, vec![module.clone()]);
+		}
+	}
+
+	for (id, post) in modules.posts {
+		if !posts.contains_key(&id) {
+			posts.insert(id, post);
+		}
+	}
+
+	Ok(Json(AllModules {
+		reserved_modules,
+		uploaded_modules,
+		users,
+		posts,
+	}))
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct AllCstmItems {
+	pub reserved_cstm_items: BTreeMap<i32, Reservation>,
+	pub uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>>,
+	pub users: BTreeMap<i64, User>,
+	pub posts: BTreeMap<i32, Post>,
+}
+
+pub async fn all_cstm_items(
+	State(state): State<AppState>,
+) -> Result<Json<AllCstmItems>, (StatusCode, String)> {
+	let mut users = BTreeMap::new();
+	let mut posts = BTreeMap::new();
 
 	let mut reserved_cstm_items = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
@@ -1988,42 +2108,20 @@ pub async fn reservations_json(
 	.collect::<BTreeMap<_, _>>();
 
 	for record in sqlx::query!(
-		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl"
+		"SELECT rl.id, rl.user_id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1",
+		ReservationType::CstmItem as i32,
 	)
 	.fetch_all(&state.db)
 	.await
 	.unwrap_or_default()
 	{
-		let reservation_type: ReservationType = record.reservation_type.into();
-		match reservation_type {
-			ReservationType::Song => {
-				let Some(reservation) = reserved_pvs.get_mut(&record.id) else {
-					continue;
-				};
-				if reservation.user != record.user_id {
-					continue;
-				};
-				reservation.label = Some(record.label.clone());
-			}
-			ReservationType::Module => {
-				let Some(reservation) = reserved_modules.get_mut(&record.id) else {
-					continue;
-				};
-				if reservation.user != record.user_id {
-					continue;
-				};
-				reservation.label = Some(record.label.clone());
-			}
-			ReservationType::CstmItem => {
-				let Some(reservation) = reserved_cstm_items.get_mut(&record.id) else {
-					continue;
-				};
-				if reservation.user != record.user_id {
-					continue;
-				};
-				reservation.label = Some(record.label.clone());
-			}
-		}
+		let Some(reservation) = reserved_cstm_items.get_mut(&record.id) else {
+			continue;
+		};
+		if reservation.user != record.user_id {
+			continue;
+		};
+		reservation.label = Some(record.label.clone());
 	}
 
 	let search = SearchParams {
@@ -2033,39 +2131,7 @@ pub async fn reservations_json(
 		offset: None,
 	};
 
-	let Json(pvs) = search_pvs(Query(search.clone()), State(state.clone())).await?;
-	let Json(modules) = search_modules(Query(search.clone()), State(state.clone())).await?;
 	let Json(cstm_items) = search_cstm_items(Query(search), State(state.clone())).await?;
-
-	let mut uploaded_pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
-	for pv in &pvs.pvs {
-		if let Some(original) = uploaded_pvs.get_mut(&pv.id) {
-			original.push(pv.clone());
-		} else {
-			uploaded_pvs.insert(pv.id, vec![pv.clone()]);
-		}
-	}
-
-	for (id, post) in pvs.posts {
-		if !posts.contains_key(&id) {
-			posts.insert(id, post);
-		}
-	}
-
-	let mut uploaded_modules: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
-	for module in &modules.modules {
-		if let Some(original) = uploaded_modules.get_mut(&module.id) {
-			original.push(module.clone());
-		} else {
-			uploaded_modules.insert(module.id, vec![module.clone()]);
-		}
-	}
-
-	for (id, post) in modules.posts {
-		if !posts.contains_key(&id) {
-			posts.insert(id, post);
-		}
-	}
 
 	let mut uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>> = BTreeMap::new();
 	for cstm_items in &cstm_items.cstm_items {
@@ -2082,11 +2148,7 @@ pub async fn reservations_json(
 		}
 	}
 
-	Ok(Json(UsedIdData {
-		reserved_pvs,
-		uploaded_pvs,
-		reserved_modules,
-		uploaded_modules,
+	Ok(Json(AllCstmItems {
 		reserved_cstm_items,
 		uploaded_cstm_items,
 		users,

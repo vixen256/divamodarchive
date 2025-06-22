@@ -30,6 +30,9 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/ids/pvs", get(search_pvs))
 		.route("/api/v1/ids/modules", get(search_modules))
 		.route("/api/v1/ids/cstm_items", get(search_cstm_items))
+		.route("/api/v1/ids/all_pvs", get(all_pvs))
+		.route("/api/v1/ids/all_modules", get(all_modules))
+		.route("/api/v1/ids/all_cstm_items", get(all_cstm_items))
 		.route("/api/v1/reserve/check", get(web_check_reserve_range))
 		.route("/api/v1/reserve/find", get(web_find_reserve_range))
 		.route(
@@ -37,7 +40,6 @@ pub fn route(state: AppState) -> Router {
 			post(create_reservation).delete(delete_reservation),
 		)
 		.route("/api/v1/reservations/{id}/label", post(label_reservation))
-		.route("/api/v1/reservations", get(reservations_json))
 		.layer(tower_http::cors::CorsLayer::permissive())
 		.with_state(state)
 }
