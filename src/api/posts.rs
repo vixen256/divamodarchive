@@ -136,7 +136,13 @@ pub async fn get_download_link(filepath: &str) -> Option<String> {
 }
 
 pub async fn upload_ws(ws: ws::WebSocketUpgrade, State(state): State<AppState>) -> Response {
-	ws.on_upgrade(move |socket| real_upload_ws(socket, state))
+	ws.on_upgrade(move |socket| real_upload_ws_wrapper(socket, state))
+}
+
+pub async fn real_upload_ws_wrapper(socket: ws::WebSocket, state: AppState) {
+	crate::ACTIVE_CONNECTIONS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
+	real_upload_ws(socket, state).await;
+	crate::ACTIVE_CONNECTIONS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
 }
 
 pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {

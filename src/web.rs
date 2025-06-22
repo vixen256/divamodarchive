@@ -1119,7 +1119,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 		Query(SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(100_000),
+			limit: Some(usize::MAX),
 			offset: Some(0),
 		}),
 		State(state.clone()),
