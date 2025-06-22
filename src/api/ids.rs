@@ -1929,7 +1929,7 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 	let search = SearchParams {
 		query: None,
 		filter: None,
-		limit: Some(100_000),
+		limit: Some(usize::MAX),
 		offset: None,
 	};
 
@@ -2028,7 +2028,7 @@ pub async fn all_modules(
 	let search = SearchParams {
 		query: None,
 		filter: None,
-		limit: Some(100_000),
+		limit: Some(usize::MAX),
 		offset: None,
 	};
 
@@ -2127,7 +2127,7 @@ pub async fn all_cstm_items(
 	let search = SearchParams {
 		query: None,
 		filter: None,
-		limit: Some(100_000),
+		limit: Some(usize::MAX),
 		offset: None,
 	};
 

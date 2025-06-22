@@ -3,6 +3,7 @@
 {% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
+{% call base::draw_embed("Upload", "") %}
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
 {% endblock head %}
 

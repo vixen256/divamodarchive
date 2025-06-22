@@ -5,7 +5,7 @@
 {% block head %}
 {% let owner_name = owner.display_name.as_str() %}
 {% let description = format!("{owner_name}'s liked mods") %}
-{% call base::draw_embed("", description) %}
+{% call base::draw_embed(owner_name, description) %}
 <meta name="twitter:card" content="summary_small_image">
 {% endblock head %}
 
