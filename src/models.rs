@@ -656,6 +656,33 @@ pub async fn update_users(state: AppState) {
 				continue;
 			}
 
+			if let Some(remaining) = response.headers().get("x-ratelimit-remaining") {
+				let Ok(remaining) = remaining.to_str() else {
+					continue;
+				};
+				let Ok(remaining) = remaining.parse::<i32>() else {
+					continue;
+				};
+				if remaining == 0 {
+					let reset_after =
+						if let Some(reset) = response.headers().get("x-ratelimit-reset-after") {
+							if let Ok(reset) = reset.to_str() {
+								if let Ok(reset) = reset.parse::<f32>() {
+									reset
+								} else {
+									5.0
+								}
+							} else {
+								5.0
+							}
+						} else {
+							5.0
+						};
+
+					tokio::time::sleep(std::time::Duration::from_secs_f32(reset_after)).await;
+				}
+			}
+
 			let Ok(response) = response.json::<DiscordUser>().await else {
 				continue;
 			};
