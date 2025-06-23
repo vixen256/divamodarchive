@@ -15,6 +15,7 @@ pub struct Config {
 	pub encoding_key: jsonwebtoken::EncodingKey,
 	pub discord_id: String,
 	pub discord_secret: String,
+	pub discord_bot_token: String,
 	pub cloudflare_image_token: String,
 	pub cloudflare_account_id: String,
 	pub admins: Vec<i64>,
@@ -49,6 +50,8 @@ async fn main() {
 
 	let discord_id = std::env::var("DISCORD_ID").expect("DISCORD_ID must exist");
 	let discord_secret = std::env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist");
+	let discord_bot_token =
+		std::env::var("DISCORD_BOT_TOKEN").expect("DISCORD_BOT_TOKEN must exist");
 
 	let cloudflare_image_token =
 		std::env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist");
@@ -68,6 +71,7 @@ async fn main() {
 		encoding_key,
 		discord_id,
 		discord_secret,
+		discord_bot_token,
 		cloudflare_image_token,
 		cloudflare_account_id,
 		admins,
@@ -190,6 +194,8 @@ async fn main() {
 	api::ids::optimise_reservations(api::ids::ReservationType::Module, &state).await;
 	api::ids::optimise_reservations(api::ids::ReservationType::CstmItem, &state).await;
 
+	tokio::spawn(update_users(state.clone()));
+
 	let router = Router::new()
 		.route("/robots.txt", get(robots))
 		.route("/favicon.ico", get(favicon))
@@ -225,9 +231,7 @@ pub async fn connection_counter(
 	next: axum::middleware::Next,
 ) -> axum::response::Response {
 	ACTIVE_CONNECTIONS.fetch_add(1, atomic::Ordering::SeqCst);
-
 	let response = next.run(request).await;
-
 	ACTIVE_CONNECTIONS.fetch_sub(1, atomic::Ordering::SeqCst);
 
 	response

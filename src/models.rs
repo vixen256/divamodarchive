@@ -524,6 +524,15 @@ where
 	}
 }
 
+#[derive(Serialize, Deserialize)]
+struct DiscordUser {
+	id: String,
+	username: String,
+	global_name: Option<String>,
+	discriminator: String,
+	avatar: Option<String>,
+}
+
 pub async fn login(
 	State(state): State<AppState>,
 	Query(params): Query<HashMap<String, String>>,
@@ -543,15 +552,6 @@ pub async fn login(
 		expires_in: i64,
 		refresh_token: String,
 		scope: String,
-	}
-
-	#[derive(Serialize, Deserialize)]
-	struct DiscordUser {
-		id: String,
-		username: String,
-		global_name: Option<String>,
-		discriminator: String,
-		avatar: Option<String>,
 	}
 
 	let response = reqwest::Client::new()
@@ -627,5 +627,64 @@ pub async fn login(
 		Ok((cookies.add(cookie), Redirect::to("/")))
 	} else {
 		Err(StatusCode::UNAUTHORIZED)
+	}
+}
+
+pub async fn update_users(state: AppState) {
+	let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60 * 24));
+
+	loop {
+		interval.tick().await;
+		for user in sqlx::query!("SELECT u.id, u.name, u.avatar FROM users u")
+			.fetch_all(&state.db)
+			.await
+			.unwrap_or_default()
+		{
+			let Ok(response) = reqwest::Client::new()
+				.get(format!("https://discord.com/api/users/{}", user.id))
+				.header(
+					"Authorization",
+					format!("Bot {}", &state.config.discord_bot_token),
+				)
+				.send()
+				.await
+			else {
+				continue;
+			};
+
+			if !response.status().is_success() {
+				continue;
+			}
+
+			let Ok(response) = response.json::<DiscordUser>().await else {
+				continue;
+			};
+
+			let Ok(id): Result<i64, _> = response.id.parse() else {
+				continue;
+			};
+
+			let avatar = if let Some(avatar) = response.avatar {
+				format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
+			} else {
+				let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
+				format!(
+					"https://cdn.discordapp.com/embed/avatars/{}.png",
+					discriminator % 5
+				)
+			};
+
+			if user.name != response.username || user.avatar != avatar {
+				println!("Updating {} avatar", user.name);
+				_ = sqlx::query!(
+					"UPDATE users SET name=$1, avatar=$2 WHERE id=$3",
+					response.username,
+					avatar,
+					user.id
+				)
+				.execute(&state.db)
+				.await;
+			}
+		}
 	}
 }
