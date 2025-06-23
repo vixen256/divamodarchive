@@ -612,18 +612,16 @@ pub async fn login(
 	.await
 	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	let time = std::time::SystemTime::now()
-		.duration_since(std::time::UNIX_EPOCH)
-		.unwrap()
-		.as_secs() as i64;
+	let time = time::OffsetDateTime::now_utc() + time::Duration::weeks(52);
 	let token = Token {
-		exp: time + 60 * 24 * 60 * 60,
+		exp: time.unix_timestamp(),
 		user_id: id,
 	};
 
 	if let Ok(encoded) = encode(&Header::default(), &token, &state.config.encoding_key) {
 		let mut cookie = Cookie::new(AUTHORIZATION.to_string(), encoded);
 		cookie.set_same_site(axum_extra::extract::cookie::SameSite::Lax);
+		cookie.set_expires(time);
 		Ok((cookies.add(cookie), Redirect::to("/")))
 	} else {
 		Err(StatusCode::UNAUTHORIZED)
