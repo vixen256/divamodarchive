@@ -675,7 +675,6 @@ pub async fn update_users(state: AppState) {
 			};
 
 			if user.name != response.username || user.avatar != avatar {
-				println!("Updating {} avatar", user.name);
 				_ = sqlx::query!(
 					"UPDATE users SET name=$1, avatar=$2 WHERE id=$3",
 					response.username,
