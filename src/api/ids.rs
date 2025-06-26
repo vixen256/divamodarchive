@@ -52,7 +52,7 @@ struct Config {
 }
 
 pub const ROM_DIRS: [&'static str; 31] = [
-	"rom",
+	".",
 	"rom_ps4",
 	"rom_ps4_dlc",
 	"rom_ps4_fix",
@@ -179,7 +179,7 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 
 			for include in &include {
 				for rom in &ROM_DIRS {
-					let folder = format!("{}/{include}/{rom}", file.parent()?.to_str()?);
+					let folder = format!("{}/{include}/{rom}/rom", file.parent()?.to_str()?);
 					let path = Path::new(&folder);
 					if !path.exists() {
 						continue;
