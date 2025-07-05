@@ -247,8 +247,6 @@ impl Post {
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
-			LEFT JOIN post_authors pa ON pa.post_id = p.id
-			LEFT JOIN users u ON pa.user_id = u.id
 			WHERE pd.post_id = $1
 			"#,
 			id
