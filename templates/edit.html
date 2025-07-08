@@ -1,0 +1,707 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+{% import "post_helpers.html" as post_helpers %}
+
+{% block head %}
+{% if let Some(jwt) = base.jwt %}
+{% call base::draw_embed("Edit", "") %}
+<script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
+
+<script>
+	function descriptionUpdate() {
+		if (document.getElementById('btnEdit').checked) {
+			document.getElementById('text').hidden = false;
+			document.getElementById('descriptionPreview').hidden = true;
+		} else {
+			document.getElementById('text').hidden = true;
+			document.getElementById('descriptionPreview').hidden = false;
+			document.getElementById('descriptionPreview').innerHTML = marked.parse(document.getElementById('text').value);
+		}
+	}
+
+	async function updateMetadata() {
+		if (document.getElementById('title').value == '' || document.getElementById('text').value == '') {
+			createToast('Title and description must both be set', 'text-bg-danger');
+			return;
+		}
+
+		var options = {
+			method: 'PATCH',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer: {{ jwt }}'
+			},
+			body: JSON.stringify({
+				'name': document.getElementById('title').value,
+				'text': document.getElementById('text').value,
+				'post_type': Number(document.getElementById('type_tag').value),
+				'private': document.getElementById('private').checked,
+			}),
+		};
+
+		await fetch('/api/v1/posts/{{ post.id }}', options);
+		createToast('Successfully updated metadata', 'text-bg-success');
+	}
+
+	async function addAuthor() {
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify(document.getElementById('authorName').value),
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/author', options);
+		if (res.status == 404) {
+			createToast('Could not find author, have they logged into DMA before?', 'text-bg-danger');
+			return;
+		} else if (!res.ok) {
+			createToast('Could not add author', 'text-bg-danger');
+			return;
+		}
+
+		var user = await res.json();
+		var author = document.createElement('div');
+		author.classList = 'card-subtitle clearfix pb-2';
+		author.id = `author${user.name}`;
+		author.innerHTML = `
+		<div class="row">
+			<div class="col-2">
+				<img class="ratio ratio-1x1" style="border-radius: 100%" src="${user.avatar}?size=64">
+			</div>
+			<h5 class="col-7 text" style="padding-top: 0.5rem">${user.display_name}</h5>
+			<button class="col-3 btn btn-outline-danger btn-danger mb-1 p-0" onclick="deleteAuthor('${user.name}')" type="button">
+				<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}" style="display: inline-block">Remove</div>
+			</button>
+		</div>
+		`;
+		document.getElementById('authors').append(author);
+
+		createToast('Successfully added author ' + user.display_name, 'text-bg-success');
+	}
+
+	async function deleteAuthor(authorName) {
+		var options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify(authorName),
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/author', options);
+		if (!res.ok) {
+			return;
+		}
+
+		document.getElementById('author' + authorName).remove();
+		createToast('Successfully removed author', 'text-bg-success');
+	}
+
+	async function addDependency(id) {
+		var options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: id,
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/dependency', options);
+		if (res.status == 404) {
+			document.getElementById('dependencyTxt').innerText = 'Could not find dependency';
+			return;
+		} else if (!res.ok) {
+			document.getElementById('dependencyTxt').innerText = 'Could not add dependency';
+			return;
+		}
+
+		var post = await res.json();
+
+		document.getElementById('posts').append(getPostHtml(post));
+		createToast('Successfully added dependency', 'text-bg-success');
+	}
+
+	async function deleteDependency(dependencyId) {
+		var options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: dependencyId,
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/dependency', options);
+		if (!res.ok) {
+			return;
+		}
+
+		document.getElementById('post' + dependencyId).remove();
+		createToast('Successfully removed dependency', 'text-bg-success');
+	}
+
+	async function appendImage() {
+		for (var file of document.getElementById('imageFilePicker').files) {
+			if (!file.type.startsWith('image')) {
+				continue;
+			}
+
+			var options = {
+				method: 'GET',
+				headers: {
+					'Content-Type': 'text/plain',
+					'Authorization': 'Bearer {{ jwt }}'
+				},
+			};
+			var res = await fetch('/api/v1/posts/upload_image', options);
+			if (!res.ok) {
+				createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+				continue;
+			}
+
+			var image_upload_url = await res.text();
+			if (image_upload_url == null || image_upload_url == '') {
+				createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+				continue;
+			}
+
+			var image_form = new FormData();
+			image_form.append('file', file);
+			var options = {
+				method: 'POST',
+				headers: {
+					'Accept': '*/*'
+				},
+				body: image_form
+			};
+			var res = await fetch(image_upload_url, options);
+			if (!res.ok) {
+				createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+				continue;
+			}
+
+			var result = await res.json();
+			if (result.result == null) {
+				createToast('Failed to upload image: ' + file.name + ' ' + result.errors[0].message, 'text-bg-danger');
+				continue;
+			}
+			var image_url = result.result.variants[0].replace('/thumbnail', '/public').replace('https://imagedelivery.net/', 'https://divamodarchive.com/cdn-cgi/imagedelivery/');
+			if (image_url == null) {
+				createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+				continue;
+			}
+
+			var options = {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': 'Bearer {{ jwt }}'
+				},
+				body: JSON.stringify(image_url),
+			};
+
+			var res = await fetch('/api/v1/posts/{{ post.id }}/image', options);
+			if (!res.ok) {
+				createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+				continue;
+			}
+
+			var image = document.createElement('div');
+			image.classList = 'col';
+			image.innerHTML = `
+			<div class="card shadow">
+				<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
+					<img
+						src="${image_url.replace('/public', '/thumbnail')}"
+						class="rounded-image w-100"
+						loading="lazy"
+						alt="Preview of {{ post.name }}"
+						draggable="true"
+						style="cursor: move"
+						id="image${document.getElementById('images').children.length - 1}"
+						ondragstart="dragStart(event)"
+						ondragenter="dragEnter(event)"
+						ondragleave="dragLeave(event)"
+						ondragend="dragEnd(event)"
+						ondragover="event.preventDefault()"
+						ondrop="dropSwapImage(event)"
+					>
+				</div>
+				<div class="card-body p-0">
+					<button class="w-100 btn btn-sm btn-danger" onclick="deleteImage(${document.getElementById('images').children.length - 1})">Remove</button>
+				</div>
+			</div>
+			`;
+			document.getElementById('images').insertBefore(image, document.getElementById('images').children[document.getElementById('images').children.length - 1]);
+		}
+	}
+
+	async function deleteImage(index) {
+		if (document.getElementById('images').children.length == 1) {
+			createToast('Cannot remove last image', 'text-bg-danger');
+			return;
+		}
+		var options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/image/' + index, options);
+		if (!res.ok) {
+			return;
+		}
+
+		document.getElementById('images').children[index].remove();
+		if (document.getElementById('images').children.length - 1 == 1) {
+			document.getElementById('images').children[0].children[0].children[1].remove();
+			return;
+		}
+
+		for (var i = 0; i < document.getElementById('images').children.length - 1; i++) {
+			document.getElementById('images').children[i].children[0].children[1].innerHTML = `<button class="w-100 btn btn-danger" onclick="deleteImage(${i})">Remove</button>`;
+		}
+	}
+
+	function dragStart(e) {
+		e.target.style.opacity = 0.5;
+
+		e.dataTransfer.dropEffect = 'move';
+		e.dataTransfer.setData('text/plain', e.target.id);
+	}
+
+	function dragEnter(e) {
+		let data = e.dataTransfer.getData('text/plain');
+		if (data == undefined || data == '' || data == e.target.id || document.getElementById(data) == undefined) {
+			return;
+		}
+		e.target.style.border = '0.33rem dotted';
+	}
+
+	function dragLeave(e) {
+		e.target.style.border = '';
+	}
+
+	function dragEnd(e) {
+		e.target.style.opacity = 1.0;
+	}
+
+	async function dropSwapImage(e) {
+		let data = e.dataTransfer.getData('text/plain');
+		if (data == undefined || data == '' || data == e.target.id || document.getElementById(data) == undefined) {
+			return;
+		}
+
+		e.preventDefault();
+		e.target.style.border = '';
+
+		document.getElementById(data).style.opacity = 1.0;
+
+		var options = {
+			method: 'PATCH',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify({
+				'to': Number(e.target.id.replace('image', '')),
+				'from': Number(data.replace('image', '')),
+			}),
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/image', options);
+		if (!res.ok) {
+			return;
+		}
+
+		var original_src = document.getElementById(data).src;
+		document.getElementById(data).src = document.getElementById(e.target.id).src;
+		document.getElementById(e.target.id).src = original_src;
+	}
+
+	function imageDropperEnter(e) {
+		e.stopPropagation();
+		if (!e.dataTransfer.types.includes('Files')) {
+			return;
+		}
+		document.getElementById('imageFileDropper').style.border = '0.33rem dotted';
+	}
+
+	function imageDropperLeave(e) {
+		if (e.target == document.getElementById('imageFileDropper') && e.relatedTarget != document.getElementById('imageFileDropper').children[0]) {
+			document.getElementById('imageFileDropper').style.border = '';
+		}
+	}
+
+	function dropAppendImage(e) {
+		if (e.dataTransfer.files == undefined || e.dataTransfer.files.len == 0) {
+			return;
+		}
+		e.preventDefault();
+		document.getElementById('imageFileDropper').style.border = '';
+		for (var file of e.dataTransfer.files) {
+			if (!file.type.startsWith('image')) {
+				createToast('Can only select images here', 'text-bg-warning');
+				return;
+			}
+		}
+		document.getElementById('imageFilePicker').files = e.dataTransfer.files;
+		appendImage();
+	}
+
+	async function searchPosts() {
+		var posts = await fetch('/api/v1/posts?limit=4&filter=id!={{ post.id }}&query=' + document.getElementById('searchQuery').value, {method: 'GET'}).then(res => res.json());
+
+		document.getElementById('searchPosts').innerHTML = '';
+		for (var post of posts) {
+			var div = document.createElement('div');
+			div.classList = 'col';
+			var formatter = new Intl.NumberFormat('en-GB', {notation: 'compact', roundingMode: 'floor', maximumFractionDigits: 1});
+			var html = `
+<div class="card shadow" style="height: 100%">
+	<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
+		<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image" width="100%" loading="lazy">
+	</div>
+	<div class="card-body clearfix">
+		<p class="col-auto float-end ms-1 text text-align-right">
+			<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>${formatter.format(post.like_count)} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>${formatter.format(post.download_count)}<br>
+			${post.post_type}
+		</p>
+		<h5 class="text"><b>${post.name}</b></h5>
+		`;
+
+			for (var author of post.authors) {
+				html += `
+		<img class="float-start pe-1 ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="${author.avatar}">
+		<p class="text"> ${author.display_name}</p>
+				`;
+			}
+
+			html += `
+	</div>
+	<button class="btn btn-outline-success btn-success" onclick="addDependency(${post.id})" type="button">
+		<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Add</div>
+	</buttonv>
+</div>
+			`;
+
+			div.innerHTML = html;
+			document.getElementById('searchPosts').append(div);
+		}
+	}
+
+	async function start_upload() {
+		let files = document.getElementById('filePicker').files;
+		if (files.length == 0) {
+			createToast('Must select files before upload', 'text-bg-warning');
+			return;
+		}
+		{% for (i, file) in files.iter().enumerate() %}
+		if (files[{{ i }}].name != '{{ file }}' || files[{{ i }}].size != {{ length[i] }}) {
+			createToast('Selected files must match previously selected files', 'text-bg-danger');
+			return;
+		}
+		{% endfor %}
+
+		document.getElementById('uploadButton').disabled = true;
+
+		{% if files.is_empty() %}
+		let filenames = [];
+		let filelengths = [];
+		for (var file of files) {
+			filenames.push(file.name);
+			filelengths.push(file.size);
+		}
+		let options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify({
+				'post': {{ post.id }},
+				'files': filenames,
+				'lengths': filelengths,
+			}),
+		};
+		let res = await fetch('/api/v1/posts/start_upload', options);
+		if (!res.ok) {
+			createToast('Failed to start upload ' + res.status, 'text-bg-danger');
+			document.getElementById('uploadButton').disabled = false;
+			return;
+		}
+
+		for (var i = 0; i < filenames.length; i++) {
+			var label = document.createElement('p');
+			label.classList = 'col-6 p-0 mb-1';
+			label.innerText = filenames[i];
+			document.getElementById('progressBars').appendChild(label);
+
+			var bar = document.createElement('div');
+			bar.classList = 'col-6 p-0 progress mb-1';
+			bar.style = '--bs-progress-height: 1.5rem';
+
+			var innerBar = document.createElement('div');
+			innerBar.id = 'progressBar' + i;
+			innerBar.classList = 'progress-bar bg-success';
+			innerBar.role = 'progressbar';
+			innerBar.style.width = '0%';
+
+			bar.appendChild(innerBar);
+			document.getElementById('progressBars').appendChild(bar);
+		}
+		{% endif %}
+
+		upload_loop();
+	}
+
+	async function upload_loop() {
+		let files = new Map();
+		for (var file of document.getElementById('filePicker').files) {
+			files.set(file.name, file);
+		}
+
+		let success = false;
+		let socket = new WebSocket('/api/v1/posts/continue_upload');
+
+		socket.addEventListener('open', (e) => {
+			socket.send('{{ jwt }}');
+		});
+
+		socket.addEventListener('message', async (e) => {
+			let message = JSON.parse(event.data);
+			if (message.error != undefined) {
+				createToast(message.error, 'text-bg-danger');
+				socket.close();
+			} else if (message.success != undefined) {
+				success = true;
+				socket.close();
+			} else if (message.file != undefined && message.offset != undefined) {
+				let filepicker = document.getElementById('filePicker').files;
+				for (var i = 0; i < filepicker.length; i++) {
+					if (filepicker[i].name == message.file) {
+						document.getElementById('progressBar' + i).style.width = message.offset / filepicker[i].size * 100 + '%';
+						break;
+					}
+				}
+
+				let data = await files.get(message.file).slice(message.offset, message.offset + (1024 * 1024 * 5)).arrayBuffer();
+				socket.send(data);
+			} else {
+				createToast('Could not parse message from server ' + event.data, 'text-bg-danger');
+				socket.close();
+			}
+		});
+
+		socket.addEventListener('close', async (e) => {
+			if (success) {
+				document.getElementById('progressBars').children.length = 0;
+				createToast('Successfully uploaded all files', 'text-bg-success');
+			} else {
+				await new Promise(r => setTimeout(r, 5000));
+				upload_loop();
+			}
+		});
+	}
+</script>
+{% endif %}
+{% endblock head %}
+
+{% block content %}
+{% if let Some(user) = base.user %}
+<div class="row align-items-md-stretch gap-3 m-1">
+	<div class="alert alert-warning mb-0">
+		<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#rules">
+			<h5 class="mb-0">Please make sure you are familiar with the rules</h5>
+		</button>
+		<div id="rules" class="p-1 collapse" data-bs-parent="#accordionRules">
+			<p>The following content cannot be posted, however any content may be modified or deleted at the discretion of the admins</p>
+			<ul class="mb-0">
+				<li>Any kind of speech designed to cause hatred or conflict</li>
+				<li>A mod for a game other than Project DIVA Mega Mix+</li>
+				<li>Pornographic or erotic content in excess of what the games already contain</li>
+				<li>A mod with a plugin that does not contain or link the source code</li>
+				<li>Mods or references to mods that require payment to use, references to commissions are allowed are however</li>
+				<li>Modifications of other peoples content, including SEGAs, that does not mention the original content or how it was modified</li>
+				<li>Broken or non-functional mods</li>
+			</ul>
+		</div>
+	</div>
+
+	<div class="col-lg-7 card card-body">
+		<h2 class="card-text text mb-2"><input class="w-100" type="text" id="title" name="title" autocomplete="off" value="{{ post.name }}"></h2>
+
+		<div class="card-text mb-2">
+			<h5>Descriptions are formatted using markdown, <a href="https://www.markdownguide.org/basic-syntax/">Here</a> is a guide that teaches you how to use it.</h5>
+			<div class="btn-group w-100" role="group">
+				<input type="radio" class="btn-check" id="btnEdit" name="description" autocomplete="off" checked="" onchange="descriptionUpdate()">
+				<label class="btn btn-outline-primary" for="btnEdit">Edit</label>
+				<input type="radio" class="btn-check" id="btnPreview" name="description" autocomplete="off" onchange="descriptionUpdate()">
+				<label class="btn btn-outline-primary" for="btnPreview">Preview</label>
+			</div>
+			<br>
+			<textarea class="form-control" id="text" rows="10">{{ post.text }}</textarea>
+			<div class="text" hidden="" id="descriptionPreview"></div>
+		</div>
+
+		<select class="form-select list-text mb-1" id="type_tag">
+			<option value="0" {% if post.post_type == PostType::Plugin %}selected{% endif %}>Plugin</option>
+			<option value="1" {% if post.post_type == PostType::Module %}selected{% endif %}>Module</option>
+			<option value="2" {% if post.post_type == PostType::Song %}selected{% endif %}>Song</option>
+			<option value="3" {% if post.post_type == PostType::Cover %}selected{% endif %}>Cover</option>
+			<option value="4" {% if post.post_type == PostType::Ui %}selected{% endif %}>UI</option>
+			<option value="5" {% if post.post_type == PostType::Other %}selected{% endif %}>Other</option>
+		</select>
+
+		<div class="mb-1">
+			<input class="form-check-input" type="checkbox" id="private" {% if post.private %}checked="true"{% endif %}>
+			<label class="form-check-label ms-1" for="private">Private</label>
+		</div>
+
+		<button class="btn btn-outline-info btn-info" onclick="updateMetadata()" type="button">
+			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Update</div>
+		</button>
+	</div>
+
+	<div class="col-lg-3 card card-body">
+		<div id="authors">
+			{% for author in post.authors %}
+			<div class="card-subtitle clearfix pb-2" id="author{{ author.name }}">
+				<div class="row">
+					<div class="col-2">
+						<img class="ratio ratio-1x1" style="border-radius: 100%" src="{{ author.avatar }}?size=64">
+					</div>
+					<h5 class="col-7 text" style="padding-top: 0.5rem">{{ author.display_name }}</h5>
+					{% if author != user %}
+					<button class="col-3 btn btn-outline-danger btn-danger mb-1 p-0" onclick="deleteAuthor('{{ author.name }}')" type="button">
+						<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}" style="display: inline-block">Remove</div>
+					</button>
+					{% endif %}
+				</div>
+			</div>
+			{% endfor %}
+		</div>
+		<button class="btn btn-outline-warning btn-warning mt-1 mb-1" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd">
+			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Add author</div>
+		</button>
+		<div class="collapse" id="authorAdd">
+			<div class="card card-body">
+				<p id="authorTxt">
+					Any authors get full access to editing this mod, including deletion and removing other authors.<br>
+				</p>
+				<input class="form-control" id="authorName" type="text" autocomplete="off" placeholder="Discord username">
+				<button class="btn btn-outline-danger btn-danger" onclick="addAuthor()" type="button">
+					<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Confirm</div>
+				</button>
+			</div>
+		</div>
+	</div>
+
+	<div class="card card-body">
+		<h4 class="text">You can drag and drop images to rearrange them</h4>
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id=images>
+			{% for (i, image) in post.images.iter().enumerate() %}
+				<div class="col">
+					<div class="card shadow">
+						<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
+							<img
+								src="{{ image.replace("/public", "/thumbnail") }}"
+								class="rounded-image w-100"
+								loading="lazy"
+								alt="Preview of {{ post.name }}"
+								draggable="true"
+								style="cursor: move"
+								id="image{{ i }}"
+								ondragstart="dragStart(event)"
+								ondragenter="dragEnter(event)"
+								ondragleave="dragLeave(event)"
+								ondragend="dragEnd(event)"
+								ondragover="event.preventDefault()"
+								ondrop="dropSwapImage(event)"
+							>
+						</div>
+						{% if post.images.len() != 1 %}
+						<div class="card-body p-0">
+							<button class="w-100 btn btn-sm btn-danger" onclick="deleteImage({{ i }})">Remove</button>
+						</div>
+						{% endif %}
+					</div>
+				</div>
+			{% endfor %}
+			<div class="col">
+				<button
+					onclick="document.getElementById('imageFilePicker').click()"
+					class="h-100 w-100 btn btn-secondary"
+					style="display: flex; align-items: center; text-align: center"
+					id="imageFileDropper"
+					ondragenter="imageDropperEnter(event)"
+					ondragleave="imageDropperLeave(event)"
+					ondragover="event.preventDefault()"
+					ondrop="dropAppendImage(event)"
+				>
+					<span class="material-symbols-outlined w-100" style="font-size: 5rem">add</span>
+				</button>
+				<input id="imageFilePicker" accept="image/*" type="file" multiple style="display: none" onchange="appendImage()">
+			</div>
+		</div>
+	</div>
+
+	<div class="card card-body">
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
+		{% if let Some(dependencies) = post.dependencies %}
+			{% for post in dependencies %}
+				<div class="col" id="post{{ post.id }}">
+					<div class="card shadow h-100">
+						{% call post_helpers::draw_post(post) %}
+						<button class="btn btn-outline-danger btn-danger" onclick="deleteDependency({{ post.id }})" type="button">
+							<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Remove</div>
+						</button>
+					</div>
+				</div>
+			{% endfor %}
+		{% endif %}
+		</div>
+
+		<button class="mt-3 btn btn-outline-warning btn-warning" type="button" data-bs-toggle="collapse" data-bs-target="#dependencyAdd">
+			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Add dependency</div>
+		</button>
+		<div class="collapse" id="dependencyAdd">
+			<div class="card card-body">
+				<div class="row-md col-md-6 offset-md-3 pb-2">
+					<div class="gx-3 gy-1">
+						<input onchange="searchPosts()" class="w-100 form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
+					</div>
+				</div>
+
+				<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="searchPosts">
+				</div>
+			</div>
+		</div>
+	</div>
+
+	<div class="card card-body">
+		<div class="mb-2 mx-1">
+			<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker" multiple>
+		</div>
+		<button class="btn btn-outline-success btn-success mb-2 mx-1" type="button" onclick="start_upload()" id="uploadButton">
+			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Start upload</div>
+		</button>
+		<div class="row mx-1" id="progressBars">
+		{% for (i, file) in files.iter().enumerate() %}
+			<p class="col-6 p-0 mb-1">{{ file }}</p>
+			<div class="col-6 p-0 progress mb-1" style="--bs-progress-height: 1.5rem">
+				<div id="progressBar{{ i }}" class="progress-bar bg-success" role="progressbar" style="width: {{ completed[i] as f32 / length[i] as f32 * 100f32 }}%;"></div>
+			</div>
+		{% endfor %}
+		</div>
+	</div>
+</div>
+{% endif %}
+{% endblock content %}

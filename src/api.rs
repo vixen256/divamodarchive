@@ -8,18 +8,35 @@ pub mod posts;
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
-		.route("/api/v1/posts", get(search_posts))
+		.route("/api/v1/posts", get(search_posts).post(create_post))
 		.route("/api/v1/posts/count", get(count_posts))
-		.route("/api/v1/posts/{id}", get(get_post).delete(delete_post))
+		.route(
+			"/api/v1/posts/{id}",
+			get(get_post).delete(delete_post).patch(edit_post),
+		)
 		.route("/api/v1/posts/posts", get(get_multiple_posts))
-		.route("/api/v1/posts/edit", post(edit))
 		.route("/api/v1/posts/upload_image", get(upload_image))
-		.route("/api/v1/posts/upload", get(upload_ws))
+		.route("/api/v1/posts/start_upload", post(create_pending_upload))
+		.route(
+			"/api/v1/posts/continue_upload",
+			get(continue_pending_upload),
+		)
+		.route("/api/v1/posts/{id}/image/{index}", delete(remove_image))
+		.route(
+			"/api/v1/posts/{id}/image",
+			post(append_image).patch(swap_images),
+		)
 		.route("/api/v1/posts/{id}/download/{variant}", get(download))
 		.route("/api/v1/posts/{id}/like", post(like))
 		.route("/api/v1/posts/{id}/comment", post(comment))
-		.route("/api/v1/posts/{id}/author", post(add_author))
-		.route("/api/v1/posts/{id}/dependency", post(add_dependency))
+		.route(
+			"/api/v1/posts/{id}/author",
+			post(add_author).delete(remove_author),
+		)
+		.route(
+			"/api/v1/posts/{id}/dependency",
+			post(add_dependency).delete(remove_dependency),
+		)
 		.route("/api/v1/posts/{id}/report", post(report))
 		.route("/api/v1/posts/{id}/extract", post(extract_post))
 		.route(

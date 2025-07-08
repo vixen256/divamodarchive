@@ -6,7 +6,7 @@ use axum::{
 	response::*,
 };
 use serde::{Deserialize, Serialize};
-use tokio::io::AsyncWriteExt;
+use tokio::io::{AsyncSeekExt, AsyncWriteExt};
 
 #[derive(Serialize, Deserialize)]
 struct CloudflareDirectUploadResult {
@@ -16,9 +16,21 @@ struct CloudflareDirectUploadResult {
 }
 
 #[derive(Serialize, Deserialize)]
-struct CloudflareDirectUpload {
+pub struct CloudflareMessage {
+	code: usize,
+	message: String,
+	documentation_url: Option<String>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct CloudflareEmpty {}
+
+#[derive(Serialize, Deserialize)]
+struct CloudflareApiResponse<T> {
+	errors: Vec<CloudflareMessage>,
+	messages: Vec<CloudflareMessage>,
 	success: bool,
-	result: CloudflareDirectUploadResult,
+	result: T,
 }
 
 pub async fn upload_image(_: User, State(state): State<AppState>) -> Result<String, StatusCode> {
@@ -43,7 +55,9 @@ pub async fn upload_image(_: User, State(state): State<AppState>) -> Result<Stri
 	if !response.status().is_success() {
 		return Err(StatusCode::INTERNAL_SERVER_ERROR);
 	}
-	let response = response.json::<CloudflareDirectUpload>().await;
+	let response = response
+		.json::<CloudflareApiResponse<CloudflareDirectUploadResult>>()
+		.await;
 	let response = match response {
 		Ok(response) => response,
 		Err(_) => return Err(StatusCode::INTERNAL_SERVER_ERROR),
@@ -55,48 +69,169 @@ pub async fn upload_image(_: User, State(state): State<AppState>) -> Result<Stri
 	}
 }
 
+pub async fn remove_image(
+	Path((post_id, index)): Path<(i32, usize)>,
+	user: User,
+	State(state): State<AppState>,
+) -> Result<(), StatusCode> {
+	let Some(post) = Post::get_short(post_id, &state.db).await else {
+		return Err(StatusCode::BAD_REQUEST);
+	};
+
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
+	if index >= post.images.len() {
+		return Err(StatusCode::BAD_REQUEST);
+	}
+
+	let mut images = post.images;
+	let old_image = images.remove(index);
+	let Some(old_image) = old_image.trim_end_matches("/public").split("/").last() else {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	};
+
+	let cloudflare_url = format!(
+		"https://api.cloudflare.com/client/v4/accounts/{}/images/v1/{}",
+		state.config.cloudflare_account_id, old_image
+	);
+
+	let Ok(response) = reqwest::Client::new()
+		.delete(&cloudflare_url)
+		.header(
+			header::AUTHORIZATION.to_string(),
+			format!("Bearer {}", state.config.cloudflare_image_token),
+		)
+		.send()
+		.await
+	else {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	};
+
+	if !response.status().is_success() {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	}
+
+	let Ok(response) = response
+		.json::<CloudflareApiResponse<CloudflareEmpty>>()
+		.await
+	else {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	};
+	if !response.success {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	}
+
+	_ = sqlx::query!("UPDATE posts SET images=$1 WHERE id=$2", &images, post_id)
+		.execute(&state.db)
+		.await;
+
+	Ok(())
+}
+
+pub async fn append_image(
+	Path(post_id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(image): Json<String>,
+) -> StatusCode {
+	let Some(post) = Post::get_short(post_id, &state.db).await else {
+		return StatusCode::BAD_REQUEST;
+	};
+
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return StatusCode::UNAUTHORIZED;
+	}
+
+	if !image.starts_with("https://divamodarchive.com/cdn-cgi/imagedelivery")
+		|| !image.ends_with("/public")
+		|| reqwest::get(&image).await.is_err()
+	{
+		return StatusCode::BAD_REQUEST;
+	}
+
+	let mut images = post.images;
+	images.push(image);
+
+	_ = sqlx::query!("UPDATE posts SET images=$1 WHERE id=$2", &images, post_id)
+		.execute(&state.db)
+		.await;
+
+	StatusCode::OK
+}
+
 #[derive(Serialize, Deserialize)]
-pub struct PostUploadData {
-	pub id: Option<i32>,
+pub struct SwapImages {
+	pub from: usize,
+	pub to: usize,
+}
+
+pub async fn swap_images(
+	Path(post_id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(data): Json<SwapImages>,
+) -> Result<(), StatusCode> {
+	let Some(post) = Post::get_short(post_id, &state.db).await else {
+		return Err(StatusCode::BAD_REQUEST);
+	};
+
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
+	if data.from >= post.images.len() || data.to >= post.images.len() {
+		return Err(StatusCode::BAD_REQUEST);
+	}
+
+	let mut images = post.images;
+	images.swap(data.from, data.to);
+
+	_ = sqlx::query!("UPDATE posts SET images=$1 WHERE id=$2", &images, post_id)
+		.execute(&state.db)
+		.await;
+
+	Ok(())
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PostEditData {
 	pub name: String,
 	pub text: String,
 	pub post_type: i32,
-	pub filenames: Option<Vec<String>>,
-	pub image: Option<String>,
-	pub images_extra: Option<Vec<String>>,
+	pub private: bool,
 }
 
-pub async fn edit(
+pub async fn edit_post(
 	user: User,
+	Path(id): Path<i32>,
 	State(state): State<AppState>,
-	Json(post): Json<PostUploadData>,
+	Json(data): Json<PostEditData>,
 ) -> Result<(), StatusCode> {
-	let Some(post_id) = post.id else {
+	let Some(post) = Post::get_short(id, &state.db).await else {
 		return Err(StatusCode::BAD_REQUEST);
 	};
-	let authors = sqlx::query!(
-		"SELECT user_id FROM post_authors WHERE post_id = $1",
-		post_id
-	)
-	.fetch_all(&state.db)
-	.await
-	.map_err(|_| StatusCode::BAD_REQUEST)?;
-	if !authors.iter().any(|u| u.user_id == user.id) {
-		return Err(StatusCode::BAD_REQUEST)?;
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(StatusCode::BAD_REQUEST);
+	}
+	if data.private && post.files.is_empty() {
+		return Err(StatusCode::BAD_REQUEST);
 	}
 
 	sqlx::query!(
-		"UPDATE posts SET name = $2, text = $3, type = $4 WHERE id = $1",
-		post_id,
-		post.name,
-		post.text,
-		post.post_type,
+		"UPDATE posts SET name = $2, text = $3, type = $4, private = $5 WHERE id = $1",
+		id,
+		data.name,
+		data.text,
+		data.post_type,
+		data.private
 	)
 	.execute(&state.db)
 	.await
 	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-	if let Some(post) = Post::get_short(post_id, &state.db).await {
+	if let Some(post) = Post::get_short(id, &state.db).await {
 		_ = state
 			.meilisearch
 			.index("posts")
@@ -135,214 +270,357 @@ pub async fn get_download_link(filepath: &str) -> Option<String> {
 	Some(format!("{download}?download"))
 }
 
-pub async fn upload_ws(ws: ws::WebSocketUpgrade, State(state): State<AppState>) -> Response {
-	ws.on_upgrade(move |socket| real_upload_ws_wrapper(socket, state))
+#[derive(Serialize, Deserialize)]
+pub struct CreatePendingUpload {
+	pub post: i32,
+	pub files: Vec<String>,
+	pub lengths: Vec<i64>,
 }
 
-pub async fn real_upload_ws_wrapper(socket: ws::WebSocket, state: AppState) {
-	crate::ACTIVE_CONNECTIONS.fetch_add(1, std::sync::atomic::Ordering::SeqCst);
-	real_upload_ws(socket, state).await;
-	crate::ACTIVE_CONNECTIONS.fetch_sub(1, std::sync::atomic::Ordering::SeqCst);
-}
+pub async fn create_pending_upload(
+	user: User,
+	State(state): State<AppState>,
+	Json(upload_data): Json<CreatePendingUpload>,
+) -> StatusCode {
+	if upload_data.lengths.len() != upload_data.files.len()
+		|| upload_data.lengths.is_empty()
+		|| upload_data.lengths.iter().any(|length| *length <= 0)
+	{
+		return StatusCode::BAD_REQUEST;
+	}
 
-pub async fn real_upload_ws(mut socket: ws::WebSocket, state: AppState) {
-	let Some(Ok(message)) = socket.recv().await else {
-		return;
-	};
-
-	let ws::Message::Text(message) = message else {
-		return;
-	};
-
-	let Ok(user) = User::parse(&message, &state).await else {
-		return;
+	let Some(post) = Post::get_short(upload_data.post, &state.db).await else {
+		return StatusCode::BAD_REQUEST;
 	};
 
-	let Some(Ok(message)) = socket.recv().await else {
-		return;
-	};
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return StatusCode::UNAUTHORIZED;
+	}
 
-	let ws::Message::Text(message) = message else {
-		return;
-	};
-
-	let Ok(params) = serde_json::from_str::<PostUploadData>(&message) else {
-		return;
-	};
-
-	let Some(filenames) = params.filenames else {
-		return;
-	};
-	let Some(image) = params.image else {
-		return;
-	};
-	if let Some(post_id) = params.id {
-		let Ok(authors) = sqlx::query!(
-			"SELECT user_id FROM post_authors WHERE post_id = $1",
-			post_id
-		)
-		.fetch_all(&state.db)
+	if sqlx::query!("SELECT * FROM pending_uploads WHERE user_id = $1", user.id)
+		.fetch_optional(&state.db)
 		.await
+		.unwrap_or_default()
+		.is_some()
+	{
+		return StatusCode::CONFLICT;
+	}
+
+	_ = tokio::fs::create_dir_all(format!("/pixeldrain/{}/pending", user.id)).await;
+	for file in &upload_data.files {
+		if file.contains('/') {
+			return StatusCode::BAD_REQUEST;
+		}
+		let path = format!("{}/{file}", user.id);
+		if !post.local_files.contains(&path)
+			&& std::path::Path::new(&format!("/pixeldrain/{path}")).exists()
+		{
+			return StatusCode::CONFLICT;
+		}
+
+		if tokio::fs::File::create(&format!("/pixeldrain/{}/pending/{file}", user.id))
+			.await
+			.is_err()
+		{
+			return StatusCode::INTERNAL_SERVER_ERROR;
+		};
+	}
+
+	if sqlx::query!(
+		"INSERT INTO pending_uploads (files, completed, length, post_id, user_id) VALUES ($1, $2, $3, $4, $5)",
+		&upload_data.files,
+		&upload_data.files.iter().map(|_| 0).collect::<Vec<_>>(),
+		&upload_data.lengths,
+		post.id,
+		user.id
+	)
+	.execute(&state.db)
+	.await
+	.is_err()
+	{
+		return StatusCode::INTERNAL_SERVER_ERROR;
+	};
+
+	StatusCode::OK
+}
+
+pub async fn continue_pending_upload(
+	ws: ws::WebSocketUpgrade,
+	State(state): State<AppState>,
+) -> Response {
+	ws.on_upgrade(move |socket| continue_pending_upload_ws(socket, state))
+}
+
+pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppState) {
+	let Some(Ok(ws::Message::Text(message))) = socket.recv().await else {
+		_ = socket
+			.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+				"{\"error\": \"Failed to recv message\"}",
+			)))
+			.await;
+		return;
+	};
+
+	let Ok(user) = User::parse(&message.trim(), &state).await else {
+		_ = socket
+			.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+				"{\"error\": \"Failed to authenticate\"}",
+			)))
+			.await;
+		return;
+	};
+
+	let Ok(mut pending_upload) = sqlx::query!(
+		"SELECT files, completed, length, post_id FROM pending_uploads WHERE user_id = $1",
+		user.id
+	)
+	.fetch_one(&state.db)
+	.await
+	else {
+		_ = socket
+			.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+				"{\"error\": \"Failed to get pending upload\"}",
+			)))
+			.await;
+		return;
+	};
+
+	let Some(post) = Post::get_short(pending_upload.post_id, &state.db).await else {
+		_ = socket
+			.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+				"{\"error\": \"Failed to get post\"}",
+			)))
+			.await;
+		return;
+	};
+
+	let local_files = pending_upload
+		.files
+		.iter()
+		.map(|file| format!("/pixeldrain/{}/pending/{file}", user.id))
+		.collect::<Vec<_>>();
+	for (i, file_name) in pending_upload.files.iter().enumerate() {
+		let Ok(mut file) = tokio::fs::OpenOptions::new()
+			.write(true)
+			.open(&local_files[i])
+			.await
 		else {
+			_ = socket
+				.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+					"{\"error\": \"Failed to open file\"}",
+				)))
+				.await;
 			return;
 		};
-		if !authors.iter().any(|u| u.user_id == user.id) {
-			return;
-		}
-	}
+		_ = file
+			.seek(std::io::SeekFrom::Start(pending_upload.completed[i] as u64))
+			.await;
 
-	if !image.starts_with("https://divamodarchive.com/cdn-cgi/imagedelivery")
-		|| reqwest::get(&image).await.is_err()
-	{
-		return;
-	}
-	if let Some(extra_images) = &params.images_extra {
-		for image in extra_images {
-			if !image.starts_with("https://divamodarchive.com/cdn-cgi/imagedelivery")
-				|| reqwest::get(image).await.is_err()
+		while pending_upload.completed[i] < pending_upload.length[i] {
+			if socket
+				.send(ws::Message::Text(
+					format!(
+						"{{ \"file\": \"{file_name}\", \"offset\": {} }}",
+						pending_upload.completed[i]
+					)
+					.into(),
+				))
+				.await
+				.is_err()
 			{
+				// Likely wont ever work since the socket is likely closed here
+				_ = socket
+					.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+						"{\"error\": \"Failed to send message\"}",
+					)))
+					.await;
 				return;
 			}
-		}
-	}
 
-	let mut filepaths = Vec::new();
-	for filename in &filenames {
-		let filepath = format!("{}/{}", user.id, filename);
-		_ = tokio::fs::create_dir(format!("/pixeldrain/{}", user.id)).await;
-		let Ok(mut file) = tokio::fs::File::create(&format!("/pixeldrain/{}", &filepath)).await
-		else {
-			return;
-		};
-		_ = socket.send(ws::Message::Text("Ready".into())).await;
-
-		while let Some(message) = socket.recv().await {
-			let Ok(message) = message else {
+			let Some(Ok(ws::Message::Binary(data))) = socket.recv().await else {
+				_ = socket
+					.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+						"{\"error\": \"Failed to recv message\"}",
+					)))
+					.await;
 				return;
 			};
 
-			if let ws::Message::Binary(chunk) = message {
-				let Ok(_) = file.write_all(&chunk).await else {
-					return;
-				};
-				let Ok(_) = file.sync_data().await else {
-					return;
-				};
-				_ = socket.send(ws::Message::Text("Ready".into())).await;
-			} else if let ws::Message::Close(_) = message {
+			if file.write_all(&data).await.is_err() {
+				_ = socket
+					.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+						"{\"error\": \"Failed to write data\"}",
+					)))
+					.await;
 				return;
-			} else {
-				break;
+			};
+
+			if file.sync_data().await.is_err() {
+				_ = socket
+					.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+						"{\"error\": \"Failed to write data\"}",
+					)))
+					.await;
+				return;
+			}
+
+			pending_upload.completed[i] += data.len() as i64;
+
+			if sqlx::query!(
+				"UPDATE pending_uploads SET completed = $1 WHERE user_id = $2",
+				&pending_upload.completed,
+				user.id
+			)
+			.execute(&state.db)
+			.await
+			.is_err()
+			{
+				_ = socket
+					.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+						"{\"error\": \"Failed to update database\"}",
+					)))
+					.await;
+				return;
 			}
 		}
-
-		_ = file.sync_all().await;
-
-		filepaths.push(filepath);
 	}
 
-	let mut images = Vec::new();
-	images.push(image);
-	if let Some(extra_images) = params.images_extra {
-		for image in extra_images {
-			images.push(image);
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("pvs"))
+		.with_filter(&format!("post={}", post.id))
+		.execute::<crate::api::ids::MeilisearchPv>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("modules"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchModule>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("cstm_items"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchCstmItem>()
+	.await;
+
+	for file in post.local_files.iter() {
+		_ = tokio::process::Command::new("rclone")
+			.arg("delete")
+			.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
+			.arg("--config=/etc/rclone-mnt.conf")
+			.output()
+			.await;
+	}
+
+	for (i, local_file) in local_files.iter().enumerate() {
+		_ = tokio::fs::rename(
+			local_file,
+			format!("/pixeldrain/{}/{}", user.id, pending_upload.files[i]),
+		)
+		.await;
+	}
+
+	let files = pending_upload
+		.files
+		.iter()
+		.map(|file| format!("{}/{file}", user.id))
+		.collect::<Vec<_>>();
+
+	let mut downloads = Vec::new();
+	for file in &files {
+		let Some(download) = get_download_link(file).await else {
+			_ = socket
+				.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+					"{\"error\": \"Failed to get public download link\"}",
+				)))
+				.await;
+			return;
+		};
+		if download.is_empty() {
+			_ = socket
+				.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+					"{\"error\": \"Failed to get public download link\"}",
+				)))
+				.await;
+			return;
 		}
+		downloads.push(download);
 	}
 
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	let mut downloads = Vec::new();
+	_ = sqlx::query!(
+		"UPDATE posts SET files = $1, local_files = $2, time = $3 WHERE id = $4",
+		&downloads,
+		&files,
+		time,
+		post.id,
+	)
+	.execute(&state.db)
+	.await;
 
-	for filepath in &filepaths {
-		let download = get_download_link(filepath).await;
-		let Some(download) = download else {
-			eprintln!("Failed to get public link for {filepath}");
-			return;
-		};
-		downloads.push(download);
-	}
+	_ = sqlx::query!("DELETE FROM pending_uploads WHERE user_id = $1", user.id);
 
-	let post_id = if let Some(post_id) = params.id {
-		let Some(post) = Post::get_full(post_id, &state.db).await else {
-			return;
-		};
-
-		_ = sqlx::query!(
-				"UPDATE posts SET name = $2, text = $3, type = $4, files = $5, images = $6, time = $7, local_files = $8 WHERE id = $1",
-				post_id,
-				params.name,
-				params.text,
-				params.post_type,
-				&downloads,
-				&images,
-				time,
-				&filepaths,
-			)
-			.execute(&state.db)
-			.await;
-
-		let pvs = state.meilisearch.index("pvs");
-		_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
-			.with_filter(&format!("post={}", post_id))
-			.execute::<crate::api::ids::MeilisearchPv>()
-			.await;
-
-		let modules = state.meilisearch.index("modules");
-		_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&modules)
-			.with_filter(&format!("post_id={}", post_id))
-			.execute::<crate::api::ids::MeilisearchModule>()
-			.await;
-
-		let cstm_items = state.meilisearch.index("cstm_items");
-		_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&cstm_items)
-			.with_filter(&format!("post_id={}", post_id))
-			.execute::<crate::api::ids::MeilisearchCstmItem>()
-			.await;
-
-		for file in post.local_files {
-			if !filepaths.contains(&file) {
-				_ = tokio::process::Command::new("rclone")
-					.arg("delete")
-					.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
-					.arg("--config=/etc/rclone-mnt.conf")
-					.output()
-					.await;
-			}
-		}
-
-		post_id
-	} else {
-		let Ok(id) = sqlx::query!("INSERT INTO posts (name, text, images, files, time, type, local_files) VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING ID", params.name, params.text, &images, &downloads, time, params.post_type, &filepaths)
-				.fetch_one(&state.db)
-				.await else {
-					return;
-				};
-
-		_ = sqlx::query!(
-			"INSERT INTO post_authors (post_id, user_id) VALUES ($1, $2)",
-			id.id,
-			user.id,
-		)
-		.execute(&state.db)
-		.await;
-
-		id.id
-	};
-
-	if let Some(post) = Post::get_short(post_id, &state.db).await {
-		_ = state
-			.meilisearch
-			.index("posts")
-			.add_or_update(&[post], None)
-			.await;
-	};
-
-	tokio::spawn(crate::api::ids::extract_post_data(post_id, state.clone()));
+	tokio::spawn(crate::api::ids::extract_post_data(post.id, state.clone()));
 
 	_ = socket
-		.send(ws::Message::Text(format!("/post/{post_id}").into()))
+		.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+			"{\"success\": \"\"}",
+		)))
 		.await;
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct PostCreationData {
+	pub name: String,
+	pub text: String,
+	pub post_type: i32,
+	pub images: Vec<String>,
+}
+
+pub async fn create_post(
+	user: User,
+	State(state): State<AppState>,
+	Json(data): Json<PostCreationData>,
+) -> Result<Json<Post>, StatusCode> {
+	for image in &data.images {
+		if !image.starts_with("https://divamodarchive.com/cdn-cgi/imagedelivery")
+			|| reqwest::get(image).await.is_err()
+		{
+			return Err(StatusCode::BAD_REQUEST);
+		}
+	}
+
+	let Ok(id) = sqlx::query!(
+		"
+		INSERT INTO posts (name, text, images, type, time, files, local_files, private)
+		VALUES ($1, $2, $3, $4, '1970-01-01', '{}', '{}', true)
+		RETURNING ID
+		",
+		data.name,
+		data.text,
+		&data.images,
+		data.post_type
+	)
+	.fetch_one(&state.db)
+	.await
+	else {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	};
+
+	_ = sqlx::query!(
+		"INSERT INTO post_authors (post_id, user_id) VALUES ($1, $2)",
+		id.id,
+		user.id,
+	)
+	.execute(&state.db)
+	.await;
+
+	let Some(post) = Post::get_short(id.id, &state.db).await else {
+		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+	};
+
+	Ok(Json(post))
 }
 
 pub async fn extract_post(
@@ -441,6 +719,11 @@ pub async fn get_post(
 	let Some(mut post) = Post::get_full(id, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
+
+	if post.private {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
 	for i in 0..post.files.len() {
 		post.files[i] = format!(
 			"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
@@ -499,9 +782,9 @@ pub async fn search_posts(
 	search.query = query.query.as_ref().map(|query| query.as_str());
 
 	let filter = if let Some(filter) = &query.filter {
-		format!("{filter}")
+		format!("({filter}) AND private=false")
 	} else {
-		String::new()
+		String::from("private=false")
 	};
 
 	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
@@ -563,9 +846,9 @@ pub async fn count_posts(
 	search.query = query.query.as_ref().map(|query| query.as_str());
 
 	let filter = if let Some(filter) = &query.filter {
-		format!("{filter}")
+		format!("({filter}) AND private=false")
 	} else {
-		String::new()
+		String::from("private=false")
 	};
 
 	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
@@ -654,7 +937,7 @@ pub async fn add_author(
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	if !post.authors.iter().any(|u| u.id == user.id) {
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
 	if post.authors.iter().any(|u| u.name == new_author) {
@@ -677,6 +960,40 @@ pub async fn add_author(
 	Ok(Json(new_author))
 }
 
+pub async fn remove_author(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(removed_author): Json<String>,
+) -> Result<(), StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+	if !post.authors.iter().any(|u| u.name == removed_author) || user.name == removed_author {
+		return Err(StatusCode::BAD_REQUEST);
+	}
+
+	let removed_author =
+		sqlx::query_as!(User, "SELECT * FROM users WHERE name = $1", removed_author)
+			.fetch_one(&state.db)
+			.await
+			.map_err(|_| StatusCode::NOT_FOUND)?;
+
+	_ = sqlx::query!(
+		"DELETE FROM post_authors WHERE post_id=$1 AND user_id=$2",
+		post.id,
+		removed_author.id
+	)
+	.execute(&state.db)
+	.await;
+
+	Ok(())
+}
+
 pub async fn add_dependency(
 	Path(id): Path<i32>,
 	user: User,
@@ -691,7 +1008,7 @@ pub async fn add_dependency(
 		return Err(StatusCode::NOT_FOUND);
 	};
 
-	if !post.authors.iter().any(|u| u.id == user.id) {
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
 		return Err(StatusCode::UNAUTHORIZED);
 	}
 
@@ -728,6 +1045,35 @@ pub async fn add_dependency(
 	.await;
 
 	Ok(Json(dependency))
+}
+
+pub async fn remove_dependency(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(dependency): Json<i32>,
+) -> Result<(), StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	let Some(dependency) = Post::get_short(dependency, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
+	_ = sqlx::query!(
+		"DELETE FROM post_dependencies WHERE post_id=$1 AND dependency_id=$2",
+		post.id,
+		dependency.id
+	)
+	.execute(&state.db)
+	.await;
+
+	Ok(())
 }
 
 pub async fn report(

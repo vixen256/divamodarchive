@@ -1,28 +1,32 @@
 {% macro draw_post_list(posts) %}
 <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 	{% for post in posts %}
-	<div class="col">
-		<div class="card shadow" style="height: 100%">
-			<a style="text-decoration: none;" href="/post/{{ post.id }}">
-				<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
-					{% if let Some(image) = post.images.first() %}
-					<img src="{{ image.replace("/public", "/thumbnail") }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ post.name }}">
-					{% endif %}
-				</div>
-				<div class="card-body clearfix">
-					<p class="col-auto float-end ms-1 text text-align-right">
-						<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>{{ post.like_count|prettify_num }} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>{{ post.download_count|prettify_num }}<br>
-						{{ post.post_type }}
-					</p>
-					<h5 class="text"><b>{{ post.name }}</b></h5>
-					{% for author in post.authors %}
-					<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}?size=32" >
-					<p class="text"> {{ author.display_name }}</p>
-					{% endfor %}
-				</div>
-			</a>
+		<div class="col">
+			<div class="card shadow" style="height: 100%">
+				{% call draw_post(post) %}
+			</div>
 		</div>
-	</div>
 	{% endfor %}
 </div>
+{% endmacro %}
+
+{% macro draw_post(post) %}
+<a style="text-decoration: none;" href="/post/{{ post.id }}">
+	<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
+		{% if let Some(image) = post.images.first() %}
+			<img src="{{ image.replace("/public", "/thumbnail") }}" class="rounded-image" width="100%" loading="lazy" alt="Preview of {{ post.name }}">
+		{% endif %}
+	</div>
+	<div class="card-body clearfix">
+		<p class="col-auto float-end ms-1 text text-align-right">
+			<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>{{ post.like_count|prettify_num }} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>{{ post.download_count|prettify_num }}<br>
+			{{ post.post_type }}
+		</p>
+		<h5 class="text"><b>{{ post.name }}</b></h5>
+		{% for author in post.authors %}
+			<img class="float-start pe-1 ratio ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="{{ author.avatar }}?size=32" >
+			<p class="text"> {{ author.display_name }}</p>
+		{% endfor %}
+	</div>
+</a>
 {% endmacro %}

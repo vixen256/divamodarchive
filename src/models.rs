@@ -110,6 +110,7 @@ pub struct Post {
 	pub comments: Option<Comments>,
 	#[serde(rename = "file_names")]
 	pub local_files: Vec<String>,
+	pub private: bool,
 }
 
 impl Clone for Post {
@@ -128,6 +129,7 @@ impl Clone for Post {
 			dependencies: self.dependencies.clone(),
 			comments: None,
 			local_files: self.local_files.clone(),
+			private: self.private,
 		}
 	}
 }
@@ -150,8 +152,8 @@ pub struct Comments {
 	pub tree: slab_tree::Tree<Comment>,
 }
 
-impl Comments {
-	pub fn iter(&self) -> CommentIterator {
+impl<'a> Comments {
+	pub fn iter(&'a self) -> CommentIterator<'a> {
 		CommentIterator {
 			tree: &self.tree,
 			last_node: None,
@@ -215,7 +217,7 @@ impl Post {
 	pub async fn get_full(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -248,6 +250,7 @@ impl Post {
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
 			WHERE pd.post_id = $1
+			AND p.private = false
 			"#,
 			id
 		)
@@ -287,6 +290,7 @@ impl Post {
 				dependencies: None,
 				comments: None,
 				local_files: dep.local_files,
+				private: false,
 			});
 		}
 
@@ -321,7 +325,6 @@ impl Post {
 			.build();
 		let root = tree.root_id()?;
 		let mut ids = BTreeMap::new();
-		let mut first_comment = None;
 
 		for comment in comments {
 			if let Some(parent_id) = comment.parent {
@@ -362,9 +365,6 @@ impl Post {
 					})
 					.node_id();
 				ids.insert(comment.id, node_id);
-				if first_comment.is_none() {
-					first_comment = Some(node_id);
-				}
 			}
 		}
 
@@ -384,13 +384,14 @@ impl Post {
 			dependencies: Some(deps),
 			comments: Some(comments),
 			local_files: post.local_files,
+			private: post.private,
 		})
 	}
 
 	pub async fn get_short(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -430,6 +431,7 @@ impl Post {
 			dependencies: None,
 			comments: None,
 			local_files: post.local_files,
+			private: post.private,
 		})
 	}
 }
@@ -488,6 +490,7 @@ where
 			report_count: None,
 			has_reservations: false,
 			has_likes: false,
+			pending_upload: None,
 		};
 
 		let cookies = parts.extract::<CookieJar>().await.unwrap();

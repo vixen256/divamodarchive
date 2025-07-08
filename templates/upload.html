@@ -1,319 +1,417 @@
 {% extends "base.html" %}
 {% import "base.html" as base %}
-{% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
+{% if let Some(jwt) = base.jwt %}
 {% call base::draw_embed("Upload", "") %}
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
-{% endblock head %}
 
-{% block content %}
 <script>
-	{% if let Some(old_post) = update %}
-	function upload_metadata() {
-		var form = document.getElementById("form");
-		var name = form['title'].value;
-		var text = form['text'].value;
-		var type_tag = form['type_tag'].value;
-		if (title == "" || text == "") {
-			alert("Upload failed\nMissing text fields");
-			return
+	function descriptionUpdate() {
+		if (document.getElementById('btnEdit').checked) {
+			document.getElementById('text').hidden = false;
+			document.getElementById('descriptionPreview').hidden = true;
+		} else {
+			document.getElementById('text').hidden = true;
+			document.getElementById('descriptionPreview').hidden = false;
+			document.getElementById('descriptionPreview').innerHTML = marked.parse(document.getElementById('text').value);
 		}
-		document.getElementById('upload_btn_div').classList.add("disabled");
-		document.getElementById('upload_metadata_btn_div').classList.add("disabled");
-
-		let post_data = {
-			'id': Number('{{ old_post.id }}'),
-			'name': name,
-			'text': text,
-			'post_type': Number(type_tag),
-		}
-
-
-		options = {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-				'Authorization': 'Bearer {{ jwt }}'
-			},
-			body: JSON.stringify(post_data)
-		}
-
-		fetch('/api/v1/posts/edit', options)
-			.then(() => {
-				window.location.href = "/post/" + {{ old_post.id }}
-			})
-			.catch (error => alert("Unknown error when updating"))
-	}
-	{% endif %}
-
-	function crash_and_burn(error, message) {
-		alert(message + "\n" + error);
-		document.getElementById('upload_btn_div').classList.remove("disabled");
-		{% if update.is_some() %}
-		document.getElementById('upload_metadata_btn_div').classList.remove("disabled");
-		{% endif %}
-		throw error;
 	}
 
-	async function upload() {
-		var form = document.getElementById("form");
+	let imageFiles = [];
 
-		var image = form['imagePicker'];
-		var archive = form['filePicker'];
+	function appendImages() {
+		for (var file of document.getElementById('imageFilePicker').files) {
+			appendImage(file);
+		}
+	}
+	
+	function appendImage(file) {
+		if (!file.type.startsWith('image')) {
+			return;
+		}
+		imageFiles.push(file);
 
-		if (image.files.length != 1 || archive.files.length == 0) {
-			alert("Upload failed\nMissing image/archive");
+		let imgId = document.getElementById('images').children.length - 1;
+		let img = document.createElement('img');
+		img.classList = 'rounded-image w-100';
+		img.loading = 'lazy';
+		img.alt = 'Preview';
+		img.draggable = true;
+		img.style.cursor = 'move';
+		img.id = 'image' + imgId;
+		img.ondragstart = (event) => { dragStart(event); };
+		img.ondragenter = (event) => { dragEnter(event); };
+		img.ondragleave = (event) => { dragLeave(event); };
+		img.ondragend = (event) => { dragEnd(event); };
+		img.ondragover = (event) => { event.preventDefault(); };
+		img.ondrop = (event) => { dropSwapImage(event); };
+
+		let fileReader = new FileReader();
+		fileReader.onload = () => { img.src = fileReader.result; };
+		fileReader.readAsDataURL(file);
+
+		let cardImg = document.createElement('div');
+		cardImg.classList = 'card-img-top ratio ratio-16x9 bg-clear border-none';
+		cardImg.appendChild(img);
+
+		let deleteButton = document.createElement('button');
+		deleteButton.classList = 'w-100 btn btn-sm btn-danger';
+		deleteButton.onclick = () => { deleteImage(imgId); };
+		deleteButton.innerText = 'Remove';
+
+		let cardBody = document.createElement('div')
+		cardBody.classList = 'card-body p-0';
+		cardBody.appendChild(deleteButton);
+
+		let card = document.createElement('div');
+		card.classList = 'card shadow';
+		card.appendChild(cardImg);
+		card.appendChild(cardBody);
+
+		let column = document.createElement('div');
+		column.classList = 'col';
+		column.appendChild(card);
+
+		document.getElementById('images').insertBefore(column, document.getElementById('images').children[imgId]);
+	}
+
+	function deleteImage(index) {
+		if (document.getElementById('images').children.length == 1) {
+			createToast('Cannot remove last image', 'text-bg-danger');
+			return;
+		}
+		imageFiles.splice(index, 1);
+
+		document.getElementById('images').children[index].remove();
+		if (document.getElementById('images').children.length - 1 == 1) {
+			document.getElementById('images').children[0].children[0].children[1].remove();
 			return;
 		}
 
-		var name = form['title'].value;
-		var text = form['text'].value;
-		var type_tag = form['type_tag'].value;
-
-		if (title == "" || text == "") {
-			alert("Upload failed\nMissing text fields");
-			return
+		for (var i = 0; i < document.getElementById('images').children.length - 1; i++) {
+			document.getElementById('images').children[i].children[0].children[1].innerHTML = `<button class="w-100 btn btn-danger" onclick="deleteImage(${i})">Remove</button>`;
 		}
-
-		document.getElementById('upload_btn_div').classList.add("disabled")
-		{% if update.is_some() %}
-		document.getElementById('upload_metadata_btn_div').classList.add("disabled")
-		{% endif %}
-
-		var options = {
+	}
+	
+	async function uploadImage(file) {
+		let options = {
 			method: 'GET',
 			headers: {
 				'Content-Type': 'text/plain',
 				'Authorization': 'Bearer {{ jwt }}'
 			},
+		};
+		let res = await fetch('/api/v1/posts/upload_image', options);
+		if (!res.ok) {
+			createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+			return null;
 		}
 
-		var image_upload_url = await fetch('/api/v1/posts/upload_image', options)
-			.then(response => response.text())
-			.catch(error => crash_and_burn(error, "Failed to upload image"));
-		if (image_upload_url == null) {
-			crash_and_burn("Error:", "Image upload failed");
-			return;
+		let image_upload_url = await res.text();
+		if (image_upload_url == null || image_upload_url == '') {
+			createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+			return null;
 		}
-		var image_form = new FormData();
-		image_form.append('file', image.files[0]);
+
+		let image_form = new FormData();
+		image_form.append('file', file);
 		options = {
 			method: 'POST',
 			headers: {
 				'Accept': '*/*'
 			},
 			body: image_form
+		};
+		res = await fetch(image_upload_url, options);
+		if (!res.ok) {
+			createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+			return null;
 		}
-		var result = await fetch(image_upload_url, options)
-			.then(response => response.json())
-			.catch(error => crash_and_burn(error, "Failed to upload image"));
+
+		let result = await res.json();
 		if (result.result == null) {
-			crash_and_burn(results.errors[0].message, "Failed to upload image");
+			createToast('Failed to upload image: ' + file.name + ' ' + result.errors[0].message, 'text-bg-danger');
+			return null;
 		}
-		var image_url = result.result.variants[0].replace("/thumbnail", "/public");
+		let image_url = result.result.variants[0].replace('/thumbnail', '/public').replace('https://imagedelivery.net/', 'https://divamodarchive.com/cdn-cgi/imagedelivery/');
 		if (image_url == null) {
-			crash_and_burn("Error: ", "Image upload failed\nMaximum size for images is 10MiB");
-			return
+			createToast('Failed to upload image: ' + file.name, 'text-bg-danger');
+			return null;
 		}
-		var image_url = image_url.replace("https://imagedelivery.net/", "https://divamodarchive.com/cdn-cgi/imagedelivery/");
+		return image_url
+	}
 
-		var images_extra = form['imagesExtra'];
-		var images_extra_urls = [];
-		for (let i = 0; i < images_extra.files.length; i++) {
-			options = {
-				method: 'GET',
-				headers: {
-					'Content-Type': 'text/plain',
-					'Authorization': 'Bearer {{ jwt }}'
-				}
-			}
-			var extra_image_upload_url = await fetch('/api/v1/posts/upload_image', options)
-				.then(response => response.text())
-				.catch(error => crash_and_burn(error, "Failed to upload image"));
-			if (extra_image_upload_url == null) {
-				alert("Image upload failed\nMaximum size for images is 10MiB");
-				return
-			}
-			var extra_image_form = new FormData();
-			extra_image_form.append('file', images_extra.files[i]);
-			options = {
-				method: 'POST',
-				headers: {
-					'Accept': '*/*'
-				},
-				body: extra_image_form
-			}
-			var result = await fetch(extra_image_upload_url, options)
-				.then(response => response.json())
-				.catch(error => crash_and_burn(error, "Failed to upload image"));
-			if (result == null) {
-				alert("Image upload failed\nMaximum size for images is 10MiB");
-				return
-			}
-			var extra_image_url = result.result.variants[0].replace("/thumbnail", "/public");
-			var extra_image_url = extra_image_url.replace("https://imagedelivery.net/", "https://divamodarchive.com/cdn-cgi/imagedelivery/")
-			images_extra_urls.push(extra_image_url);
+	function dragStart(e) {
+		e.target.style.opacity = 0.5;
+
+		e.dataTransfer.dropEffect = 'move';
+		e.dataTransfer.setData('text/plain', e.target.id);
+	}
+
+	function dragEnter(e) {
+		let data = e.dataTransfer.getData('text/plain');
+		if (data == undefined || data == '' || data == e.target.id || document.getElementById(data) == undefined) {
+			return;
+		}
+		e.target.style.border = '0.33rem dotted';
+	}
+
+	function dragLeave(e) {
+		e.target.style.border = '';
+	}
+
+	function dragEnd(e) {
+		e.target.style.opacity = 1.0;
+	}
+
+	function dropSwapImage(e) {
+		let data = e.dataTransfer.getData('text/plain');
+		if (data == undefined || data == '' || data == e.target.id || document.getElementById(data) == undefined) {
+			return;
 		}
 
-		var files = archive.files;
+		e.preventDefault();
+		e.target.style.border = '';
 
-		var filenames = [];
-		var totalSize = 0;
+		document.getElementById(data).style.opacity = 1.0;
+
+		let original_src = document.getElementById(data).src;
+		document.getElementById(data).src = document.getElementById(e.target.id).src;
+		document.getElementById(e.target.id).src = original_src;
+	}
+
+	function imageDropperEnter(e) {
+		e.stopPropagation();
+		if (!e.dataTransfer.types.includes('Files')) {
+			return;
+		}
+		document.getElementById('imageFileDropper').style.border = '0.33rem dotted';
+	}
+
+	function imageDropperLeave(e) {
+		if (e.target == document.getElementById('imageFileDropper') && e.relatedTarget != document.getElementById('imageFileDropper').children[0]) {
+			document.getElementById('imageFileDropper').style.border = '';
+		}
+	}
+
+	function dropappendImages(e) {
+		if (e.dataTransfer.files == undefined || e.dataTransfer.files.len == 0) {
+			return;
+		}
+		e.preventDefault();
+		document.getElementById('imageFileDropper').style.border = '';
+		for (var file of e.dataTransfer.files) {
+			if (!file.type.startsWith('image')) {
+				createToast('Can only select images', 'text-bg-warning');
+				return;
+			}
+		}
+		document.getElementById('imageFilePicker').files = e.dataTransfer.files;
+		appendImages();
+	}
+	
+	let post = null;
+
+	async function createPost() {
+		let name = document.getElementById('title').value;
+		let text = document.getElementById('text').value;
+		let post_type = document.getElementById('type_tag').value;
+		
+		if (name == '' || text == '' || post_type == '' || post_type == 'null' || imageFiles.length == 0) {
+			createToast('Must set all values before uploading', 'text-bg-warning');
+			return null;
+		}
+
+		let images = [];
+		for (var file of imageFiles) {
+			let imageUrl = await uploadImage(file);
+			if (imageUrl != null) {
+				images.push(imageUrl);
+			}
+		}
+
+		if (images.length == 0) {
+			createToast('Must select at least 1 valid image before uploading', 'text-bg-warning');
+			return null;
+		}
+
+		let options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify({
+				'name': name,
+				'text': text,
+				'post_type': Number(post_type),
+				'images': images,
+			}),
+		};
+		let res = await fetch('/api/v1/posts', options);
+		if (!res.ok) {
+			createToast('Failed to creat post: ' + res.status, 'text-bg-danger');
+			return null;
+		}
+		return await res.json();
+	}
+
+	async function start_upload() {
+		let files = document.getElementById('filePicker').files;
+		if (files.length == 0) {
+			createToast('Must select files before upload', 'text-bg-warning');
+			return;
+		}
+		if (post == null) {
+			post = await createPost();
+			if (post == null) {
+				return;
+			}
+		}
+		document.getElementById('uploadButton').disabled = true;
+
+		let filenames = [];
+		let filelengths = [];
 		for (var file of files) {
 			filenames.push(file.name);
-			totalSize += file.size;
+			filelengths.push(file.size);
+		}
+		let options = {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify({
+				'post': post.id,
+				'files': filenames,
+				'lengths': filelengths,
+			}),
+		};
+		let res = await fetch('/api/v1/posts/start_upload', options);
+		if (!res.ok) {
+			createToast('Failed to start upload ' + res.status, 'text-bg-danger');
+			document.getElementById('uploadButton').disabled = false;
+			return;
 		}
 
-		let post_data = {
-			'name': name,
-			'text': text,
-			'post_type': Number(type_tag),
-			'filenames': filenames,
+		for (var i = 0; i < filenames.length; i++) {
+			let label = document.createElement('p');
+			label.classList = 'col-6 p-0 mb-1';
+			label.innerText = filenames[i];
+			document.getElementById('progressBars').appendChild(label);
+
+			let bar = document.createElement('div');
+			bar.classList = 'col-6 p-0 progress mb-1';
+			bar.style = '--bs-progress-height: 1.5rem';
+
+			let innerBar = document.createElement('div');
+			innerBar.id = 'progressBar' + i;
+			innerBar.classList = 'progress-bar bg-success';
+			innerBar.role = 'progressbar';
+			innerBar.style.width = '0%';
+
+			bar.appendChild(innerBar);
+			document.getElementById('progressBars').appendChild(bar);
 		}
-		{% if let Some(old_post) = update %}
-		post_data.id = {{ old_post.id }}
-		{% endif %}
-		post_data.image = image_url;
-		post_data.images_extra = images_extra_urls;
 
-		var offset = 0;
-		var readers = [];
-		var lengths = [];
-		for (var file of files) {
-			lengths.push(file.size);
-			var reader = file.stream().getReader();
-			readers.push(reader);
+		upload_loop();
+	}
+
+	async function upload_loop() {
+		let files = new Map();
+		for (var file of document.getElementById('filePicker').files) {
+			files.set(file.name, file);
 		}
 
-		var socket = new WebSocket('wss://divamodarchive.com/api/v1/posts/upload');
-		var progressBar = document.getElementById('progressBar');
-		var completed = 0;
-		var index = 0;
-		var percentComplete = Math.round((completed / totalSize) * 100);
+		let success = false;
+		let socket = new WebSocket('/api/v1/posts/continue_upload');
 
-		socket.addEventListener("open", (event) => {
-			socket.send('{{ jwt }}')
-			socket.send(JSON.stringify(post_data));
+		socket.addEventListener('open', (e) => {
+			socket.send('{{ jwt }}');
 		});
 
-		socket.addEventListener("message", async (event) => {
-			if (event.data == "Ready") {
-				var {done, value} = await readers[index].read();
-				if (done || value == undefined || value.length == 0) {
-					if (offset != lengths[index]) {
-						socket.close();
-						crash_and_burn("Failed to read full file", `Only read ${completed} of ${lengths[index]}`);
-						return;
-					}
-					socket.send("Finished");
-					index += 1;
-					offset = 0;
-				} else {
-					socket.send(value);
-
-					completed += value.length;
-					offset += value.length;
-					percentComplete = Math.round((completed / totalSize) * 100);
-					progressBar.style.width = percentComplete + '%';
-				}
-			} else {
+		socket.addEventListener('message', async (e) => {
+			let message = JSON.parse(event.data);
+			if (message.error != undefined) {
+				createToast(message.error, 'text-bg-danger');
 				socket.close();
-				window.location.href = event.data;
+			} else if (message.success != undefined) {
+				success = true;
+				socket.close();
+			} else if (message.file != undefined && message.offset != undefined) {
+				let filepicker = document.getElementById('filePicker').files;
+				for (var i = 0; i < filepicker.length; i++) {
+					if (filepicker[i].name == message.file) {
+						document.getElementById('progressBar' + i).style.width = message.offset / filepicker[i].size * 100 + '%';
+						break;
+					}
+				}
+
+				let data = await files.get(message.file).slice(message.offset, message.offset + (1024 * 1024 * 8)).arrayBuffer();
+				socket.send(data);
+			} else {
+				createToast('Could not parse message from server ' + event.data, 'text-bg-danger');
+				socket.close();
 			}
 		});
 
-		socket.addEventListener("close", async (event) => console.log(event));
-		socket.addEventListener("error", async (event) => crash_and_burn("Websocket error", event));
-	}
-
-	function descriptionUpdate() {
-		if (document.getElementById("btnEdit").checked) {
-			document.getElementById("text").hidden = false;
-			document.getElementById("descriptionPreview").hidden = true;
-		} else {
-			document.getElementById("text").hidden = true;
-			document.getElementById("descriptionPreview").hidden = false;
-			document.getElementById("descriptionPreview").innerHTML = marked.parse(document.getElementById("text").value);
-		}
+		socket.addEventListener('close', async (e) => {
+			if (success) {
+				document.getElementById('progressBars').children.length = 0;
+				createToast('Successfully uploaded all files', 'text-bg-success');
+				await new Promise(r => setTimeout(r, 5000));
+				window.location.href = '/post/' + post.id + '/edit';
+			} else {
+				await new Promise(r => setTimeout(r, 5000));
+				upload_loop();
+			}
+		});
 	}
 </script>
-<form id="form" class="row align-items-md-stretch gap-3" enctype="application/x-www-form-urlencoded">
+{% endif %}
+{% endblock head %}
+
+{% block content %}
+{% if let Some(user) = base.user %}
+<div class="row align-items-md-stretch gap-3 m-1">
+	<div class="alert alert-warning mb-0">
+		<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#rules">
+			<h5 class="mb-0">Please make sure you are familiar with the rules</h5>
+		</button>
+		<div id="rules" class="p-1 collapse" data-bs-parent="#accordionRules">
+			<p>The following content cannot be posted, however any content may be modified or deleted at the discretion of the admins</p>
+			<ul class="mb-0">
+				<li>Any kind of speech designed to cause hatred or conflict</li>
+				<li>A mod for a game other than Project DIVA Mega Mix+</li>
+				<li>Pornographic or erotic content in excess of what the games already contain</li>
+				<li>A mod with a plugin that does not contain or link the source code</li>
+				<li>Mods or references to mods that require payment to use, references to commissions are allowed are however</li>
+				<li>Modifications of other peoples content, including SEGAs, that does not mention the original content or how it was modified</li>
+				<li>Broken or non-functional mods</li>
+			</ul>
+		</div>
+	</div>
+
 	<div class="card card-body">
-		<h3 class="text">The admins reserve the right to delete your post for ANY reason</h3>
-		<p class="text mb-0">
-			Common reasons include but are not limited to:
-		</p>
-		<ul class="mb-0">
-			<li class="text">Copyright infringement</li>
-			<li class="text">A mod for a game other than Project DIVA Mega Mix+</li>
-			<li class="text">NSFW or otherwise explicit content not fit for minors to view</li>
-			<li class="text">A plugin mod that does not have public source code linked</li>
-			<li class="text">A mod designed to advertise paid content</li>
-			<li class="text">Modifications of other peoples content, including SEGAs, that does not mention the original content or how it was modified</li>
-			<li class="text">Obviously broken or non-functional mods, such as out of sync songs</li>
-		</ul>
-	</div>
+		<h2 class="card-text text mb-2"><input class="w-100" type="text" id="title" name="title" autocomplete="off" placeholder="Title"></h2>
 
-	<div class="col-md-7 card card-body">
-		<h2 class="card-text text"><label for="title">Title: </label><input type="text" id="title" name="title"
-				autocomplete="off" {% if let Some(old_post)=update %}value="{{ old_post.name }}" {% endif %}></h2>
-		{% if let Some(old_post) = update %}
-		{% for author in old_post.authors %}
-		<h5><a href="/user/{{ author.id }}" class="card-subtitle text">{{ author.display_name }}</a></h5>
-		{% endfor %}
-		{% else %}
-		<h5><a href="/user/{{ user.id }}" class="card-subtitle text">{{ user.display_name }}</a></h5>
-		{% endif %}
+		<div class="card-text mb-2">
+			<h5>Descriptions are formatted using markdown, <a href="https://www.markdownguide.org/basic-syntax/">Here</a> is a guide that teaches you how to use it.</h5>
+			<div class="btn-group w-100" role="group">
+				<input type="radio" class="btn-check" id="btnEdit" name="description" autocomplete="off" checked="" onchange="descriptionUpdate()">
+				<label class="btn btn-outline-primary" for="btnEdit">Edit</label>
+				<input type="radio" class="btn-check" id="btnPreview" name="description" autocomplete="off" onchange="descriptionUpdate()">
+				<label class="btn btn-outline-primary" for="btnPreview">Preview</label>
+			</div>
+			<br>
+			<textarea class="form-control" id="text" rows="10" placeholder="Description"></textarea>
+			<div class="text" hidden="" id="descriptionPreview"></div>
+		</div>
 
-		<label for="imagePicker" class="form-label mt-4">Image</label>
-		<input class="form-control" accept="image/*" type="file" id="imagePicker">
-		<div id="imagePreview" class="card-img-top ratio ratio-16x9 bg-clear border-none" style="display: none;">
-			<img id="imagePreviewImg" class="rounded-image" width="100%">
-		</div>
-		<label for="imagesExtra" class="form-label mt-4">Optional: Extra images</label>
-		<input class="form-control" accept="image/*" type="file" id="imagesExtra" multiple>
-		<div id="imagesExtraPreview" class="row row-cols-2 row-cols-lg-4 gy-3" style="display: none;">
-		</div>
-	</div>
-	<div class="col-md-3 card card-body gap-3">
-		<div class="btn-group">
-			<input type="radio" class="btn-check" name="btnradio" id="likedradiobtn" autocomplete="off">
-			{% if let Some(old_post) = update %}
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">{{ old_post.like_count }}👍</label>
-			{% else %}
-			<label class="btn btn-outline-primary disabled" for="likedradiobtn" id="likes">0👍</label>
-			{% endif %}
-			<input type="radio" class="btn-check" name="btnradio" id="dislikedradiobtn" autocomplete="off">
-		</div>
-		<div class="btn btn-sm btn-outline-success btn-success" id="upload_btn_div" onclick="upload()">
-			<button type="button" id="upload_btn" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Upload</button>
-		</div>
-		<div class="progress">
-			<div id="progressBar" class="progress-bar bg-success" role="progressbar" style="width: 0%;"></div>
-		</div>
-		{% if update.is_some() %}
-		<div class="btn btn-sm btn-outline-success btn-success" id="upload_metadata_btn_div"
-			onclick="upload_metadata()">
-			<button type="button" id="upload_metadata_btn" style="box-shadow: none" class="btn {% if base.theme() == Theme::Light %}text-light{% endif %}">Update
-				metadata</button>
-		</div>
-		{% endif %}
-		<label for="filePicker" class="form-label mt-4">Mod File</label>
-		<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker" multiple>
-
-		<label for="type_tag">Type</label>
-		{% if let Some(old_post) = update %}
-		<select class="form-control list-text" id="type_tag" name="type_tag">
-			<option value="0" {% if PostType::Plugin==old_post.post_type %}selected{% endif %}>Plugin</option>
-			<option value="1" {% if PostType::Module==old_post.post_type %}selected{% endif %}>Module</option>
-			<option value="2" {% if PostType::Song==old_post.post_type %}selected{% endif %}>Song</option>
-			<option value="3" {% if PostType::Cover==old_post.post_type %}selected{% endif %}>Cover</option>
-			<option value="4" {% if PostType::Ui==old_post.post_type %}selected{% endif %}>UI</option>
-			<option value="5" {% if PostType::Other==old_post.post_type %}selected{% endif %}>Other</option>
-		</select>
-		{% else %}
-		<select class="form-control list-text" id="type_tag" name="type_tag">
+		<select class="form-select list-text mb-1" id="type_tag">
+			<option value="null" selected disabled hidden>Mod Type</option>
 			<option value="0">Plugin</option>
 			<option value="1">Module</option>
 			<option value="2">Song</option>
@@ -321,116 +419,38 @@
 			<option value="4">UI</option>
 			<option value="5">Other</option>
 		</select>
-		{% endif %}
 	</div>
+
 	<div class="card card-body">
-		<div class="card-text">
-			<h5>Description</h5>
-			<p>Descriptions are formatted using markdown, <a href="https://www.markdownguide.org/basic-syntax/">Here</a> is a guide that teaches you how to use it.</p>
-			<div class="btn-group" role="group">
-				<input type="radio" class="btn-check" id="btnEdit" name="description" autocomplete="off" checked="" onchange="descriptionUpdate()">
-				<label class="btn btn-outline-primary" for="btnEdit">Edit</label>
-				<input type="radio" class="btn-check" id="btnPreview" name="description" autocomplete="off" onchange="descriptionUpdate()">
-				<label class="btn btn-outline-primary" for="btnPreview">Preview</label>
+		<h4 class="text">You can drag and drop images to rearrange them</h4>
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id=images>
+			<div class="col">
+				<button
+					onclick="document.getElementById('imageFilePicker').click()"
+					class="h-100 w-100 btn btn-secondary"
+					style="display: flex; align-items: center; text-align: center"
+					id="imageFileDropper"
+					ondragenter="imageDropperEnter(event)"
+					ondragleave="imageDropperLeave(event)"
+					ondragover="event.preventDefault()"
+					ondrop="dropappendImages(event)"
+				>
+					<span class="material-symbols-outlined w-100" style="font-size: 5rem">add</span>
+				</button>
+				<input id="imageFilePicker" accept="image/jpeg,image/png,image/webp" type="file" multiple style="display: none" onchange="appendImages()">
 			</div>
-			<br>
-			{% if let Some(old_post) = update %}
-			<textarea class="form-control" id="text" rows="5">{{ old_post.text }}</textarea>
-			{% else %}
-			<textarea class="form-control" id="text" rows="5"></textarea>
-			{% endif %}
-			<div class="text" hidden="" id="descriptionPreview"></div>
 		</div>
 	</div>
-</form>
-<style>
-	.drop-target {
-		border: 1px dashed #ccc;
-	}
-</style>
-<!--
-	Add drop handlers and image previews
--->
-<script>
-	function addDropHandler(element) {
-		element.addEventListener('dragenter', function (e) {
-			e.preventDefault();
-			e.stopPropagation();
-			element.classList.add('drop-target');
-		});
-		element.addEventListener('dragleave', function (e) {
-			e.preventDefault();
-			e.stopPropagation();
-			element.classList.remove('drop-target');
-		});
-		element.addEventListener('drop', async (e) => {
-			e.preventDefault();
-			element.files = e.dataTransfer.files;
-		});
-	};
 
-	function createExtraImageInner(src) {
-		let div = document.createElement("div");
-		div.classList = "col";
-		let div2 = document.createElement("div");
-		div2.classList = "ratio ratio-16x9 bg-clear border-none";
-		let img = document.createElement("img");
-		img.src = src;
-		img.classList = "card-img-top flat-image";
-
-		div2.appendChild(img);
-		div.appendChild(div2);
-
-		return div;
-	}
-
-	function displayImagePreview() {
-		let file = imagePicker.files[0];
-		imagePreview.style.display = "none";
-		if (file) {
-			let fileReader = new FileReader();
-			fileReader.addEventListener("load", function () {
-				imagePreview.style.display = "";
-				imagePreviewImg.setAttribute("src", this.result);
-			});
-			fileReader.readAsDataURL(file);
-		}
-	}
-	function displayExtraImagesPreview() {
-		imagesExtraPreview.style.display = "";
-		let child = imagesExtraPreview.firstChild;
-		while (child != undefined) {
-			imagesExtraPreview.removeChild(child);
-			child = imagesExtraPreview.firstChild;
-		}
-		for (let i = 0; i < imagesExtra.files.length; i++) {
-			let file = imagesExtra.files[i];
-			if (file) {
-				let fileReader = new FileReader();
-				fileReader.addEventListener("load", function () {
-					imagesExtraPreview.style.display = "";
-					imagesExtraPreview.appendChild(createExtraImageInner(this.result));
-				});
-				fileReader.readAsDataURL(file);
-			}
-		}
-	}
-
-	const form = document.getElementById("form");
-	const filePicker = form['filePicker'];
-	const imagePicker = form['imagePicker'];
-	const imagesExtra = form['imagesExtra'];
-	addDropHandler(filePicker);
-	addDropHandler(imagePicker);
-	addDropHandler(imagesExtra);
-
-	const imagePreview = document.getElementById("imagePreview");
-	const imagePreviewImg = document.getElementById("imagePreviewImg");
-	const imagesExtraPreview = document.getElementById("imagesExtraPreview");
-
-	imagePicker.addEventListener("change", displayImagePreview);
-	imagePicker.addEventListener("drop", displayImagePreview);
-	imagesExtra.addEventListener("change", displayExtraImagesPreview);
-	imagesExtra.addEventListener("drop", displayExtraImagesPreview);
-</script>
+	<div class="card card-body">
+		<div class="mb-2 mx-1">
+			<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker" multiple>
+		</div>
+		<button class="btn btn-outline-success btn-success mb-2 mx-1" type="button" onclick="start_upload()" id="uploadButton">
+			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Start upload</div>
+		</button>
+		<div class="row mx-1" id="progressBars"></div>
+	</div>
+</div>
+{% endif %}
 {% endblock content %}

@@ -1,3 +1,4 @@
+#![allow(unstable_name_collisions)]
 pub mod api;
 pub mod models;
 pub mod sitemap;
@@ -7,7 +8,6 @@ use axum::{Router, http::HeaderMap, routing::*};
 use meilisearch_sdk::client::*;
 use models::*;
 use sqlx::postgres::PgPoolOptions;
-use std::sync::*;
 
 #[derive(Clone)]
 pub struct Config {
@@ -89,7 +89,7 @@ async fn main() {
 		.await
 		.unwrap();
 	meilisearch_posts
-		.set_filterable_attributes(&["post_type", "id"])
+		.set_filterable_attributes(&["post_type", "id", "private"])
 		.await
 		.unwrap();
 	meilisearch_posts
@@ -213,36 +213,12 @@ async fn main() {
 		)
 		.with_state(state.clone())
 		.merge(web::route(state.clone()))
-		.merge(api::route(state.clone()))
-		.layer(axum::middleware::from_fn(connection_counter));
+		.merge(api::route(state.clone()));
+
 	let listener = tokio::net::TcpListener::bind("0.0.0.0:7001")
 		.await
 		.expect("Unable to bind on port {}");
-	axum::serve(listener, router)
-		.with_graceful_shutdown(shutdown())
-		.await
-		.unwrap();
-}
-
-pub static ACTIVE_CONNECTIONS: atomic::AtomicI64 = atomic::AtomicI64::new(0);
-
-pub async fn connection_counter(
-	request: axum::extract::Request,
-	next: axum::middleware::Next,
-) -> axum::response::Response {
-	ACTIVE_CONNECTIONS.fetch_add(1, atomic::Ordering::SeqCst);
-	let response = next.run(request).await;
-	ACTIVE_CONNECTIONS.fetch_sub(1, atomic::Ordering::SeqCst);
-
-	response
-}
-
-pub async fn shutdown() {
-	tokio::signal::ctrl_c().await.unwrap();
-
-	while ACTIVE_CONNECTIONS.load(atomic::Ordering::SeqCst) != 0 {
-		tokio::time::sleep(std::time::Duration::from_millis(100)).await;
-	}
+	axum::serve(listener, router).await.unwrap();
 }
 
 pub async fn robots() -> &'static str {

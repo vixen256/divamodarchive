@@ -20,7 +20,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/about", get(about))
 		.route("/post/{id}", get(post_detail))
 		.route("/posts/{id}", get(post_redirect))
-		.route("/post/{id}/edit", get(upload))
+		.route("/post/{id}/edit", get(edit))
 		.route("/post/{id}/report", get(report))
 		.route("/liked/{id}", get(liked))
 		.route("/user/{id}", get(user))
@@ -94,6 +94,7 @@ pub struct BaseTemplate {
 	pub report_count: Option<i64>,
 	pub has_reservations: bool,
 	pub has_likes: bool,
+	pub pending_upload: Option<Post>,
 }
 
 impl<S> FromRequestParts<S> for BaseTemplate
@@ -167,6 +168,22 @@ where
 			false
 		};
 
+		let pending_upload = if let Some(user) = &user {
+			if let Ok(post_id) = sqlx::query!(
+				"SELECT post_id FROM pending_uploads WHERE user_id = $1",
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				Post::get_short(post_id.post_id, &state.db).await
+			} else {
+				None
+			}
+		} else {
+			None
+		};
+
 		Ok(Self {
 			user,
 			config: state.config,
@@ -174,6 +191,7 @@ where
 			report_count,
 			has_reservations,
 			has_likes,
+			pending_upload,
 		})
 	}
 }
@@ -229,7 +247,7 @@ async fn liked(
 		SELECT p.id
 		FROM liked_posts lp
 		LEFT JOIN posts p ON lp.post_id = p.id
-		WHERE lp.user_id = $1
+		WHERE lp.user_id = $1 AND p.private = false
 		ORDER by p.time DESC
 		"#,
 		id,
@@ -295,6 +313,13 @@ async fn user(
 	let mut posts = Vec::new();
 	for post in user_posts {
 		if let Some(post) = Post::get_short(post.id, &state.db).await {
+			if post.private {
+				if !base.user.as_ref().map_or(false, |user| {
+					post.authors.contains(user) || user.is_admin(&state.config)
+				}) {
+					continue;
+				}
+			}
 			posts.push(post);
 		}
 	}
@@ -496,56 +521,6 @@ async fn user_reservations(
 }
 
 #[derive(Template, WebTemplate)]
-#[template(path = "upload.html")]
-struct UploadTemplate {
-	base: BaseTemplate,
-	update: Option<Post>,
-	jwt: String,
-	user: User,
-}
-
-async fn upload(
-	base: BaseTemplate,
-	update_id: Option<Path<i32>>,
-	user: User,
-	State(state): State<AppState>,
-) -> Result<UploadTemplate, ErrorTemplate> {
-	let Some(jwt) = base.jwt.clone() else {
-		return Err(ErrorTemplate {
-			base,
-			status: StatusCode::UNAUTHORIZED,
-		});
-	};
-
-	let post = if let Some(Path(id)) = update_id {
-		if let Some(post) = Post::get_full(id, &state.db).await {
-			if post.authors.contains(&user) {
-				Some(post)
-			} else {
-				return Err(ErrorTemplate {
-					base,
-					status: StatusCode::UNAUTHORIZED,
-				});
-			}
-		} else {
-			return Err(ErrorTemplate {
-				base,
-				status: StatusCode::UNAUTHORIZED,
-			});
-		}
-	} else {
-		None
-	};
-
-	Ok(UploadTemplate {
-		base,
-		update: post,
-		jwt,
-		user,
-	})
-}
-
-#[derive(Template, WebTemplate)]
 #[template(path = "post.html")]
 struct PostTemplate {
 	base: BaseTemplate,
@@ -588,6 +563,17 @@ async fn post_detail(
 		});
 	};
 
+	if post.private {
+		if !base.user.as_ref().map_or(false, |user| {
+			post.authors.contains(user) || user.is_admin(&state.config)
+		}) {
+			return Err(ErrorTemplate {
+				base,
+				status: StatusCode::UNAUTHORIZED,
+			});
+		}
+	}
+
 	let has_liked = if let Some(user) = &base.user {
 		let Ok(has_liked) = sqlx::query!(
 			"SELECT COUNT(*) FROM liked_posts WHERE post_id = $1 AND user_id = $2",
@@ -609,7 +595,7 @@ async fn post_detail(
 	};
 
 	let is_author = if let Some(user) = &base.user {
-		post.authors.iter().any(|u| u.id == user.id)
+		post.authors.contains(user)
 	} else {
 		false
 	};
@@ -937,6 +923,7 @@ async fn search(
 		r#"
 		SELECT id
 		FROM posts
+		WHERE private = false
 		ORDER BY time DESC
 		LIMIT 20
 		"#
@@ -992,6 +979,12 @@ async fn report(
 			status: StatusCode::NOT_FOUND,
 		});
 	};
+	if post.private {
+		return Err(ErrorTemplate {
+			base,
+			status: StatusCode::UNAUTHORIZED,
+		});
+	}
 
 	Ok(ReportTemplate { base, post })
 }
@@ -1242,4 +1235,134 @@ async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) 
 			.await
 			.len(),
 	}
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "edit.html")]
+struct EditTemplate {
+	base: BaseTemplate,
+	post: Post,
+	files: Vec<String>,
+	completed: Vec<i64>,
+	length: Vec<i64>,
+}
+
+async fn edit(
+	base: BaseTemplate,
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+) -> Result<EditTemplate, ErrorTemplate> {
+	let base = BaseTemplate {
+		user: base.user,
+		config: base.config,
+		jwt: base.jwt,
+		report_count: base.report_count,
+		has_reservations: base.has_reservations,
+		has_likes: base.has_likes,
+		pending_upload: None,
+	};
+
+	let Some(post) = Post::get_full(id, &state.db).await else {
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::NOT_FOUND,
+		});
+	};
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::UNAUTHORIZED,
+		});
+	}
+
+	if sqlx::query!(
+		"SELECT files FROM pending_uploads WHERE post_id = $1 AND user_id != $2",
+		id,
+		user.id
+	)
+	.fetch_one(&state.db)
+	.await
+	.is_ok()
+	{
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::UNAUTHORIZED,
+		});
+	}
+
+	if sqlx::query!(
+		"SELECT files FROM pending_uploads WHERE post_id != $1 AND user_id = $2",
+		id,
+		user.id
+	)
+	.fetch_one(&state.db)
+	.await
+	.is_ok()
+	{
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::CONFLICT,
+		});
+	}
+
+	let (files, completed, length) = if let Ok(pending_upload) = sqlx::query!(
+		"SELECT files, completed, length FROM pending_uploads WHERE post_id = $1 AND user_id = $2",
+		post.id,
+		user.id
+	)
+	.fetch_one(&state.db)
+	.await
+	{
+		(
+			pending_upload.files,
+			pending_upload.completed,
+			pending_upload.length,
+		)
+	} else {
+		(Vec::new(), Vec::new(), Vec::new())
+	};
+
+	if files.len() != completed.len() || completed.len() != length.len() {
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::INTERNAL_SERVER_ERROR,
+		});
+	}
+
+	Ok(EditTemplate {
+		base,
+		post,
+		files,
+		completed,
+		length,
+	})
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "upload.html")]
+struct UploadTemplate {
+	base: BaseTemplate,
+}
+
+async fn upload(
+	base: BaseTemplate,
+	user: User,
+	State(state): State<AppState>,
+) -> Result<UploadTemplate, ErrorTemplate> {
+	if sqlx::query!(
+		"SELECT files FROM pending_uploads WHERE user_id = $1",
+		user.id
+	)
+	.fetch_one(&state.db)
+	.await
+	.is_ok()
+	{
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::CONFLICT,
+		});
+	}
+
+	Ok(UploadTemplate { base })
 }
