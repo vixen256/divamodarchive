@@ -559,7 +559,9 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	.execute(&state.db)
 	.await;
 
-	_ = sqlx::query!("DELETE FROM pending_uploads WHERE user_id = $1", user.id);
+	_ = sqlx::query!("DELETE FROM pending_uploads WHERE user_id = $1", user.id)
+		.execute(&state.db)
+		.await;
 
 	tokio::spawn(crate::api::ids::extract_post_data(post.id, state.clone()));
 
