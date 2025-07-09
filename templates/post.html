@@ -6,7 +6,7 @@
 {% import "cstm_item_helpers.html" as cstm_item_helpers %}
 
 {% block head %}
-{% let text = post.text.trim().replace('\n', " ").replace('#', "") %}
+{% let text = post.text.trim().replace('#', "") %}
 {% let text = text.split('\n').next().unwrap_or_default() %}
 {% call base::draw_embed(post.name, text.trim()) %}
 <meta property="og:image" content="{{ post.images[0] }}">
