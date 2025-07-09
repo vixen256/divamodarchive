@@ -511,12 +511,14 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 			.await;
 	}
 
-	for (i, local_file) in local_files.iter().enumerate() {
-		_ = tokio::fs::rename(
-			local_file,
-			format!("/pixeldrain/{}/{}", user.id, pending_upload.files[i]),
-		)
-		.await;
+	for file in &pending_upload.files {
+		_ = tokio::process::Command::new("rclone")
+			.arg("move")
+			.arg(format!("/pixeldrain/{}/pending/{}", user.id, file))
+			.arg(format!("/pixeldrain/{}/{}", user.id, file))
+			.arg("--config=/etc/rclone-mnt.conf")
+			.output()
+			.await;
 	}
 
 	let files = pending_upload
@@ -527,23 +529,34 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 	let mut downloads = Vec::new();
 	for file in &files {
-		let Some(download) = get_download_link(file).await else {
-			_ = socket
-				.send(ws::Message::Text(ws::Utf8Bytes::from_static(
-					"{\"error\": \"Failed to get public download link\"}",
-				)))
-				.await;
-			return;
-		};
-		if download.is_empty() {
-			_ = socket
-				.send(ws::Message::Text(ws::Utf8Bytes::from_static(
-					"{\"error\": \"Failed to get public download link\"}",
-				)))
-				.await;
-			return;
+		for i in 0..5 {
+			let Some(download) = get_download_link(file).await else {
+				if i == 4 {
+					_ = socket
+						.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+							"{\"error\": \"Failed to get public download link\"}",
+						)))
+						.await;
+					return;
+				}
+				tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+				continue;
+			};
+			if download.is_empty() {
+				if i == 4 {
+					_ = socket
+						.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+							"{\"error\": \"Failed to get public download link\"}",
+						)))
+						.await;
+					return;
+				}
+				tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
+				continue;
+			}
+			downloads.push(download);
+			break;
 		}
-		downloads.push(download);
 	}
 
 	let now = time::OffsetDateTime::now_utc();
