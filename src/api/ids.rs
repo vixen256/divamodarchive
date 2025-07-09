@@ -47,6 +47,21 @@ pub struct MeilisearchCstmItem {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct MeilisearchNcSong {
+	pub uid: u64,
+	pub post_id: i32,
+	pub pv_id: i32,
+	pub difficulties: [Option<MeilisearchNcDifficulty>; 5],
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MeilisearchNcDifficulty {
+	pub arcade: Option<Option<pv_db::Level>>,
+	pub console: Option<Option<pv_db::Level>>,
+	pub mixed: Option<Option<pv_db::Level>>,
+}
+
+#[derive(Serialize, Deserialize)]
 struct Config {
 	include: Option<Vec<String>>,
 }
@@ -184,6 +199,15 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 					if !path.exists() {
 						continue;
 					}
+
+					let nc_db = format!("{folder}/nc_db.toml");
+					let path = Path::new(&nc_db);
+					if path.exists() {
+						if let Ok(data) = tokio::fs::read_to_string(&path).await {
+							parse_nc_db(&data, post_id, state.clone()).await;
+						}
+					}
+
 					for prefix in &DB_PREFIXES {
 						let pv_db = format!("{folder}/{prefix}pv_db.txt");
 						let path = Path::new(&pv_db);
@@ -422,6 +446,140 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 		.meilisearch
 		.index("pvs")
 		.add_or_update(&pvs, Some("uid"))
+		.await
+		.unwrap();
+
+	Some(())
+}
+
+#[derive(Serialize, Deserialize)]
+struct NcDb {
+	songs: Vec<NcDbSong>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NcDbSong {
+	id: i32,
+	easy: Option<Vec<NcDbDifficulty>>,
+	normal: Option<Vec<NcDbDifficulty>>,
+	hard: Option<Vec<NcDbDifficulty>>,
+	extreme: Option<Vec<NcDbDifficulty>>,
+	ex_extreme: Option<Vec<NcDbDifficulty>>,
+}
+
+#[derive(Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "SCREAMING_SNAKE_CASE")]
+enum NcDbStyle {
+	Arcade,
+	Console,
+	Mixed,
+}
+
+#[derive(Serialize, Deserialize)]
+struct NcDbDifficulty {
+	style: NcDbStyle,
+	level: Option<pv_db::Level>,
+}
+
+pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
+	let nc_db: NcDb = toml::from_str(data).ok()?;
+
+	let songs = nc_db
+		.songs
+		.iter()
+		.map(|song| MeilisearchNcSong {
+			uid: (post_id as u64) << 32 | (song.id as u64),
+			post_id,
+			pv_id: song.id,
+			difficulties: [
+				song.easy
+					.as_ref()
+					.map(|difficulty| MeilisearchNcDifficulty {
+						arcade: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Arcade)
+							.map(|chart| chart.level.clone()),
+						console: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Console)
+							.map(|chart| chart.level.clone()),
+						mixed: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Mixed)
+							.map(|chart| chart.level.clone()),
+					}),
+				song.normal
+					.as_ref()
+					.map(|difficulty| MeilisearchNcDifficulty {
+						arcade: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Arcade)
+							.map(|chart| chart.level.clone()),
+						console: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Console)
+							.map(|chart| chart.level.clone()),
+						mixed: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Mixed)
+							.map(|chart| chart.level.clone()),
+					}),
+				song.hard
+					.as_ref()
+					.map(|difficulty| MeilisearchNcDifficulty {
+						arcade: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Arcade)
+							.map(|chart| chart.level.clone()),
+						console: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Console)
+							.map(|chart| chart.level.clone()),
+						mixed: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Mixed)
+							.map(|chart| chart.level.clone()),
+					}),
+				song.extreme
+					.as_ref()
+					.map(|difficulty| MeilisearchNcDifficulty {
+						arcade: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Arcade)
+							.map(|chart| chart.level.clone()),
+						console: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Console)
+							.map(|chart| chart.level.clone()),
+						mixed: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Mixed)
+							.map(|chart| chart.level.clone()),
+					}),
+				song.ex_extreme
+					.as_ref()
+					.map(|difficulty| MeilisearchNcDifficulty {
+						arcade: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Arcade)
+							.map(|chart| chart.level.clone()),
+						console: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Console)
+							.map(|chart| chart.level.clone()),
+						mixed: difficulty
+							.iter()
+							.find(|chart| chart.style == NcDbStyle::Mixed)
+							.map(|chart| chart.level.clone()),
+					}),
+			],
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("nc_songs")
+		.add_or_update(&songs, Some("uid"))
 		.await
 		.unwrap();
 

@@ -83,6 +83,7 @@ async fn main() {
 	let meilisearch_pvs = client.index("pvs");
 	let meilisearch_modules = client.index("modules");
 	let meilisearch_customize = client.index("cstm_items");
+	let meilisearch_nc = client.index("nc_songs");
 
 	meilisearch_posts
 		.set_searchable_attributes(&["name", "text", "authors.name"])
@@ -166,6 +167,15 @@ async fn main() {
 		.unwrap();
 	meilisearch_customize
 		.set_sortable_attributes(&["customize_item_id"])
+		.await
+		.unwrap();
+
+	meilisearch_nc
+		.set_filterable_attributes(&["pv_id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_nc
+		.set_sortable_attributes(&["pv_id", "post_id"])
 		.await
 		.unwrap();
 
