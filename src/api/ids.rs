@@ -56,9 +56,14 @@ pub struct MeilisearchNcSong {
 
 #[derive(Serialize, Deserialize)]
 pub struct MeilisearchNcDifficulty {
-	pub arcade: Option<Option<pv_db::Level>>,
-	pub console: Option<Option<pv_db::Level>>,
-	pub mixed: Option<Option<pv_db::Level>>,
+	pub arcade: Option<MeilisearchNcChart>,
+	pub console: Option<MeilisearchNcChart>,
+	pub mixed: Option<MeilisearchNcChart>,
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct MeilisearchNcChart {
+	pub level: Option<pv_db::Level>,
 }
 
 #[derive(Serialize, Deserialize)]
@@ -498,15 +503,21 @@ pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()
 						arcade: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Arcade)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						console: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Console)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						mixed: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Mixed)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 					}),
 				song.normal
 					.as_ref()
@@ -514,15 +525,21 @@ pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()
 						arcade: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Arcade)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						console: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Console)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						mixed: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Mixed)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 					}),
 				song.hard
 					.as_ref()
@@ -530,15 +547,21 @@ pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()
 						arcade: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Arcade)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						console: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Console)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						mixed: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Mixed)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 					}),
 				song.extreme
 					.as_ref()
@@ -546,15 +569,21 @@ pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()
 						arcade: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Arcade)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						console: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Console)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						mixed: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Mixed)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 					}),
 				song.ex_extreme
 					.as_ref()
@@ -562,15 +591,21 @@ pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()
 						arcade: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Arcade)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						console: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Console)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 						mixed: difficulty
 							.iter()
 							.find(|chart| chart.style == NcDbStyle::Mixed)
-							.map(|chart| chart.level.clone()),
+							.map(|chart| MeilisearchNcChart {
+								level: chart.level.clone(),
+							}),
 					}),
 			],
 		})
