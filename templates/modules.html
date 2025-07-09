@@ -67,7 +67,7 @@
 
 	function getModuleHtml(module, posts) {
 		var tr = document.createElement('tr');
-		tr.classList = [document.getElementById("modules").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
+		tr.classList = [document.getElementById("modules").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		var name_en = "";
 		if (module.module.name_en != null) {
 			name_en = module.module.name_en;
@@ -90,80 +90,87 @@
 			<td>${source_name}</td>
 		`;
 		tr.role = "button";
-		tr.setAttribute("data-bs-toggle", "offcanvas");
-		tr.setAttribute("data-bs-target", `#offcanvas${module.uid}`);
+		tr.setAttribute("data-bs-toggle", "collapse");
+		tr.setAttribute("data-bs-target", `#moduleCollapse${module.uid}`);
 
 		document.getElementById("modules").append(tr);
 
-		var div = document.createElement('div');
-		div.classList = ['offcanvas offcanvas-start'];
-		div.id = `offcanvas${module.uid}`
-		div.tabIndex = -1;
+		let collapsingTr = document.createElement('tr');
+		let collapsingTd = document.createElement('td');
+		collapsingTd.colSpan = 5;
+		collapsingTd.classList = 'p-0'
+		collapsingTd.style.border = 'none';
+
+		let collapsing = document.createElement('div');
+		collapsing.classList = 'collapse';
+		collapsing.id = `moduleCollapse${module.uid}`;
+
+		let card = document.createElement('div');
+		card.classList = 'card card-body';
+		card.style.borderRadius = 0;
+
+		let table = document.createElement('table');
+		table.classList = 'table table-sm m-0';
 
 		var html = `
-<div class="offcanvas-header">
-	<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-</div>
-<table class="table table-sm">
-	<thead>
-		<th>Name (EN)</th>
-		<th>Character</th>
-		<th>ID</th>
-		<th>Source</th>
-	</thead>
-	<tbody>
-		<tr class="table-dark">
-			<td>${name_en}</td>
-			<td>${getHumanCharaName(module.module.chara)}</td>
-			<td>${module.id}</td>
-			<td>${source_link}</td>
-		</tr>
-	</tbody>
-	<thead>
-		<th>Name (JP)</th>
-		<th>Name (CN)</th>
-		<th>Name (FR)</th>
-		<th>Name (GE)</th>
-	</thead>
-	<tbody class="table-dark">
-		<tr class="table-dark">
-			<td>${someOrNA(module.module.name_jp)}</td>
-			<td>${someOrNA(module.module.name_cn)}</td>
-			<td>${someOrNA(module.module.name_fr)}</td>
-			<td>${someOrNA(module.module.name_ge)}</td>
-		</tr>
-	</tbody>
-	<thead>
-		<th>Name (IT)</th>
-		<th>Name (KR)</th>
-		<th>Name (SP)</th>
-		<th>Name (TW)</th>
-	</thead>
-	<tbody class="table-dark">
-		<tr class="table-dark">
-			<td>${someOrNA(module.module.name_it)}</td>
-			<td>${someOrNA(module.module.name_kr)}</td>
-			<td>${someOrNA(module.module.name_sp)}</td>
-			<td>${someOrNA(module.module.name_tw)}</td>
-		</tr>
-	</tbody>
-	<thead>
-		<tr>
-			<th>COS ID</th>
-			<th />
-			<th />
-			<th />
-		</tr>
-	</thead>
-	<tbody class="table-dark">
-		<tr class="table-dark">
-			<td>${module.module.cos.id}</td>
-			<td />
-			<td />
-			<td />
-		</tr>
-	</tbody>
-		`;
+<thead>
+	<th>Name (EN)</th>
+	<th>Character</th>
+	<th>ID</th>
+	<th>Source</th>
+</thead>
+<tbody>
+	<tr class="table-dark">
+		<td>${name_en}</td>
+		<td>${getHumanCharaName(module.module.chara)}</td>
+		<td>${module.id}</td>
+		<td>${source_link}</td>
+	</tr>
+</tbody>
+<thead>
+	<th>Name (JP)</th>
+	<th>Name (CN)</th>
+	<th>Name (FR)</th>
+	<th>Name (GE)</th>
+</thead>
+<tbody class="table-dark">
+	<tr class="table-dark">
+		<td>${someOrNA(module.module.name_jp)}</td>
+		<td>${someOrNA(module.module.name_cn)}</td>
+		<td>${someOrNA(module.module.name_fr)}</td>
+		<td>${someOrNA(module.module.name_ge)}</td>
+	</tr>
+</tbody>
+<thead>
+	<th>Name (IT)</th>
+	<th>Name (KR)</th>
+	<th>Name (SP)</th>
+	<th>Name (TW)</th>
+</thead>
+<tbody class="table-dark">
+	<tr class="table-dark">
+		<td>${someOrNA(module.module.name_it)}</td>
+		<td>${someOrNA(module.module.name_kr)}</td>
+		<td>${someOrNA(module.module.name_sp)}</td>
+		<td>${someOrNA(module.module.name_tw)}</td>
+	</tr>
+</tbody>
+<thead>
+	<tr>
+		<th>COS ID</th>
+		<th />
+		<th />
+		<th />
+	</tr>
+</thead>
+<tbody class="table-dark">
+	<tr class="table-dark">
+		<td>${module.module.cos.id}</td>
+		<td />
+		<td />
+		<td />
+	</tr>
+</tbody>`;
 
 		for (item of module.module.cos.items.sort((a, b) => a.id - b.id)) {
 			html += `
@@ -186,12 +193,13 @@
 			`;
 		}
 
-		html += `
-</table>`;
+		table.innerHTML = html;
+		card.appendChild(table);
+		collapsing.appendChild(card);
+		collapsingTd.appendChild(collapsing);
+		collapsingTr.appendChild(collapsingTd);
 
-		div.innerHTML = html;
-
-		document.getElementById("offcanvasList").append(div);
+		document.getElementById("modules").append(collapsingTr);
 	}
 
 	async function search(query, offset) {
@@ -212,7 +220,6 @@
 		var modules = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("modules").children.length);
 		if (clear) {
 			document.getElementById("modules").innerHTML = "";
-			document.getElementById("offcanvasList").innerHTML = "";
 		}
 		for (var module of modules.modules) {
 			getModuleHtml(module, modules.posts);

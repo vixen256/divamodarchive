@@ -45,7 +45,7 @@
 
 	function getPvHtml(pv, posts) {
 		var tr = document.createElement('tr');
-		tr.classList = [document.getElementById("pvs").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
+		tr.classList = [document.getElementById("pvs").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		tr.innerHTML = `
 			<td>${pv.name_en}</td>
 			<td>${pv.name}</td>
@@ -53,8 +53,8 @@
 			<td>${pv.post == null ? 'MM+' : posts[pv.post].name}</td>
 		`;
 		tr.role = "button";
-		tr.setAttribute("data-bs-toggle", "offcanvas");
-		tr.setAttribute("data-bs-target", `#offcanvas${pv.uid}`);
+		tr.setAttribute("data-bs-toggle", "collapse");
+		tr.setAttribute("data-bs-target", `#pvCollapse${pv.uid}`);
 
 		document.getElementById("pvs").append(tr);
 
@@ -68,21 +68,30 @@
 		var maxLen = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar;
 		if (maxLen < 5) maxLen = 5;
 
-		var div = document.createElement('div');
-		div.classList = ['offcanvas offcanvas-start'];
-		div.id = `offcanvas${pv.uid}`
-		div.tabIndex = -1;
+		let collapsingTr = document.createElement('tr');
+		let collapsingTd = document.createElement('td');
+		collapsingTd.colSpan = 4;
+		collapsingTd.classList = 'p-0'
+		collapsingTd.style.border = 'none';
 
-		var html = `
-<div class="offcanvas-header">
-	<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-</div>
-<table class="table table-sm">
+		let collapsing = document.createElement('div');
+		collapsing.classList = 'collapse';
+		collapsing.id = `pvCollapse${pv.uid}`;
+
+		let card = document.createElement('div');
+		card.classList = 'card card-body';
+		card.style.borderRadius = 0;
+
+		let table = document.createElement('table');
+		table.classList = 'table table-sm m-0';
+
+		let html = `
 <thead>
-	<th>Name (EN)</th>
-	<th>Name (JP)</th>
-	<th>ID</th>
-	<th>Source</th>
+	<tr>
+		<th>Name (EN)</th>
+		<th>Name (JP)</th>
+		<th>ID</th>
+		<th>Source</th>
 		`;
 
 		for (var i = 4; i < maxLen; i++) {
@@ -90,6 +99,7 @@
 		}
 
 		html += `
+	</tr>
 </thead>
 <tbody>
 	<tr class="table-dark">
@@ -122,7 +132,7 @@
 		`;
 
 		if (showMusic || showLyrics || showArranger || showManipulator || showEditor || showGuitar) {
-			html += '<thead>';
+			html += '<thead><tr>';
 
 			if (showMusic) html += '<th>Music</th>';
 			if (showLyrics) html += '<th>Lyrics</th>';
@@ -135,7 +145,7 @@
 				html += '<th />';
 			}
 
-			html += '</thead><tbody>';
+			html += '</tr></thead><tbody>';
 
 			if (pv.song_info_en != null) {
 				html += '<tr class="table-dark">';
@@ -175,11 +185,12 @@
 
 		html += `
 <thead>
-	<th>Easy</th>
-	<th>Normal</th>
-	<th>Hard</th>
-	<th>Extreme</th>
-	<th>Extra Extreme</th>
+	<tr>
+		<th>Easy</th>
+		<th>Normal</th>
+		<th>Hard</th>
+		<th>Extreme</th>
+		<th>Extra Extreme</th>
 		`;
 
 		for (var i = 5; i < maxLen; i++) {
@@ -187,24 +198,30 @@
 		}
 
 		html += `
+	</tr>
 </thead>
-<tbody class="table-dark">
-	<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}"><b>${levelToString(pv.levels[0])}</b>${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}"><b>${levelToString(pv.levels[1])}</b>${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}"><b>${levelToString(pv.levels[2])}</b>${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}"><b>${levelToString(pv.levels[3])}</b>${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-	<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}"><b>${levelToString(pv.levels[4])}</b>${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+<tbody>
+	<tr class="table-dark">
+		<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}"><b>${levelToString(pv.levels[0])}</b>${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+		<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}"><b>${levelToString(pv.levels[1])}</b>${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+		<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}"><b>${levelToString(pv.levels[2])}</b>${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+		<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}"><b>${levelToString(pv.levels[3])}</b>${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+		<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}"><b>${levelToString(pv.levels[4])}</b>${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
 		`;
 
 		for (var i = 5; i < maxLen; i++) {
 			html += '<td />';
 		}
 
-		html += `</tr></table>`;
+		html += `</tr></tbody>`;
 
-		div.innerHTML = html;
+		table.innerHTML = html;
+		card.appendChild(table);
+		collapsing.appendChild(card);
+		collapsingTd.appendChild(collapsing);
+		collapsingTr.appendChild(collapsingTd);
 
-		document.getElementById("offcanvasList").append(div);
+		document.getElementById("pvs").append(collapsingTr);
 	}
 
 	async function search(query, offset) {
@@ -225,7 +242,6 @@
 		var pvs = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("pvs").children.length);
 		if (clear) {
 			document.getElementById("pvs").innerHTML = "";
-			document.getElementById("offcanvasList").innerHTML = "";
 		}
 		for (var pv of pvs.pvs) {
 			getPvHtml(pv, pvs.posts);

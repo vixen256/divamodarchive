@@ -1,90 +1,11 @@
 {% macro draw_cstm_items_list(cstm_item_search, show_source) %}
-<div id="offcanvasList">
-	{% for cstm_item in cstm_item_search.cstm_items.iter() %}
-	<div class="offcanvas offcanvas-start" id="cstmItemOffcanvas{{ cstm_item.uid }}" tabindex="-1">
-		<div class="offcanvas-header">
-			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-		</div>
-		<table class="table table-sm">
-			<thead>
-				<tr>
-					<th>Name (EN)</th>
-					<th>Character</th>
-					<th>ID</th>
-					<th>Source</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{% if let Some(name_en) = cstm_item.cstm_item.name_en %}{{ name_en }}{% else if let Some(name) = cstm_item.cstm_item.name %}{{ name }}{% endif %}</td>
-					<td>{{ cstm_item.cstm_item.chara.to_string() }}</td>
-					<td>{{ cstm_item.id }}</td>
-					<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
-				</tr>
-			</tbody>
-			<thead>
-				<tr>
-					<th>Name (JP)</th>
-					<th>Name (CN)</th>
-					<th>Name (FR)</th>
-					<th>Name (GE)</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_jp %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_cn %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_fr %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_ge %}{{ name }}{% endif %}</td>
-				</tr>
-			</tbody>
-			<thead>
-				<tr>
-					<th>Name (IT)</th>
-					<th>Name (KR)</th>
-					<th>Name (SP)</th>
-					<th>Name (TW)</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_it %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_kr %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_sp %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = cstm_item.cstm_item.name_tw %}{{ name }}{% endif %}</td>
-				</tr>
-			</tbody>
-            {% if let Some(module) = cstm_item.cstm_item.bind_module %}
-			{% if let Some(module) = cstm_item_search.bound_modules.get(module) %}
-            <thead>
-                <tr>
-                    <th>Module Name (EN)</th>
-                    <th>Module Name (JP)</th>
-                    <th>Module ID</th>
-                    <th>Module Source</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr class="table-dark">
-                    <td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
-                    <td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
-                    <td>{{ module.id }}</td>
-                    <td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
-                </tr>
-            </tbody>
-			{% endif %}
-            {% endif %}
-		</table>
-	</div>
-	{% endfor %}
-</div>
 <table class="table sm-table table-hover">
 	<thead>
 		<tr>
 			<th>Name (EN)</th>
 			<th>Name (JP)</th>
 			<th>Character</th>
-            <th>Part</th>
+			<th>Part</th>
 			<th>ID</th>
 			{% if show_source %}
 			<th>Source</th>
@@ -93,15 +14,94 @@
 	</thead>
 	<tbody id="cstm_items">
 		{% for (i, cstm_item) in cstm_item_search.cstm_items.iter().enumerate() %}
-		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#cstmItemOffcanvas{{ cstm_item.uid }}">
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#cstmItemCollapse{{ cstm_item.uid }}">
 			<td>{% if let Some(name_en) = cstm_item.cstm_item.name_en %}{{ name_en }}{% else if let Some(name) = cstm_item.cstm_item.name %}{{ name }}{% endif %}</td>
 			<td>{% if let Some(name_jp) = cstm_item.cstm_item.name_jp %}{{ name_jp }}{% endif %}</td>
 			<td>{{ cstm_item.cstm_item.chara.to_string() }}</td>
-            <td>{{ cstm_item.cstm_item.part.to_string() }}</td>
+			<td>{{ cstm_item.cstm_item.part.to_string() }}</td>
 			<td>{{ cstm_item.id }}</td>
 			{% if show_source %}
 			<td>{% if let Some(post) = cstm_item.post %}{{ cstm_item_search.posts[post].name }}{% else %}MM+{% endif %}</td>
 			{% endif %}
+		</tr>
+
+		<tr>
+			<td colspan="6" class="p-0" style="border: none">
+				<div class="collapse" id="cstmItemCollapse{{ cstm_item.uid }}">
+					<div class="card card-body" style="border-radius: 0">
+						<table class="table table-sm m-0">
+							<thead>
+								<tr>
+									<th>Name (EN)</th>
+									<th>Character</th>
+									<th>ID</th>
+									<th>Source</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name_en) = cstm_item.cstm_item.name_en %}{{ name_en }}{% else if let Some(name) = cstm_item.cstm_item.name %}{{ name }}{% endif %}</td>
+									<td>{{ cstm_item.cstm_item.chara.to_string() }}</td>
+									<td>{{ cstm_item.id }}</td>
+									<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+								</tr>
+							</tbody>
+							<thead>
+								<tr>
+									<th>Name (JP)</th>
+									<th>Name (CN)</th>
+									<th>Name (FR)</th>
+									<th>Name (GE)</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_jp %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_cn %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_fr %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_ge %}{{ name }}{% endif %}</td>
+								</tr>
+							</tbody>
+							<thead>
+								<tr>
+									<th>Name (IT)</th>
+									<th>Name (KR)</th>
+									<th>Name (SP)</th>
+									<th>Name (TW)</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_it %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_kr %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_sp %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = cstm_item.cstm_item.name_tw %}{{ name }}{% endif %}</td>
+								</tr>
+							</tbody>
+							{% if let Some(module) = cstm_item.cstm_item.bind_module %}
+							{% if let Some(module) = cstm_item_search.bound_modules.get(module) %}
+							<thead>
+								<tr>
+									<th>Bound Module Name (EN)</th>
+									<th>Bound Module Name (JP)</th>
+									<th>Bound Module ID</th>
+									<th>Bound Module Source</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
+									<td>{{ module.id }}</td>
+									<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ cstm_item_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+								</tr>
+							</tbody>
+							{% endif %}
+							{% endif %}
+						</table>
+					</div>
+				</div>
+			</td>
 		</tr>
 		{% endfor %}
 	</tbody>

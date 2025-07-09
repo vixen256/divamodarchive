@@ -1,159 +1,4 @@
 {% macro draw_pv_list(pv_search, show_source) %}
-<div id="offcanvasList">
-	{% for pv in pv_search.pvs.iter() %}
-
-	{% let cols -%}
-	{% if pv.song_info_count() == 6 -%}
-	{% let cols = 6 -%}
-	{% else -%}
-	{% let cols = 5 -%}
-	{% endif -%}
-
-	<div class="offcanvas offcanvas-start" id="pvOffcanvas{{ pv.uid }}" tabindex="-1">
-		<div class="offcanvas-header">
-			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-		</div>
-		<table class="table table-sm">
-			<thead>
-				<th>Name (EN)</th>
-				<th>Name (JP)</th>
-				<th>ID</th>
-				<th>Source</th>
-				{% for _ in 4..cols %}
-					<th />
-				{% endfor %}
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{{ pv.name_en }}</td>
-					<td>{{ pv.name }}</td>
-					<td>{{ pv.id }}</td>
-					<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}" class="nav-link">{{ pv_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
-					{% for _ in 4..cols %}
-						<td />
-					{% endfor %}
-				</tr>
-			</tbody>
-
-			{% if pv.song_info_count() != 0 %}
-			<thead>
-				{% if pv.has_music() %}
-					<th>Music</th>
-				{% endif %}
-				{% if pv.has_lyrics() %}
-					<th>Lyrics</th>
-				{% endif %}
-				{% if pv.has_arranger() %}
-					<th>Arranger</th>
-				{% endif %}
-				{% if pv.has_manipulator() %}
-					<th>Manipulator</th>
-				{% endif %}
-				{% if pv.has_editor() %}
-					<th>Editor</th>
-				{% endif %}
-				{% if pv.has_guitar() %}
-					<th>Guitar</th>
-				{% endif %}
-				{% for _ in pv.song_info_count()..cols %}
-					<th />
-				{% endfor %}
-			</thead>
-			<tbody>
-				{% if let Some(song_info) = pv.song_info_en %}
-				<tr class="table-dark">
-					{% if pv.has_music() %}
-						<td>{% if let Some(music) = song_info.music %}{{ music }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_lyrics() %}
-						<td>{% if let Some(lyrics) = song_info.lyrics %}{{ lyrics }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_arranger() %}
-						<td>{% if let Some(arranger) = song_info.arranger %}{{ arranger }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_manipulator() %}
-						<td>{% if let Some(manipulator) = song_info.manipulator %}{{ manipulator }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_editor() %}
-						<td>{% if let Some(pv_editor) = song_info.pv_editor %}{{ pv_editor }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_guitar() %}
-						<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
-					{% endif %}
-					{% for _ in pv.song_info_count()..cols %}
-						<td />
-					{% endfor %}
-				</tr>
-				{% endif %}
-
-				{% if let Some(song_info) = pv.song_info %}
-				<tr class="table-dark">
-					{% if pv.has_music() %}
-						<td>{% if let Some(music) = song_info.music %}{{ music }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_lyrics() %}
-						<td>{% if let Some(lyrics) = song_info.lyrics %}{{ lyrics }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_arranger() %}
-						<td>{% if let Some(arranger) = song_info.arranger %}{{ arranger }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_manipulator() %}
-						<td>{% if let Some(manipulator) = song_info.manipulator %}{{ manipulator }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_editor() %}
-						<td>{% if let Some(pv_editor) = song_info.pv_editor %}{{ pv_editor }}{% endif %}</td>
-					{% endif %}
-					{% if pv.has_guitar() %}
-						<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
-					{% endif %}
-					{% for _ in pv.song_info_count()..cols %}
-						<td />
-					{% endfor %}
-				</tr>
-				{% endif %}
-			</tbody>
-			{% endif %}
-
-			<thead>
-				<th>Easy</th>
-				<th>Normal</th>
-				<th>Hard</th>
-				<th>Extreme</th>
-				<th>Extra Extreme</th>
-				{% for _ in 5..cols %}
-					<th />
-				{% endfor %}
-			</thead>
-			<tbody class="table-dark">
-				{% for i in 0..5 %}
-					{% if let Some(level) = pv.levels[i] %}
-					{% let color -%}
-					{% if i == 0 -%}
-					{% let color = "--diva-easy" -%}
-					{% else if i == 1 -%}
-					{% let color = "--diva-normal" -%}
-					{% else if i == 2 -%}
-					{% let color = "--diva-hard" -%}
-					{% else if i == 3 -%}
-					{% let color = "--diva-extreme" -%}
-					{% else if i == 4 -%}
-					{% let color = "--diva-exex" -%}
-					{% else -%}
-					{% let color = "--diva-exex" -%}
-					{% endif -%}
-					<td style="background-color: var({{ color }})"><b>{{ level.to_string() }}</b><span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
-					{% else %}
-					<td />
-					{% endif %}
-				{% endfor %}
-				{% for _ in 5..cols %}
-					<td />
-				{% endfor %}
-			</tbody>
-		</table>
-	</div>
-	{% endfor %}
-</div>
 <table class="table sm-table table-hover">
 	<thead>
 		<tr>
@@ -167,13 +12,175 @@
 	</thead>
 	<tbody id="pvs">
 		{% for (i, pv) in pv_search.pvs.iter().enumerate() %}
-		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#pvOffcanvas{{ pv.uid }}">
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#pvCollapse{{ pv.uid }}">
 			<td>{{ pv.name_en }}</td>
 			<td>{{ pv.name }}</td>
 			<td>{{ pv.id }}</td>
 			{% if show_source %}
 			<td>{% if let Some(post) = pv.post %}{{ pv_search.posts[post].name }}{% else %}MM+{% endif %}</td>
 			{% endif %}
+		</tr>
+
+		{% let cols -%}
+		{% if pv.song_info_count() == 6 -%}
+		{% let cols = 6 -%}
+		{% else -%}
+		{% let cols = 5 -%}
+		{% endif -%}
+
+		<tr>
+			<td colspan="4" class="p-0" style="border: none">
+				<div class="collapse" id="pvCollapse{{ pv.uid }}">
+					<div class="card card-body" style="border-radius: 0">
+						<table class="table table-sm m-0">
+							<thead>
+								<tr>
+									<th>Name (EN)</th>
+									<th>Name (JP)</th>
+									<th>ID</th>
+									<th>Source</th>
+									{% for _ in 4..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{{ pv.name_en }}</td>
+									<td>{{ pv.name }}</td>
+									<td>{{ pv.id }}</td>
+									<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}" class="nav-link">{{ pv_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+									{% for _ in 4..cols %}
+									<td />
+									{% endfor %}
+								</tr>
+							</tbody>
+
+							{% if pv.song_info_count() != 0 %}
+							<thead>
+								<tr>
+									{% if pv.has_music() %}
+									<th>Music</th>
+									{% endif %}
+									{% if pv.has_lyrics() %}
+									<th>Lyrics</th>
+									{% endif %}
+									{% if pv.has_arranger() %}
+									<th>Arranger</th>
+									{% endif %}
+									{% if pv.has_manipulator() %}
+									<th>Manipulator</th>
+									{% endif %}
+									{% if pv.has_editor() %}
+									<th>Editor</th>
+									{% endif %}
+									{% if pv.has_guitar() %}
+									<th>Guitar</th>
+									{% endif %}
+									{% for _ in pv.song_info_count()..cols %}
+									<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								{% if let Some(song_info) = pv.song_info_en %}
+								<tr class="table-dark">
+									{% if pv.has_music() %}
+									<td>{% if let Some(music) = song_info.music %}{{ music }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_lyrics() %}
+									<td>{% if let Some(lyrics) = song_info.lyrics %}{{ lyrics }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_arranger() %}
+									<td>{% if let Some(arranger) = song_info.arranger %}{{ arranger }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_manipulator() %}
+									<td>{% if let Some(manipulator) = song_info.manipulator %}{{ manipulator }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_editor() %}
+									<td>{% if let Some(pv_editor) = song_info.pv_editor %}{{ pv_editor }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_guitar() %}
+									<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
+									{% endif %}
+									{% for _ in pv.song_info_count()..cols %}
+									<td />
+									{% endfor %}
+								</tr>
+								{% endif %}
+
+								{% if let Some(song_info) = pv.song_info %}
+								<tr class="table-dark">
+									{% if pv.has_music() %}
+									<td>{% if let Some(music) = song_info.music %}{{ music }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_lyrics() %}
+									<td>{% if let Some(lyrics) = song_info.lyrics %}{{ lyrics }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_arranger() %}
+									<td>{% if let Some(arranger) = song_info.arranger %}{{ arranger }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_manipulator() %}
+									<td>{% if let Some(manipulator) = song_info.manipulator %}{{ manipulator }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_editor() %}
+									<td>{% if let Some(pv_editor) = song_info.pv_editor %}{{ pv_editor }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_guitar() %}
+									<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
+									{% endif %}
+									{% for _ in pv.song_info_count()..cols %}
+									<td />
+									{% endfor %}
+								</tr>
+								{% endif %}
+							</tbody>
+							{% endif %}
+
+							<thead>
+								<tr>
+									<th>Easy</th>
+									<th>Normal</th>
+									<th>Hard</th>
+									<th>Extreme</th>
+									<th>Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(level) = pv.levels[i] %}
+									{% let color -%}
+									{% if i == 0 -%}
+									{% let color = "--diva-easy" -%}
+									{% else if i == 1 -%}
+									{% let color = "--diva-normal" -%}
+									{% else if i == 2 -%}
+									{% let color = "--diva-hard" -%}
+									{% else if i == 3 -%}
+									{% let color = "--diva-extreme" -%}
+									{% else if i == 4 -%}
+									{% let color = "--diva-exex" -%}
+									{% else -%}
+									{% let color = "--diva-exex" -%}
+									{% endif -%}
+									<td style="background-color: var({{ color }})"><b>{{ level.to_string() }}</b><span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+						</table>
+					</div>
+				</div>
+			</td>
 		</tr>
 		{% endfor %}
 	</tbody>

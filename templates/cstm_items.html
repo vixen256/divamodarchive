@@ -47,7 +47,7 @@
 
 	function getCstmItemHtml(cstm_item, posts, modules) {
 		var tr = document.createElement('tr');
-		tr.classList = [document.getElementById("cstm_items").children.length % 2 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
+		tr.classList = [document.getElementById("cstm_items").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		var name_en = "";
 		if (cstm_item.cstm_item.name_en != null) {
 			name_en = cstm_item.cstm_item.name_en;
@@ -71,66 +71,73 @@
 			<td>${source_name}</td>
 		`;
 		tr.role = "button";
-		tr.setAttribute("data-bs-toggle", "offcanvas");
-		tr.setAttribute("data-bs-target", `#offcanvas${cstm_item.uid}`);
+		tr.setAttribute("data-bs-toggle", "collapse");
+		tr.setAttribute("data-bs-target", `#cstmItemCollapse${cstm_item.uid}`);
 
 		document.getElementById("cstm_items").append(tr);
 
-		var div = document.createElement('div');
-		div.classList = ['offcanvas offcanvas-start'];
-		div.id = `offcanvas${cstm_item.uid}`;
-		div.tabIndex = -1;
+		let collapsingTr = document.createElement('tr');
+		let collapsingTd = document.createElement('td');
+		collapsingTd.colSpan = 6;
+		collapsingTd.classList = 'p-0'
+		collapsingTd.style.border = 'none';
+
+		let collapsing = document.createElement('div');
+		collapsing.classList = 'collapse';
+		collapsing.id = `cstmItemCollapse${cstm_item.uid}`;
+
+		let card = document.createElement('div');
+		card.classList = 'card card-body';
+		card.style.borderRadius = 0;
+
+		let table = document.createElement('table');
+		table.classList = 'table table-sm m-0';
 
 		var html = `
-<div class="offcanvas-header">
-	<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-</div>
-<table class="table table-sm">
-	<thead>
-		<tr>
-			<th>Name (EN)</th>
-			<th>Character</th>
-			<th>ID</th>
-			<th>Source</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr class="table-dark">
-			<td>${name_en}</td>
-			<td>${getHumanCharaName(cstm_item.cstm_item.chara)}</td>
-			<td>${cstm_item.id}</td>
-			<td>${source_link}</td>
-		</tr>
-	</tbody>
-	<thead>
-		<th>Name (JP)</th>
-		<th>Name (CN)</th>
-		<th>Name (FR)</th>
-		<th>Name (GE)</th>
-	</thead>
-	<tbody class="table-dark">
-		<tr class="table-dark">
-			<td>${someOrNA(cstm_item.cstm_item.name_jp)}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_cn)}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_fr)}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_ge)}</td>
-		</tr>
-	</tbody>
-	<thead>
-		<th>Name (IT)</th>
-		<th>Name (KR)</th>
-		<th>Name (SP)</th>
-		<th>Name (TW)</th>
-	</thead>
-	<tbody class="table-dark">
-		<tr class="table-dark">
-			<td>${someOrNA(cstm_item.cstm_item.name_it)}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_kr)}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_sp)}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_tw)}</td>
-		</tr>
-	</tbody>
-		`;
+<thead>
+	<tr>
+		<th>Name (EN)</th>
+		<th>Character</th>
+		<th>ID</th>
+		<th>Source</th>
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+		<td>${name_en}</td>
+		<td>${getHumanCharaName(cstm_item.cstm_item.chara)}</td>
+		<td>${cstm_item.id}</td>
+		<td>${source_link}</td>
+	</tr>
+</tbody>
+<thead>
+	<th>Name (JP)</th>
+	<th>Name (CN)</th>
+	<th>Name (FR)</th>
+	<th>Name (GE)</th>
+</thead>
+<tbody class="table-dark">
+	<tr class="table-dark">
+		<td>${someOrNA(cstm_item.cstm_item.name_jp)}</td>
+		<td>${someOrNA(cstm_item.cstm_item.name_cn)}</td>
+		<td>${someOrNA(cstm_item.cstm_item.name_fr)}</td>
+		<td>${someOrNA(cstm_item.cstm_item.name_ge)}</td>
+	</tr>
+</tbody>
+<thead>
+	<th>Name (IT)</th>
+	<th>Name (KR)</th>
+	<th>Name (SP)</th>
+	<th>Name (TW)</th>
+</thead>
+<tbody class="table-dark">
+	<tr class="table-dark">
+		<td>${someOrNA(cstm_item.cstm_item.name_it)}</td>
+		<td>${someOrNA(cstm_item.cstm_item.name_kr)}</td>
+		<td>${someOrNA(cstm_item.cstm_item.name_sp)}</td>
+		<td>${someOrNA(cstm_item.cstm_item.name_tw)}</td>
+	</tr>
+</tbody>`;
 
 		if (cstm_item.cstm_item.bind_module != null && modules[cstm_item.cstm_item.bind_module] != null) {
 			var bind_module = modules[cstm_item.cstm_item.bind_module];
@@ -150,32 +157,31 @@
 			}
 
 			html += `
-	<thead>
-		<tr>
-			<th>Module Name (EN)</th>
-			<th>Module Name (JP)</th>
-			<th>Module ID</th>
-			<th>Module Source</th>
-		</tr>
-	</thead>
-	<tbody>
-		<tr class="table-dark">
-			<td>${name_en}</td>
-			<td>${someOrNA(bind_module.module.name_jp)}</td>
-			<td>${bind_module.id}</td>
-			<td>${source_link}</td>
-		</tr>
-	</tbody>
-			`;
+<thead>
+	<tr>
+		<th>Bound Module Name (EN)</th>
+		<th>Bound Module Name (JP)</th>
+		<th>Bound Module ID</th>
+		<th>Bound Module Source</th>
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+		<td>${name_en}</td>
+		<td>${someOrNA(bind_module.module.name_jp)}</td>
+		<td>${bind_module.id}</td>
+		<td>${source_link}</td>
+	</tr>
+</tbody>`;
 		}
 
-		html += `
-</table>
-		`;
+		table.innerHTML = html;
+		card.appendChild(table);
+		collapsing.appendChild(card);
+		collapsingTd.appendChild(collapsing);
+		collapsingTr.appendChild(collapsingTd);
 
-		div.innerHTML = html;
-
-		document.getElementById("offcanvasList").append(div);
+		document.getElementById("cstm_items").append(collapsingTr);
 	}
 
 	async function search(query, offset) {
@@ -196,7 +202,6 @@
 		var cstm_items = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("cstm_items").children.length);
 		if (clear) {
 			document.getElementById("cstm_items").innerHTML = "";
-			document.getElementById("offcanvasList").innerHTML = "";
 		}
 		for (var cstm_item of cstm_items.cstm_items) {
 			getCstmItemHtml(cstm_item, cstm_items.posts, cstm_items.bound_modules);

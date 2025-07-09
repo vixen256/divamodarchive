@@ -1,101 +1,4 @@
 {% macro draw_module_list(module_search, show_source) %}
-<div id="offcanvasList">
-	{% for module in module_search.modules.iter() %}
-	<div class="offcanvas offcanvas-start" id="moduleOffcanvas{{ module.uid }}" tabindex="-1">
-		<div class="offcanvas-header">
-			<button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
-		</div>
-		<table class="table table-sm">
-			<thead>
-				<tr>
-					<th>Name (EN)</th>
-					<th>Character</th>
-					<th>ID</th>
-					<th>Source</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
-					<td>{{ module.module.chara.to_string() }}</td>
-					<td>{{ module.id }}</td>
-					<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ module_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
-				</tr>
-			</tbody>
-			<thead>
-				<tr>
-					<th>Name (JP)</th>
-					<th>Name (CN)</th>
-					<th>Name (FR)</th>
-					<th>Name (GE)</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{% if let Some(name) = module.module.name_jp %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = module.module.name_cn %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = module.module.name_fr %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = module.module.name_ge %}{{ name }}{% endif %}</td>
-				</tr>
-			</tbody>
-			<thead>
-				<tr>
-					<th>Name (IT)</th>
-					<th>Name (KR)</th>
-					<th>Name (SP)</th>
-					<th>Name (TW)</th>
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{% if let Some(name) = module.module.name_it %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = module.module.name_kr %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = module.module.name_sp %}{{ name }}{% endif %}</td>
-					<td>{% if let Some(name) = module.module.name_tw %}{{ name }}{% endif %}</td>
-				</tr>
-			</tbody>
-			<thead>
-				<tr>
-					<th>COS ID</th>
-					<th />
-					<th />
-					<th />
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{{ module.module.cos.id }}</td>
-					<td />
-					<td />
-					<td />
-				</tr>
-			</tbody>
-			{% for item in module.module.cos.items.iter().sorted() %}
-			<thead>
-				<tr>
-					<th>ID</th>
-					<th>Object{% if item.objset.len() > 1 %}s{% endif %}</th>
-					<th>Type</th>
-					<th />
-				</tr>
-			</thead>
-			<tbody>
-				<tr class="table-dark">
-					<td>{{ item.id }}</td>
-					<td>
-						{% for (i, objset) in item.objset.iter().enumerate() %}
-							{{ objset }}{% if i != item.objset.len() - 1 %}, {% endif %}
-						{% endfor %}
-					</td>
-					<td>{{ item.sub.to_string() }}</td>
-					<td />
-				</tr>
-			</tbody>
-			{% endfor %}
-		</table>
-	</div>
-	{% endfor %}
-</div>
 <table class="table sm-table table-hover">
 	<thead>
 		<tr>
@@ -110,7 +13,7 @@
 	</thead>
 	<tbody id="modules">
 		{% for (i, module) in module_search.modules.iter().enumerate() %}
-		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="offcanvas" data-bs-target="#moduleOffcanvas{{ module.uid }}">
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#moduleCollapse{{ module.uid }}">
 			<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
 			<td>{% if let Some(name_jp) = module.module.name_jp %}{{ name_jp }}{% endif %}</td>
 			<td>{{ module.module.chara.to_string() }}</td>
@@ -118,6 +21,103 @@
 			{% if show_source %}
 			<td>{% if let Some(post) = module.post %}{{ module_search.posts[post].name }}{% else %}MM+{% endif %}</td>
 			{% endif %}
+		</tr>
+
+		<tr>
+			<td colspan="5" class="p-0" style="border: none">
+				<div class="collapse" id="moduleCollapse{{ module.uid }}">
+					<div class="card card-body w-100" style="border-radius: 0">
+						<table class="table table-sm m-0">
+							<thead>
+								<tr>
+									<th>Name (EN)</th>
+									<th>Character</th>
+									<th>ID</th>
+									<th>Source</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name_en) = module.module.name_en %}{{ name_en }}{% else if let Some(name) = module.module.name %}{{ name }}{% endif %}</td>
+									<td>{{ module.module.chara.to_string() }}</td>
+									<td>{{ module.id }}</td>
+									<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}" class="nav-link">{{ module_search.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+								</tr>
+							</tbody>
+							<thead>
+								<tr>
+									<th>Name (JP)</th>
+									<th>Name (CN)</th>
+									<th>Name (FR)</th>
+									<th>Name (GE)</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name) = module.module.name_jp %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = module.module.name_cn %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = module.module.name_fr %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = module.module.name_ge %}{{ name }}{% endif %}</td>
+								</tr>
+							</tbody>
+							<thead>
+								<tr>
+									<th>Name (IT)</th>
+									<th>Name (KR)</th>
+									<th>Name (SP)</th>
+									<th>Name (TW)</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{% if let Some(name) = module.module.name_it %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = module.module.name_kr %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = module.module.name_sp %}{{ name }}{% endif %}</td>
+									<td>{% if let Some(name) = module.module.name_tw %}{{ name }}{% endif %}</td>
+								</tr>
+							</tbody>
+							<thead>
+								<tr>
+									<th>COS ID</th>
+									<th />
+									<th />
+									<th />
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{{ module.module.cos.id }}</td>
+									<td />
+									<td />
+									<td />
+								</tr>
+							</tbody>
+							{% for item in module.module.cos.items.iter().sorted() %}
+							<thead>
+								<tr>
+									<th>ID</th>
+									<th>Object{% if item.objset.len() > 1 %}s{% endif %}</th>
+									<th>Type</th>
+									<th />
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{{ item.id }}</td>
+									<td>
+										{% for (i, objset) in item.objset.iter().enumerate() %}
+											{{ objset }}{% if i != item.objset.len() - 1 %}, {% endif %}
+										{% endfor %}
+									</td>
+									<td>{{ item.sub.to_string() }}</td>
+									<td />
+								</tr>
+							</tbody>
+							{% endfor %}
+						</table>
+					</div>
+				</div>
+			</td>
 		</tr>
 		{% endfor %}
 	</tbody>
