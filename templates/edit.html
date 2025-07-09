@@ -72,9 +72,7 @@
 				<img class="ratio ratio-1x1" style="border-radius: 100%" src="${user.avatar}?size=64">
 			</div>
 			<h5 class="col-7 text" style="padding-top: 0.5rem">${user.display_name}</h5>
-			<button class="col-3 btn btn-outline-danger btn-danger mb-1 p-0" onclick="deleteAuthor('${user.name}')" type="button">
-				<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}" style="display: inline-block">Remove</div>
-			</button>
+			<button class="col-3 btn btn-danger mb-1 p-0" onclick="deleteAuthor('${user.name}')" type="button">Remove</button>
 		</div>
 		`;
 		document.getElementById('authors').append(author);
@@ -386,9 +384,7 @@
 
 			html += `
 	</div>
-	<button class="btn btn-outline-success btn-success" onclick="addDependency(${post.id})" type="button">
-		<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Add</div>
-	</buttonv>
+	<button class="btnbtn-success" onclick="addDependency(${post.id})" type="button">Add</button>
 </div>
 			`;
 
@@ -565,9 +561,7 @@
 			<label class="form-check-label ms-1" for="private">Private</label>
 		</div>
 
-		<button class="btn btn-outline-info btn-info" onclick="updateMetadata()" type="button">
-			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Update</div>
-		</button>
+		<button class="btn btn-info" onclick="updateMetadata()" type="button">Update</button>
 	</div>
 
 	<div class="col-lg-3 card card-body">
@@ -580,26 +574,20 @@
 					</div>
 					<h5 class="col-7 text" style="padding-top: 0.5rem">{{ author.display_name }}</h5>
 					{% if author != user %}
-					<button class="col-3 btn btn-outline-danger btn-danger mb-1 p-0" onclick="deleteAuthor('{{ author.name }}')" type="button">
-						<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}" style="display: inline-block">Remove</div>
-					</button>
+					<button class="col-3 btn btn-danger mb-1 p-0" onclick="deleteAuthor('{{ author.name }}')" type="button">Remove</button>
 					{% endif %}
 				</div>
 			</div>
 			{% endfor %}
 		</div>
-		<button class="btn btn-outline-warning btn-warning mt-1 mb-1" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd">
-			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Add author</div>
-		</button>
+		<button class="btn btn-warning mt-1 mb-1" type="button" data-bs-toggle="collapse" data-bs-target="#authorAdd">Add author</button>
 		<div class="collapse" id="authorAdd">
 			<div class="card card-body">
 				<p id="authorTxt">
 					Any authors get full access to editing this mod, including deletion and removing other authors.<br>
 				</p>
 				<input class="form-control" id="authorName" type="text" autocomplete="off" placeholder="Discord username">
-				<button class="btn btn-outline-danger btn-danger" onclick="addAuthor()" type="button">
-					<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Confirm</div>
-				</button>
+				<button class="btn btn-danger" onclick="addAuthor()" type="button">Confirm</button>
 			</div>
 		</div>
 	</div>
@@ -660,18 +648,14 @@
 				<div class="col" id="post{{ post.id }}">
 					<div class="card shadow h-100">
 						{% call post_helpers::draw_post(post) %}
-						<button class="btn btn-outline-danger btn-danger" onclick="deleteDependency({{ post.id }})" type="button">
-							<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Remove</div>
-						</button>
+						<button class="btn btn-danger" onclick="deleteDependency({{ post.id }})" type="button">Remove</button>
 					</div>
 				</div>
 			{% endfor %}
 		{% endif %}
 		</div>
 
-		<button class="mt-3 btn btn-outline-warning btn-warning" type="button" data-bs-toggle="collapse" data-bs-target="#dependencyAdd">
-			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Add dependency</div>
-		</button>
+		<button class="mt-3 btn btn-warning" type="button" data-bs-toggle="collapse" data-bs-target="#dependencyAdd">Add dependency</button>
 		<div class="collapse" id="dependencyAdd">
 			<div class="card card-body">
 				<div class="row-md col-md-6 offset-md-3 pb-2">
@@ -690,9 +674,7 @@
 		<div class="mb-2 mx-1">
 			<input class="form-control" accept=".7z,.zip,.rar" type="file" id="filePicker" multiple>
 		</div>
-		<button class="btn btn-outline-success btn-success mb-2 mx-1" type="button" onclick="start_upload()" id="uploadButton">
-			<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Start upload</div>
-		</button>
+		<button class="btn btn-success mb-2 mx-1" type="button" onclick="start_upload()" id="uploadButton">Start upload</button>
 		<div class="row mx-1" id="progressBars">
 		{% for (i, file) in files.iter().enumerate() %}
 			<p class="col-6 p-0 mb-1">{{ file }}</p>

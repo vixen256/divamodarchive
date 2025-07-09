@@ -46,8 +46,6 @@
 		<input class="form-check-input" type="checkbox" id="public_likes" autocomplete="off" {% if user.public_likes %}checked=""{% endif %}>
 	</div>
 
-	<button class="btn btn-outline-info btn-info" onclick="update()" type="button">
-		<div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Update</div>
-	</button>
+	<button class="btn btn-info" onclick="update()" type="button">Update</button>
 </div>
 {% endblock content %}

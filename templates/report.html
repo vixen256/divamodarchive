@@ -30,8 +30,6 @@
         <textarea class="form-control" id="reportText" rows="5"></textarea>
     </div>
 
-    <button class="mt-1 btn btn-outline-danger btn-danger" onclick="sendReport()" type="button">
-        <div class="{% if base.theme() == Theme::Light %}text-light{% endif %}">Send report</div>
-    </button>
+    <button class="mt-1 btn btn-danger" onclick="sendReport()" type="button">Send report </button>
 </div>
 {% endblock content %}
