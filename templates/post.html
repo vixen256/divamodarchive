@@ -7,8 +7,8 @@
 
 {% block head %}
 {% let text = post.text.trim().replace('\n', " ").replace('#', "") %}
-{% let description = format!("{:.100}", text) %}
-{% call base::draw_embed(post.name, description.trim()) %}
+{% let text = text.split('\n').next().unwrap_or_default() %}
+{% call base::draw_embed(post.name, text.trim()) %}
 <meta property="og:image" content="{{ post.images[0] }}">
 <meta name="twitter:card" content="summary_large_image">
 {% endblock head %}
