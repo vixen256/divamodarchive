@@ -174,7 +174,12 @@
 							{% endif %}
 
 							{% if let Some(nc_songs) = pv_search.nc_songs.get(pv.id) %}
+							<tbody>
 							{% for song in nc_songs %}
+							<tr>
+							<td colspan="5" class="p-0" style="border: none">
+							<div class="card card-body" style="border-radius: 0">
+							<table class="table table-sm m-0">
 							<thead>
 								<tr>
 									<th>New Classics Post</th>
@@ -317,8 +322,12 @@
 								</tr>
 							</tbody>
 							{% endif %}
-
+							</table>
+							</div>
+							</td>
+							</tr>
 							{% endfor %}
+							</tbody>
 							{% endif %}
 						</table>
 					</div>
