@@ -43,7 +43,75 @@
 		}
 	}
 
-	function getPvHtml(pv, posts) {
+	function has_arcade(nc_song, pv) {
+		for (var i = 0; i < 5; i++) {
+			if (pv.levels[i] != null && (nc_song.difficulties[i] == null || (nc_song.difficulties[i].console == null && nc_song.difficulties[i].mixed == null) || nc_song.difficulties[i].arcade != null)) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	function has_console(nc_song, pv) {
+		for (var i = 0; i < 5; i++) {
+			if (pv.levels[i] != null && nc_song.difficulties[i].console != null) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	function has_mixed(nc_song, pv) {
+		for (var i = 0; i < 5; i++) {
+			if (pv.levels[i] != null && nc_song.difficulties[i].mixed != null) {
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+	function get_arcade_level(nc_song, pv, i) {
+		if (pv.levels[i] == null || (nc_song.difficulties[i] != null && (nc_song.difficulties[i].console != null || nc_song.difficulties[i].mixed != null) && nc_song.difficulties[i].arcade == null)) {
+			return null;
+		}
+
+		if (nc_song.difficulties[i] != null && nc_song.difficulties[i].arcade != null && nc_song.difficulties[i].arcade.level != null) {
+			return levelToString(nc_song.difficulties[i].arcade.level);
+		}
+
+		return levelToString(pv.levels[i]);
+	}
+
+	function get_console_level(nc_song, pv, i) {
+		if (pv.levels[i] == null || nc_song.difficulties[i] == null || nc_song.difficulties[i].console == null) {
+			return null;
+		}
+
+		if (nc_song.difficulties[i] != null && nc_song.difficulties[i].console != null && nc_song.difficulties[i].console.level != null) {
+			return levelToString(nc_song.difficulties[i].console.level);
+		}
+
+		return levelToString(pv.levels[i]);
+	}
+
+	function get_mixed_level(nc_song, pv, i) {
+		if (pv.levels[i] == null || nc_song.difficulties[i] == null || nc_song.difficulties[i].mixed == null) {
+			return null;
+		}
+
+		if (nc_song.difficulties[i] != null && nc_song.difficulties[i].mixedonsole != null && nc_song.difficulties[i].mixed.level != null) {
+			return levelToString(nc_song.difficulties[i].mixed.level);
+		}
+
+		return levelToString(pv.levels[i]);
+	}
+
+	let difficulty_colours = ["--diva-easy",  "--diva-normal",  "--diva-hard",  "--diva-extreme",  "--diva-exex"]
+
+	function getPvHtml(pv, nc_songs, posts) {
 		var tr = document.createElement('tr');
 		tr.classList = [document.getElementById("pvs").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 		tr.innerHTML = `
@@ -183,7 +251,17 @@
 			html += '</tbody>';
 		}
 
-		html += `
+		let owns_nc = false;
+		if (nc_songs[pv.id] != undefined && pv.post != null && pv.post != -1) {
+			for (var nc_song of nc_songs[pv.id]) {
+				if (nc_song.post == pv.post) {
+					owns_nc = true;
+				}
+			}
+		}
+
+		if (!owns_nc) {
+			html += `
 <thead>
 	<tr>
 		<th>Easy</th>
@@ -191,13 +269,13 @@
 		<th>Hard</th>
 		<th>Extreme</th>
 		<th>Extra Extreme</th>
-		`;
+			`;
 
-		for (var i = 5; i < maxLen; i++) {
-			html += '<th />';
-		}
+			for (var i = 5; i < maxLen; i++) {
+				html += '<th />';
+			}
 
-		html += `
+			html += `
 	</tr>
 </thead>
 <tbody>
@@ -207,13 +285,186 @@
 		<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}"><b>${levelToString(pv.levels[2])}</b>${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
 		<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}"><b>${levelToString(pv.levels[3])}</b>${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
 		<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}"><b>${levelToString(pv.levels[4])}</b>${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-		`;
+			`;
 
-		for (var i = 5; i < maxLen; i++) {
-			html += '<td />';
+			for (var i = 5; i < maxLen; i++) {
+				html += '<td />';
+			}
+
+			html += `</tr></tbody>`;
 		}
 
-		html += `</tr></tbody>`;
+		if (nc_songs[pv.id] != undefined) {
+			for (var nc_song of nc_songs[pv.id]) {
+				html += `
+<thead>
+	<tr>
+		<th>New Classics Post</th>
+		<th>Has Arcade</th>
+		<th>Has Console</th>
+		<th>Has Mixed</th>
+				`;
+
+				for (var i = 4; i < maxLen; i++) {
+					html += '<td />';
+				}
+
+			html += `
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+		<td><a href="/post/${nc_song.post}" class="nav-link">${posts[nc_song.post].name}</a></td>
+		<td><span class="material-symbols-outlined fs-5">${has_arcade(nc_song, pv) ? 'check' : 'close'}</span></td>
+		<td><span class="material-symbols-outlined fs-5">${has_console(nc_song, pv) ? 'check' : 'close'}</span></td>
+		<td><span class="material-symbols-outlined fs-5">${has_mixed(nc_song, pv) ? 'check' : 'close'}</span></td>
+				`;
+
+				for (var i = 4; i < maxLen; i++) {
+					html += '<td />';
+				}
+
+			html += `
+	</tr>
+</tbody>
+				`;
+
+				if (nc_song.post == pv.post && has_arcade(nc_song, pv)) {
+					html += `
+<thead>
+	<tr>
+		<th>Arcade Easy</th>
+		<th>Arcade Normal</th>
+		<th>Arcade Hard</th>
+		<th>Arcade Extreme</th>
+		<th>Arcade Extra Extreme</th>
+					`;
+
+					for (var i = 5; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+					html += `
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+					`;
+					for (var i = 0; i < 5; i++) {
+						let level = get_arcade_level(nc_song, pv, i);
+						if (level == null) {
+							html += '<td />';
+						} else {
+							html += `
+		<td style="background-color: var(${difficulty_colours[i]})">
+			<b>${level}</b>
+			<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+		</td>
+							`;
+						}
+					}
+
+					for (var i = 5; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+					html += `
+	</tr>
+</tbody>
+					`;
+				}
+
+				if (has_console(nc_song, pv)) {
+					html += `
+<thead>
+	<tr>
+		<th>Console Easy</th>
+		<th>Console Normal</th>
+		<th>Console Hard</th>
+		<th>Console Extreme</th>
+		<th>Console Extra Extreme</th>
+					`;
+
+					for (var i = 5; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+					html += `
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+					`;
+					for (var i = 0; i < 5; i++) {
+						let level = get_console_level(nc_song, pv, i);
+						if (level == null) {
+							html += '<td />';
+						} else {
+							html += `
+		<td style="background-color: var(${difficulty_colours[i]})">
+			<b>${level}</b>
+			<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+		</td>
+							`;
+						}
+					}
+
+					for (var i = 5; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+					html += `
+	</tr>
+</tbody>
+					`;
+				}
+
+				if (has_mixed(nc_song, pv)) {
+					html += `
+<thead>
+	<tr>
+		<th>Mixed Easy</th>
+		<th>Mixed Normal</th>
+		<th>Mixed Hard</th>
+		<th>Mixed Extreme</th>
+		<th>Mixed Extra Extreme</th>
+					`;
+
+					for (var i = 5; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+					html += `
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+					`;
+					for (var i = 0; i < 5; i++) {
+						let level = get_mixed_level(nc_song, pv, i);
+						if (level == null) {
+							html += '<td />';
+						} else {
+							html += `
+		<td style="background-color: var(${difficulty_colours[i]})">
+			<b>${level}</b>
+			<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+		</td>
+							`;
+						}
+					}
+
+					for (var i = 5; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+					html += `
+	</tr>
+</tbody>
+					`;
+				}
+			}
+		}
 
 		table.innerHTML = html;
 		card.appendChild(table);
@@ -244,7 +495,7 @@
 			document.getElementById("pvs").innerHTML = "";
 		}
 		for (var pv of pvs.pvs) {
-			getPvHtml(pv, pvs.posts);
+			getPvHtml(pv, pvs.nc_songs, pvs.posts);
 		}
 
 		if (pvs.pvs.length == 20) {

@@ -190,25 +190,31 @@
 								<tr class="table-dark">
 									<td><a href="/post/{{ song.post }}" class="nav-link">{{ pv_search.posts[song.post | ref].name }}</a></td>
 									<td>
-										{% if song.has_arcade() %}
-											<span class="material-symbols-outlined fs-5">check</span>
+										<span class="material-symbols-outlined fs-5">
+										{% if song.has_arcade(pv) %}
+											check
 										{% else %}
-											<span class="material-symbols-outlined fs-5">close</span>
+											close
 										{% endif %}
+										</span>
 									</td>
 									<td>
+										<span class="material-symbols-outlined fs-5">
 										{% if song.has_console() %}
-											<span class="material-symbols-outlined fs-5">check</span>
+											check
 										{% else %}
-											<span class="material-symbols-outlined fs-5">close</span>
+											close
 										{% endif %}
+										</span>
 									</td>
 									<td>
+										<span class="material-symbols-outlined fs-5">
 										{% if song.has_mixed() %}
-											<span class="material-symbols-outlined fs-5">check</span>
+											check
 										{% else %}
-											<span class="material-symbols-outlined fs-5">close</span>
+											close
 										{% endif %}
+										</span>
 									</td>
 									{% for _ in 4..cols %}
 										<td />
@@ -216,7 +222,7 @@
 								</tr>
 							</tbody>
 
-							{% if song.post == pv.post.unwrap_or(0) && song.has_arcade() %}
+							{% if song.post == pv.post.unwrap_or(0) && song.has_arcade(pv) %}
 							<thead>
 								<tr>
 									<th>Arcade Easy</th>
@@ -232,23 +238,11 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(diff) = song.difficulties[i] %}
-									{% if let Some(arcade) = diff.arcade %}
+									{% if let Some(level) = song.get_arcade_level(pv, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
-										<b>
-											{% if let Some(level) = arcade.level %}
-												{{ level.to_string() }}
-											{% else if let Some(level) = pv.levels[i] %}
-												{{ level.to_string() }}
-											{% else %}
-												Unknown
-											{% endif %}
-										</b>
+										<b>{{ level.to_string() }}</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
 									</td>
-									{% else %}
-									<td />
-									{% endif %}
 									{% else %}
 									<td />
 									{% endif %}
@@ -276,23 +270,11 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(diff) = song.difficulties[i] %}
-									{% if let Some(console) = diff.console %}
+									{% if let Some(level) = song.get_console_level(pv, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
-										<b>
-											{% if let Some(level) = console.level %}
-												{{ level.to_string() }}
-											{% else if let Some(level) = pv.levels[i] %}
-												{{ level.to_string() }}
-											{% else %}
-												Unknown
-											{% endif %}
-										</b>
+										<b>{{ level.to_string() }}</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
 									</td>
-									{% else %}
-									<td />
-									{% endif %}
 									{% else %}
 									<td />
 									{% endif %}
@@ -320,23 +302,11 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(diff) = song.difficulties[i] %}
-									{% if let Some(mixed) = diff.mixed %}
+									{% if let Some(level) = song.get_arcade_level(pv, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
-										<b>
-											{% if let Some(level) = mixed.level %}
-												{{ level.to_string() }}
-											{% else if let Some(level) = pv.levels[i] %}
-												{{ level.to_string() }}
-											{% else %}
-												Unknown
-											{% endif %}
-										</b>
+										<b>{{ level.to_string() }}</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
 									</td>
-									{% else %}
-									<td />
-									{% endif %}
 									{% else %}
 									<td />
 									{% endif %}
@@ -455,32 +425,38 @@
 							<tbody>
 								<tr class="table-dark">
 									<td>
-										{% if song.has_arcade() %}
-											<span class="material-symbols-outlined fs-5">check</span>
+										<span class="material-symbols-outlined fs-5">
+										{% if song.has_arcade_search(nc_songs) %}
+											check
 										{% else %}
-											<span class="material-symbols-outlined fs-5">close</span>
+											close
 										{% endif %}
+										</span>
 									</td>
 									<td>
+										<span class="material-symbols-outlined fs-5">
 										{% if song.has_console() %}
-											<span class="material-symbols-outlined fs-5">check</span>
+											check
 										{% else %}
-											<span class="material-symbols-outlined fs-5">close</span>
+											close
 										{% endif %}
+										</span>
 									</td>
 									<td>
+										<span class="material-symbols-outlined fs-5">
 										{% if song.has_mixed() %}
-											<span class="material-symbols-outlined fs-5">check</span>
+											check
 										{% else %}
-											<span class="material-symbols-outlined fs-5">close</span>
+											close
 										{% endif %}
+										</span>
 									</td>
 									<td />
 									<td />
 								</tr>
 							</tbody>
 
-							{% if song.has_arcade() %}
+							{% if song.has_arcade_search(nc_songs) %}
 							<thead>
 								<tr>
 									<th>Arcade Easy</th>
@@ -493,13 +469,10 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(diff) = song.difficulties[i] %}
-									{% if let Some(arcade) = diff.arcade %}
+									{% if let Some(level) = song.get_arcade_level_search(nc_songs, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
 										<b>
-											{% if let Some(level) = arcade.level %}
-												{{ level.to_string() }}
-											{% else if let Some(level) = nc_songs.get_pv_level(*song.pv_id, *i) %}
+											{% if let Some(level) = level %}
 												{{ level.to_string() }}
 											{% else %}
 												Unknown
@@ -507,9 +480,6 @@
 										</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
 									</td>
-									{% else %}
-									<td />
-									{% endif %}
 									{% else %}
 									<td />
 									{% endif %}
@@ -531,13 +501,10 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(diff) = song.difficulties[i] %}
-									{% if let Some(console) = diff.console %}
+									{% if let Some(level) = song.get_console_level_search(nc_songs, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
 										<b>
-											{% if let Some(level) = console.level %}
-												{{ level.to_string() }}
-											{% else if let Some(level) = nc_songs.get_pv_level(*song.pv_id, *i) %}
+											{% if let Some(level) = level %}
 												{{ level.to_string() }}
 											{% else %}
 												Unknown
@@ -545,9 +512,6 @@
 										</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
 									</td>
-									{% else %}
-									<td />
-									{% endif %}
 									{% else %}
 									<td />
 									{% endif %}
@@ -569,13 +533,10 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(diff) = song.difficulties[i] %}
-									{% if let Some(mixed) = diff.mixed %}
+									{% if let Some(level) = song.get_mixed_level_search(nc_songs, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
 										<b>
-											{% if let Some(level) = mixed.level %}
-												{{ level.to_string() }}
-											{% else if let Some(level) = nc_songs.get_pv_level(*song.pv_id, *i) %}
+											{% if let Some(level) = level %}
 												{{ level.to_string() }}
 											{% else %}
 												Unknown
@@ -583,9 +544,6 @@
 										</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
 									</td>
-									{% else %}
-									<td />
-									{% endif %}
 									{% else %}
 									<td />
 									{% endif %}

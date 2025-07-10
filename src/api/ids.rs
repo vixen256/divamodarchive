@@ -784,11 +784,17 @@ pub struct NcSong {
 }
 
 impl NcSong {
-	pub fn has_arcade(&self) -> bool {
-		self.difficulties
-			.iter()
-			.filter_map(|diff| diff.clone())
-			.any(|diff| diff.arcade.is_some())
+	pub fn has_arcade(&self, pv: &Pv) -> bool {
+		for i in 0..5 {
+			if self.difficulties[i].as_ref().map_or(true, |diff| {
+				(diff.console.is_none() && diff.mixed.is_none()) || diff.arcade.is_some()
+			}) && pv.levels[i].is_some()
+			{
+				return true;
+			}
+		}
+
+		false
 	}
 
 	pub fn has_console(&self) -> bool {
@@ -803,6 +809,232 @@ impl NcSong {
 			.iter()
 			.filter_map(|diff| diff.clone())
 			.any(|diff| diff.mixed.is_some())
+	}
+
+	pub fn has_arcade_search(&self, search: &NcSongSearch) -> bool {
+		let Some(pvs) = search.pvs.get(&self.pv_id) else {
+			if self
+				.difficulties
+				.iter()
+				.filter_map(|diff| diff.clone())
+				.any(|diff| diff.arcade.is_some())
+			{
+				return true;
+			}
+			return false;
+		};
+		if pvs.len() == 0 {
+			if self
+				.difficulties
+				.iter()
+				.filter_map(|diff| diff.clone())
+				.any(|diff| diff.arcade.is_some())
+			{
+				return true;
+			}
+			return false;
+		}
+
+		for i in 0..5 {
+			if self.difficulties[i].as_ref().map_or(true, |diff| {
+				(diff.console.is_none() && diff.mixed.is_none()) || diff.arcade.is_some()
+			}) {
+				if pvs.iter().any(|pv| pv.levels[i].is_some()) {
+					return true;
+				}
+			}
+		}
+
+		false
+	}
+
+	pub fn get_arcade_level(&self, pv: &Pv, difficulty: usize) -> Option<pv_db::Level> {
+		if pv.levels[difficulty].is_none()
+			|| self.difficulties[difficulty]
+				.as_ref()
+				.map_or(false, |diff| {
+					diff.arcade.is_none() && (diff.console.is_some() || diff.mixed.is_some())
+				}) {
+			return None;
+		}
+
+		if let Some(diff) = &self.difficulties[difficulty] {
+			if let Some(arcade) = &diff.arcade {
+				if arcade.level.is_some() {
+					return arcade.level.clone();
+				}
+			}
+		}
+
+		pv.levels[difficulty].clone()
+	}
+
+	pub fn get_console_level(&self, pv: &Pv, difficulty: usize) -> Option<pv_db::Level> {
+		if pv.levels[difficulty].is_none()
+			|| self.difficulties[difficulty]
+				.as_ref()
+				.map_or(true, |diff| diff.console.is_none())
+		{
+			return None;
+		}
+
+		if let Some(diff) = &self.difficulties[difficulty] {
+			if let Some(console) = &diff.console {
+				if console.level.is_some() {
+					return console.level.clone();
+				}
+			}
+		}
+
+		pv.levels[difficulty].clone()
+	}
+
+	pub fn get_mixed_level(&self, pv: &Pv, difficulty: usize) -> Option<pv_db::Level> {
+		if pv.levels[difficulty].is_none()
+			|| self.difficulties[difficulty]
+				.as_ref()
+				.map_or(true, |diff| diff.mixed.is_none())
+		{
+			return None;
+		}
+
+		if let Some(diff) = &self.difficulties[difficulty] {
+			if let Some(mixed) = &diff.mixed {
+				if mixed.level.is_some() {
+					return mixed.level.clone();
+				}
+			}
+		}
+
+		pv.levels[difficulty].clone()
+	}
+
+	// If Some(None) then the entry exists but no info could be found about the level
+	pub fn get_arcade_level_search(
+		&self,
+		search: &NcSongSearch,
+		difficulty: usize,
+	) -> Option<Option<pv_db::Level>> {
+		let Some(pv_level) = search.get_pv_level(self.pv_id, difficulty) else {
+			if search
+				.pvs
+				.get(&self.pv_id)
+				.map_or(true, |pvs| pvs.len() == 0)
+			{
+				if let Some(diff) = &self.difficulties[difficulty] {
+					if let Some(arcade) = &diff.arcade {
+						if arcade.level.is_some() {
+							return Some(arcade.level.clone());
+						} else {
+							return Some(None);
+						}
+					}
+				}
+			}
+			return None;
+		};
+
+		if self.difficulties[difficulty]
+			.as_ref()
+			.map_or(false, |diff| {
+				diff.arcade.is_none() && (diff.console.is_some() || diff.mixed.is_some())
+			}) {
+			return None;
+		}
+
+		if let Some(diff) = &self.difficulties[difficulty] {
+			if let Some(arcade) = &diff.arcade {
+				if arcade.level.is_some() {
+					return Some(arcade.level.clone());
+				}
+			}
+		}
+
+		Some(Some(pv_level))
+	}
+
+	pub fn get_console_level_search(
+		&self,
+		search: &NcSongSearch,
+		difficulty: usize,
+	) -> Option<Option<pv_db::Level>> {
+		let Some(pv_level) = search.get_pv_level(self.pv_id, difficulty) else {
+			if search
+				.pvs
+				.get(&self.pv_id)
+				.map_or(true, |pvs| pvs.len() == 0)
+			{
+				if let Some(diff) = &self.difficulties[difficulty] {
+					if let Some(console) = &diff.console {
+						if console.level.is_some() {
+							return Some(console.level.clone());
+						} else {
+							return Some(None);
+						}
+					}
+				}
+			}
+			return None;
+		};
+
+		if self.difficulties[difficulty]
+			.as_ref()
+			.map_or(true, |diff| diff.console.is_none())
+		{
+			return None;
+		}
+
+		if let Some(diff) = &self.difficulties[difficulty] {
+			if let Some(console) = &diff.console {
+				if console.level.is_some() {
+					return Some(console.level.clone());
+				}
+			}
+		}
+
+		Some(Some(pv_level))
+	}
+
+	pub fn get_mixed_level_search(
+		&self,
+		search: &NcSongSearch,
+		difficulty: usize,
+	) -> Option<Option<pv_db::Level>> {
+		let Some(pv_level) = search.get_pv_level(self.pv_id, difficulty) else {
+			if search
+				.pvs
+				.get(&self.pv_id)
+				.map_or(true, |pvs| pvs.len() == 0)
+			{
+				if let Some(diff) = &self.difficulties[difficulty] {
+					if let Some(mixed) = &diff.mixed {
+						if mixed.level.is_some() {
+							return Some(mixed.level.clone());
+						} else {
+							return Some(None);
+						}
+					}
+				}
+			}
+			return None;
+		};
+
+		if self.difficulties[difficulty]
+			.as_ref()
+			.map_or(true, |diff| diff.mixed.is_none())
+		{
+			return None;
+		}
+
+		if let Some(diff) = &self.difficulties[difficulty] {
+			if let Some(mixed) = &diff.mixed {
+				if mixed.level.is_some() {
+					return Some(mixed.level.clone());
+				}
+			}
+		}
+
+		Some(Some(pv_level))
 	}
 }
 
