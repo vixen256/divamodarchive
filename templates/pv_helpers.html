@@ -456,38 +456,6 @@
 								</tr>
 							</tbody>
 
-							{% if song.has_arcade_search(nc_songs) %}
-							<thead>
-								<tr>
-									<th>Arcade Easy</th>
-									<th>Arcade Normal</th>
-									<th>Arcade Hard</th>
-									<th>Arcade Extreme</th>
-									<th>Arcade Extra Extreme</th>
-								</tr>
-							</thead>
-							<tbody>
-								<tr class="table-dark">
-								{% for i in 0..5 %}
-									{% if let Some(level) = song.get_arcade_level_search(nc_songs, *i) %}
-									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
-										<b>
-											{% if let Some(level) = level %}
-												{{ level.to_string() }}
-											{% else %}
-												Unknown
-											{% endif %}
-										</b>
-										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
-									</td>
-									{% else %}
-									<td />
-									{% endif %}
-								{% endfor %}
-								</tr>
-							</tbody>
-							{% endif %}
-
 							{% if song.has_console() %}
 							<thead>
 								<tr>

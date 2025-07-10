@@ -909,50 +909,6 @@ impl NcSong {
 		pv.levels[difficulty].clone()
 	}
 
-	// If Some(None) then the entry exists but no info could be found about the level
-	pub fn get_arcade_level_search(
-		&self,
-		search: &NcSongSearch,
-		difficulty: usize,
-	) -> Option<Option<pv_db::Level>> {
-		let Some(pv_level) = search.get_pv_level(self.pv_id, difficulty) else {
-			if search
-				.pvs
-				.get(&self.pv_id)
-				.map_or(true, |pvs| pvs.len() == 0)
-			{
-				if let Some(diff) = &self.difficulties[difficulty] {
-					if let Some(arcade) = &diff.arcade {
-						if arcade.level.is_some() {
-							return Some(arcade.level.clone());
-						} else {
-							return Some(None);
-						}
-					}
-				}
-			}
-			return None;
-		};
-
-		if self.difficulties[difficulty]
-			.as_ref()
-			.map_or(false, |diff| {
-				diff.arcade.is_none() && (diff.console.is_some() || diff.mixed.is_some())
-			}) {
-			return None;
-		}
-
-		if let Some(diff) = &self.difficulties[difficulty] {
-			if let Some(arcade) = &diff.arcade {
-				if arcade.level.is_some() {
-					return Some(arcade.level.clone());
-				}
-			}
-		}
-
-		Some(Some(pv_level))
-	}
-
 	pub fn get_console_level_search(
 		&self,
 		search: &NcSongSearch,
