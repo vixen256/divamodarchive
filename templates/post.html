@@ -432,6 +432,13 @@
 	</div>
 	{% endif %}
 
+	{% if nc_songs.nc_songs.len() > 0 && nc_songs.contains_other_posts_songs(post) %}
+	<div class="card card-body">
+		<h4>This mod adds the following New Classics Songs: </h4>
+		{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
+	</div>
+	{% endif %}
+
 	{% if let Some(user) = user %}
 	<br>
 	<button class="btn btn-sm btn-primary" style="width: 100%" type="button" data-bs-toggle="collapse" data-bs-target="#commentInput-1"

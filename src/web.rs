@@ -37,6 +37,14 @@ pub fn route(state: AppState) -> Router {
 		.with_state(state)
 }
 
+const DIFFICULTY_COLOURS: [&'static str; 5] = [
+	"--diva-easy",
+	"--diva-normal",
+	"--diva-hard",
+	"--diva-extreme",
+	"--diva-exex",
+];
+
 mod filters {
 	use askama::filters::*;
 
@@ -533,6 +541,7 @@ struct PostTemplate {
 	pvs: PvSearch,
 	modules: ModuleSearch,
 	cstm_items: CstmItemSearch,
+	nc_songs: NcSongSearch,
 	pv_easy_count: usize,
 	pv_normal_count: usize,
 	pv_hard_count: usize,
@@ -625,6 +634,18 @@ async fn post_detail(
 	.unwrap_or_default();
 
 	let Json(cstm_items) = search_cstm_items(
+		Query(SearchParams {
+			query: None,
+			filter: Some(format!("post_id={}", post.id)),
+			limit: Some(2000),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let Json(nc_songs) = search_nc_songs(
 		Query(SearchParams {
 			query: None,
 			filter: Some(format!("post_id={}", post.id)),
@@ -875,6 +896,7 @@ async fn post_detail(
 		pvs,
 		modules,
 		cstm_items,
+		nc_songs,
 		pv_easy_count,
 		pv_normal_count,
 		pv_hard_count,

@@ -54,15 +54,16 @@ pub struct MeilisearchNcSong {
 	pub difficulties: [Option<MeilisearchNcDifficulty>; 5],
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct MeilisearchNcDifficulty {
 	pub arcade: Option<MeilisearchNcChart>,
 	pub console: Option<MeilisearchNcChart>,
 	pub mixed: Option<MeilisearchNcChart>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct MeilisearchNcChart {
+	// If is none its inhereted from the songs existing pv_db
 	pub level: Option<pv_db::Level>,
 }
 
@@ -750,6 +751,12 @@ impl Pv {
 			+ self.has_editor() as isize
 			+ self.has_guitar() as isize
 	}
+
+	pub fn owns_nc(&self, nc_songs: &[NcSong]) -> bool {
+		let Some(post) = self.post else { return false };
+
+		nc_songs.iter().any(|nc_song| nc_song.post == post)
+	}
 }
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -769,8 +776,40 @@ pub struct CstmItem {
 }
 
 #[derive(Serialize, Deserialize, Default)]
+pub struct NcSong {
+	pub uid: String,
+	pub post: i32,
+	pub pv_id: i32,
+	pub difficulties: [Option<MeilisearchNcDifficulty>; 5],
+}
+
+impl NcSong {
+	pub fn has_arcade(&self) -> bool {
+		self.difficulties
+			.iter()
+			.filter_map(|diff| diff.clone())
+			.any(|diff| diff.arcade.is_some())
+	}
+
+	pub fn has_console(&self) -> bool {
+		self.difficulties
+			.iter()
+			.filter_map(|diff| diff.clone())
+			.any(|diff| diff.console.is_some())
+	}
+
+	pub fn has_mixed(&self) -> bool {
+		self.difficulties
+			.iter()
+			.filter_map(|diff| diff.clone())
+			.any(|diff| diff.mixed.is_some())
+	}
+}
+
+#[derive(Serialize, Deserialize, Default)]
 pub struct PvSearch {
 	pub pvs: Vec<Pv>,
+	pub nc_songs: BTreeMap<i32, Vec<NcSong>>,
 	pub posts: BTreeMap<i32, Post>,
 }
 
@@ -849,7 +888,66 @@ pub async fn search_pvs(
 		})
 	}
 
-	Ok(Json(PvSearch { pvs: vec, posts }))
+	let filter = vec
+		.iter()
+		.map(|pv| format!("pv_id={}", pv.id))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	let search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("nc_songs"))
+		.with_limit(10000)
+		.with_sort(&["pv_id:asc"])
+		.with_filter(&filter)
+		.execute::<MeilisearchNcSong>()
+		.await;
+
+	let mut nc_songs: BTreeMap<i32, Vec<NcSong>> = BTreeMap::new();
+	if let Ok(result) = search {
+		for nc_song in result.hits.into_iter().map(|nc_song| nc_song.result) {
+			if !posts.contains_key(&nc_song.post_id) {
+				if let Some(mut post) = Post::get_full(nc_song.post_id, &state.db).await {
+					for i in 0..post.files.len() {
+						post.files[i] = format!(
+							"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+							post.id
+						);
+						post.local_files[i] = post.local_files[i]
+							.split("/")
+							.last()
+							.map(|s| String::from(s))
+							.unwrap_or(String::new());
+					}
+
+					posts.insert(post.id, post.clone());
+				}
+			}
+
+			if let Some(nc_vec) = nc_songs.get_mut(&nc_song.pv_id) {
+				nc_vec.push(NcSong {
+					uid: BASE64_STANDARD.encode(nc_song.uid.to_ne_bytes()),
+					post: nc_song.post_id,
+					pv_id: nc_song.pv_id,
+					difficulties: nc_song.difficulties.clone(),
+				});
+			} else {
+				nc_songs.insert(
+					nc_song.pv_id,
+					vec![NcSong {
+						uid: BASE64_STANDARD.encode(nc_song.uid.to_ne_bytes()),
+						post: nc_song.post_id,
+						pv_id: nc_song.pv_id,
+						difficulties: nc_song.difficulties.clone(),
+					}],
+				);
+			}
+		}
+	};
+
+	Ok(Json(PvSearch {
+		pvs: vec,
+		nc_songs,
+		posts,
+	}))
 }
 
 #[derive(Serialize, Deserialize, Default)]
@@ -1100,6 +1198,189 @@ pub async fn search_cstm_items(
 	Ok(Json(CstmItemSearch {
 		cstm_items: vec,
 		bound_modules,
+		posts,
+	}))
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct NcSongSearch {
+	pub nc_songs: Vec<NcSong>,
+	pub pvs: BTreeMap<i32, Vec<Pv>>,
+	pub posts: BTreeMap<i32, Post>,
+}
+
+impl NcSongSearch {
+	pub fn contains_other_posts_songs(&self, post: &Post) -> bool {
+		self.pvs
+			.iter()
+			.any(|(_, pvs)| pvs.iter().any(|pv| pv.post != Some(post.id)))
+			|| self.pvs.is_empty()
+	}
+
+	pub fn get_pv_level(&self, pv_id: i32, difficulty_index: usize) -> Option<pv_db::Level> {
+		let Some(pvs) = self.pvs.get(&pv_id) else {
+			return None;
+		};
+		if pvs.len() == 0 {
+			return None;
+		}
+		if !pvs.iter().all(|pv| pv.id == pvs[0].id) {
+			return None;
+		}
+
+		if pvs
+			.iter()
+			.all(|pv| pv.levels[difficulty_index] == pvs[0].levels[difficulty_index])
+		{
+			pvs[0].levels[difficulty_index].clone()
+		} else {
+			None
+		}
+	}
+}
+
+pub async fn search_nc_songs(
+	Query(query): Query<SearchParams>,
+	State(state): State<AppState>,
+) -> Result<Json<NcSongSearch>, (StatusCode, String)> {
+	let index = state.meilisearch.index("nc_songs");
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
+
+	search.query = query.query.as_ref().map(|query| query.as_str());
+
+	search.limit = query.limit;
+	search.offset = query.offset;
+
+	search.sort = Some(&["pv_id:asc"]);
+
+	let filter = if let Some(filter) = &query.filter {
+		format!("{filter}")
+	} else {
+		String::new()
+	};
+
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
+
+	let nc_songs = search
+		.execute::<MeilisearchNcSong>()
+		.await
+		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+	let nc_songs = nc_songs
+		.hits
+		.into_iter()
+		.map(|p| p.result)
+		.collect::<Vec<_>>();
+
+	let mut vec = Vec::with_capacity(nc_songs.len());
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
+
+	for nc_song in nc_songs {
+		if !posts.contains_key(&nc_song.post_id) {
+			if let Some(mut post) = Post::get_full(nc_song.post_id, &state.db).await {
+				for i in 0..post.files.len() {
+					post.files[i] = format!(
+						"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+						post.id
+					);
+					post.local_files[i] = post.local_files[i]
+						.split("/")
+						.last()
+						.map(|s| String::from(s))
+						.unwrap_or(String::new());
+				}
+
+				posts.insert(post.id, post.clone());
+			}
+		}
+
+		vec.push(NcSong {
+			uid: BASE64_STANDARD.encode(nc_song.uid.to_ne_bytes()),
+			post: nc_song.post_id,
+			pv_id: nc_song.pv_id,
+			difficulties: nc_song.difficulties.clone(),
+		});
+	}
+
+	let filter = vec
+		.iter()
+		.map(|pv| format!("pv_id={}", pv.pv_id))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	let search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("pvs"))
+		.with_limit(10000)
+		.with_sort(&["pv_id:asc"])
+		.with_filter(&filter)
+		.execute::<MeilisearchPv>()
+		.await;
+
+	let mut pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
+	if let Ok(result) = search {
+		for pv in result.hits.into_iter().map(|pv| pv.result) {
+			let post = if pv.post == -1 {
+				None
+			} else if let Some(post) = posts.get(&pv.post) {
+				Some(post.id)
+			} else if let Some(mut post) = Post::get_full(pv.post, &state.db).await {
+				for i in 0..post.files.len() {
+					post.files[i] = format!(
+						"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+						post.id
+					);
+					post.local_files[i] = post.local_files[i]
+						.split("/")
+						.last()
+						.map(|s| String::from(s))
+						.unwrap_or(String::new());
+				}
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else if pv.post != -1 {
+				let pvs = state.meilisearch.index("pvs");
+				_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
+					.with_filter(&format!("post={}", pv.post))
+					.execute::<crate::api::ids::MeilisearchPv>()
+					.await;
+				None
+			} else {
+				None
+			};
+
+			if let Some(pv_vec) = pvs.get_mut(&pv.pv_id) {
+				pv_vec.push(Pv {
+					uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+					id: pv.pv_id,
+					name: pv.song_name,
+					name_en: pv.song_name_en,
+					song_info: pv.song_info,
+					song_info_en: pv.song_info_en,
+					levels: pv.levels,
+					post,
+				});
+			} else {
+				pvs.insert(
+					pv.pv_id,
+					vec![Pv {
+						uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+						id: pv.pv_id,
+						name: pv.song_name,
+						name_en: pv.song_name_en,
+						song_info: pv.song_info,
+						song_info_en: pv.song_info_en,
+						levels: pv.levels,
+						post,
+					}],
+				);
+			};
+		}
+	};
+
+	Ok(Json(NcSongSearch {
+		nc_songs: vec,
+		pvs,
 		posts,
 	}))
 }

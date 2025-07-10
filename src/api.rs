@@ -47,6 +47,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/ids/pvs", get(search_pvs))
 		.route("/api/v1/ids/modules", get(search_modules))
 		.route("/api/v1/ids/cstm_items", get(search_cstm_items))
+		.route("/api/v1/ids/nc_songs", get(search_nc_songs))
 		.route("/api/v1/ids/all_pvs", get(all_pvs))
 		.route("/api/v1/ids/all_modules", get(all_modules))
 		.route("/api/v1/ids/all_cstm_items", get(all_cstm_items))

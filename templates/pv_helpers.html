@@ -137,6 +137,14 @@
 							</tbody>
 							{% endif %}
 
+							{% let owns_nc -%}
+							{% if let Some(nc_songs) = pv_search.nc_songs.get(pv.id) -%}
+								{% let owns_nc = pv.owns_nc(nc_songs) -%}
+							{% else -%}
+								{% let owns_nc = false -%}
+							{% endif -%}
+
+							{% if !owns_nc %}
 							<thead>
 								<tr>
 									<th>Easy</th>
@@ -153,21 +161,7 @@
 								<tr class="table-dark">
 								{% for i in 0..5 %}
 									{% if let Some(level) = pv.levels[i] %}
-									{% let color -%}
-									{% if i == 0 -%}
-									{% let color = "--diva-easy" -%}
-									{% else if i == 1 -%}
-									{% let color = "--diva-normal" -%}
-									{% else if i == 2 -%}
-									{% let color = "--diva-hard" -%}
-									{% else if i == 3 -%}
-									{% let color = "--diva-extreme" -%}
-									{% else if i == 4 -%}
-									{% let color = "--diva-exex" -%}
-									{% else -%}
-									{% let color = "--diva-exex" -%}
-									{% endif -%}
-									<td style="background-color: var({{ color }})"><b>{{ level.to_string() }}</b><span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})"><b>{{ level.to_string() }}</b><span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
 									{% else %}
 									<td />
 									{% endif %}
@@ -177,11 +171,432 @@
 								{% endfor %}
 								</tr>
 							</tbody>
+							{% endif %}
+
+							{% if let Some(nc_songs) = pv_search.nc_songs.get(pv.id) %}
+							{% for song in nc_songs %}
+							<thead>
+								<tr>
+									<th>New Classics Post</th>
+									<th>Has Arcade</th>
+									<th>Has Console</th>
+									<th>Has Mixed</th>
+									{% for _ in 4..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td><a href="/post/{{ song.post }}" class="nav-link">{{ pv_search.posts[song.post | ref].name }}</a></td>
+									<td>
+										{% if song.has_arcade() %}
+											<span class="material-symbols-outlined fs-5">check</span>
+										{% else %}
+											<span class="material-symbols-outlined fs-5">close</span>
+										{% endif %}
+									</td>
+									<td>
+										{% if song.has_console() %}
+											<span class="material-symbols-outlined fs-5">check</span>
+										{% else %}
+											<span class="material-symbols-outlined fs-5">close</span>
+										{% endif %}
+									</td>
+									<td>
+										{% if song.has_mixed() %}
+											<span class="material-symbols-outlined fs-5">check</span>
+										{% else %}
+											<span class="material-symbols-outlined fs-5">close</span>
+										{% endif %}
+									</td>
+									{% for _ in 4..cols %}
+										<td />
+									{% endfor %}
+								</tr>
+							</tbody>
+
+							{% if song.post == pv.post.unwrap_or(0) && song.has_arcade() %}
+							<thead>
+								<tr>
+									<th>Arcade Easy</th>
+									<th>Arcade Normal</th>
+									<th>Arcade Hard</th>
+									<th>Arcade Extreme</th>
+									<th>Arcade Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(diff) = song.difficulties[i] %}
+									{% if let Some(arcade) = diff.arcade %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>
+											{% if let Some(level) = arcade.level %}
+												{{ level.to_string() }}
+											{% else if let Some(level) = pv.levels[i] %}
+												{{ level.to_string() }}
+											{% else %}
+												Unknown
+											{% endif %}
+										</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if song.has_console() %}
+							<thead>
+								<tr>
+									<th>Console Easy</th>
+									<th>Console Normal</th>
+									<th>Console Hard</th>
+									<th>Console Extreme</th>
+									<th>Console Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(diff) = song.difficulties[i] %}
+									{% if let Some(console) = diff.console %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>
+											{% if let Some(level) = console.level %}
+												{{ level.to_string() }}
+											{% else if let Some(level) = pv.levels[i] %}
+												{{ level.to_string() }}
+											{% else %}
+												Unknown
+											{% endif %}
+										</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if song.has_mixed() %}
+							<thead>
+								<tr>
+									<th>Mixed Easy</th>
+									<th>Mixed Normal</th>
+									<th>Mixed Hard</th>
+									<th>Mixed Extreme</th>
+									<th>Mixed Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(diff) = song.difficulties[i] %}
+									{% if let Some(mixed) = diff.mixed %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>
+											{% if let Some(level) = mixed.level %}
+												{{ level.to_string() }}
+											{% else if let Some(level) = pv.levels[i] %}
+												{{ level.to_string() }}
+											{% else %}
+												Unknown
+											{% endif %}
+										</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% endfor %}
+							{% endif %}
 						</table>
 					</div>
 				</div>
 			</td>
 		</tr>
+		{% endfor %}
+	</tbody>
+</table>
+{% endmacro %}
+
+{% macro draw_nc_song_list(nc_songs, show_source) %}
+<table class="table sm-table table-hover">
+	<thead>
+		<tr>
+			<th>Song Name (EN)</th>
+			<th>Song Name (JP)</th>
+			<th>ID</th>
+			<th>Song Source</th>
+			{% if show_source %}
+				<th>NC Source</th>
+			{% endif %}
+		</tr>
+	</thead>
+	<tbody id="nc_songs">
+		{% for (i, song) in nc_songs.nc_songs.iter().enumerate() %}
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#ncCollapse{{ song.uid }}">
+			{% if let Some(pvs) = nc_songs.pvs.get(song.pv_id) %}
+				{% if pvs.len() == 0 %}
+					<td>Unknown</td>
+					<td />
+					<td>{{ song.pv_id }}</td>
+					<td>Not found</td>
+					{% if show_source %}
+						<td>{{ nc_songs.posts[song.post | ref].name }}</td>
+					{% endif %}
+				{% else if pvs.len() == 1 %}
+					<td>{{ pvs[0].name_en }}</td>
+					<td>{{ pvs[0].name }}</td>
+					<td>{{ song.pv_id }}</td>
+					<td>{% if let Some(post) = pvs[0].post %}{{ nc_songs.posts[post].name }}{% else %}MM+{% endif %}</td>
+					{% if show_source %}
+						<td>{{ nc_songs.posts[song.post | ref].name }}</td>
+					{% endif %}
+				{% else %}
+					<td>Unknown</td>
+					<td />
+					<td>{{ song.pv_id }}</td>
+					<td>Multiple matches</td>
+					{% if show_source %}
+						<td>{{ nc_songs.posts[song.post | ref].name }}</td>
+					{% endif %}
+				{% endif %}
+			{% else %}
+				<td>Unknown</td>
+				<td />
+				<td>{{ song.pv_id }}</td>
+				<td>Not found</td>
+				{% if show_source %}
+					<td>{{ nc_songs.posts[song.post | ref].name }}</td>
+				{% endif %}
+			{% endif %}
+		</tr>
+
+		<tr>
+			<td colspan="5" class="p-0" style="border: none">
+				<div class="collapse" id="ncCollapse{{ song.uid }}">
+					<div class="card card-body" style="border-radius: 0">
+						<table class="table table-sm m-0">
+							{% if let Some(pvs) = nc_songs.pvs.get(song.pv_id) %}
+							{% if pvs.len() != 0 %}
+							<thead>
+								<tr>
+									<th>Song Name (EN)</th>
+									<th>Song Name (JP)</th>
+									<th>ID</th>
+									<th>Song Source</th>
+									<th />
+								</tr>
+							</thead>
+							{% for pv in pvs %}
+							<tbody>
+								<tr class="table-dark">
+									<td>{{ pv.name_en }}</td>
+									<td>{{ pv.name }}</td>
+									<td>{{ pv.id }}</td>
+									<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}" class="nav-link">{{ nc_songs.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+									<td />
+								</tr>
+							</tbody>
+							{% endfor %}
+							{% endif %}
+							{% endif %}
+
+							<thead>
+								<tr>
+									<th>Has Arcade</th>
+									<th>Has Console</th>
+									<th>Has Mixed</th>
+									<th />
+									<th />
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>
+										{% if song.has_arcade() %}
+											<span class="material-symbols-outlined fs-5">check</span>
+										{% else %}
+											<span class="material-symbols-outlined fs-5">close</span>
+										{% endif %}
+									</td>
+									<td>
+										{% if song.has_console() %}
+											<span class="material-symbols-outlined fs-5">check</span>
+										{% else %}
+											<span class="material-symbols-outlined fs-5">close</span>
+										{% endif %}
+									</td>
+									<td>
+										{% if song.has_mixed() %}
+											<span class="material-symbols-outlined fs-5">check</span>
+										{% else %}
+											<span class="material-symbols-outlined fs-5">close</span>
+										{% endif %}
+									</td>
+									<td />
+									<td />
+								</tr>
+							</tbody>
+
+							{% if song.has_arcade() %}
+							<thead>
+								<tr>
+									<th>Arcade Easy</th>
+									<th>Arcade Normal</th>
+									<th>Arcade Hard</th>
+									<th>Arcade Extreme</th>
+									<th>Arcade Extra Extreme</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(diff) = song.difficulties[i] %}
+									{% if let Some(arcade) = diff.arcade %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>
+											{% if let Some(level) = arcade.level %}
+												{{ level.to_string() }}
+											{% else if let Some(level) = nc_songs.get_pv_level(*song.pv_id, *i) %}
+												{{ level.to_string() }}
+											{% else %}
+												Unknown
+											{% endif %}
+										</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if song.has_console() %}
+							<thead>
+								<tr>
+									<th>Console Easy</th>
+									<th>Console Normal</th>
+									<th>Console Hard</th>
+									<th>Console Extreme</th>
+									<th>Console Extra Extreme</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(diff) = song.difficulties[i] %}
+									{% if let Some(console) = diff.console %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>
+											{% if let Some(level) = console.level %}
+												{{ level.to_string() }}
+											{% else if let Some(level) = nc_songs.get_pv_level(*song.pv_id, *i) %}
+												{{ level.to_string() }}
+											{% else %}
+												Unknown
+											{% endif %}
+										</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if song.has_mixed() %}
+							<thead>
+								<tr>
+									<th>Mixed Easy</th>
+									<th>Mixed Normal</th>
+									<th>Mixed Hard</th>
+									<th>Mixed Extreme</th>
+									<th>Mixed Extra Extreme</th>
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(diff) = song.difficulties[i] %}
+									{% if let Some(mixed) = diff.mixed %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>
+											{% if let Some(level) = mixed.level %}
+												{{ level.to_string() }}
+											{% else if let Some(level) = nc_songs.get_pv_level(*song.pv_id, *i) %}
+												{{ level.to_string() }}
+											{% else %}
+												Unknown
+											{% endif %}
+										</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+						</table>
+					</div>
+				</div>
+			</td>
 		{% endfor %}
 	</tbody>
 </table>
