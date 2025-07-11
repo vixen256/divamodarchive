@@ -538,7 +538,7 @@ pub async fn login(
 	State(state): State<AppState>,
 	Query(params): Query<HashMap<String, String>>,
 	cookies: CookieJar,
-) -> Result<(CookieJar, Redirect), StatusCode> {
+) -> Result<(CookieJar, HeaderMap, Redirect), StatusCode> {
 	let code = params.get("code").ok_or(StatusCode::UNAUTHORIZED)?;
 
 	let mut params: HashMap<&str, &str> = std::collections::HashMap::new();
@@ -623,9 +623,13 @@ pub async fn login(
 		let mut cookie = Cookie::new(AUTHORIZATION.to_string(), encoded);
 		cookie.set_same_site(axum_extra::extract::cookie::SameSite::Lax);
 		cookie.set_expires(time);
-		Ok((cookies.add(cookie), Redirect::to("/")))
+
+		let mut headers = HeaderMap::new();
+		headers.insert("Clear-Site-Data", HeaderValue::from_str("cache").unwrap());
+
+		Ok((cookies.add(cookie), headers, Redirect::to("/")))
 	} else {
-		Err(StatusCode::UNAUTHORIZED)
+		Err(StatusCode::INTERNAL_SERVER_ERROR)
 	}
 }
 
