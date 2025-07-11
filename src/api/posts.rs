@@ -515,7 +515,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		_ = tokio::process::Command::new("rclone")
 			.arg("move")
 			.arg(format!("/pixeldrain/{}/pending/{}", user.id, file))
-			.arg(format!("/pixeldrain/{}/{}", user.id, file))
+			.arg(format!("/pixeldrain/{}", user.id))
 			.arg("--config=/etc/rclone-mnt.conf")
 			.output()
 			.await;
