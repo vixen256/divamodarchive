@@ -405,6 +405,12 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 			.open(&local_files[i])
 			.await
 		else {
+			if tokio::fs::try_exists(format!("/pixeldrain/{}/{file_name}", user.id))
+				.await
+				.map_or(false, |exists| exists)
+			{
+				continue;
+			}
 			_ = socket
 				.send(ws::Message::Text(ws::Utf8Bytes::from_static(
 					"{\"error\": \"Failed to open file\"}",
@@ -502,16 +508,22 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	.execute::<crate::api::ids::MeilisearchCstmItem>()
 	.await;
 
-	for file in post.local_files.iter() {
-		_ = tokio::process::Command::new("rclone")
-			.arg("delete")
-			.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
-			.arg("--config=/etc/rclone-mnt.conf")
-			.output()
-			.await;
-	}
-
 	for file in &pending_upload.files {
+		if !tokio::fs::try_exists(format!("/pixeldrain/{}/pending/{file}", user.id))
+			.await
+			.map_or(false, |exists| exists)
+		{
+			continue;
+		}
+		for file in post.local_files.iter() {
+			_ = tokio::process::Command::new("rclone")
+				.arg("delete")
+				.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
+				.arg("--config=/etc/rclone-mnt.conf")
+				.output()
+				.await;
+		}
+
 		_ = tokio::process::Command::new("rclone")
 			.arg("move")
 			.arg(format!("/pixeldrain/{}/pending/{}", user.id, file))
@@ -529,28 +541,12 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 	let mut downloads = Vec::new();
 	for file in &files {
-		for i in 0..5 {
+		loop {
 			let Some(download) = get_download_link(file).await else {
-				if i == 4 {
-					_ = socket
-						.send(ws::Message::Text(ws::Utf8Bytes::from_static(
-							"{\"error\": \"Failed to get public download link\"}",
-						)))
-						.await;
-					return;
-				}
 				tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 				continue;
 			};
 			if download.is_empty() {
-				if i == 4 {
-					_ = socket
-						.send(ws::Message::Text(ws::Utf8Bytes::from_static(
-							"{\"error\": \"Failed to get public download link\"}",
-						)))
-						.await;
-					return;
-				}
 				tokio::time::sleep(tokio::time::Duration::from_secs(3)).await;
 				continue;
 			}
