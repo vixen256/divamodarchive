@@ -344,7 +344,7 @@
 				let filepicker = document.getElementById('filePicker').files;
 				for (var i = 0; i < filepicker.length; i++) {
 					if (filepicker[i].name == message.file) {
-						document.getElementById('progressBar' + i).style.width = message.offset / filepicker[i].size * 100 + '%';
+						document.getElementById('progressBar' + i).style.width = (message.offset + (1024 * 1024 * 8)) / filepicker[i].size * 100 + '%';
 						break;
 					}
 				}
