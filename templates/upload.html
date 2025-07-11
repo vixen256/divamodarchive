@@ -359,7 +359,7 @@
 
 		socket.addEventListener('close', async (e) => {
 			if (success) {
-				document.getElementById('progressBars').children.length = 0;
+				document.getElementById('progressBars').innerHTML = '';
 				createToast('Successfully uploaded all files', 'text-bg-success');
 				await new Promise(r => setTimeout(r, 5000));
 				window.location.href = '/post/' + post.id + '/edit';
