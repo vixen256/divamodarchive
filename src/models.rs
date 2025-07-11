@@ -625,7 +625,10 @@ pub async fn login(
 		cookie.set_expires(time);
 
 		let mut headers = HeaderMap::new();
-		headers.insert("Clear-Site-Data", HeaderValue::from_str("cache").unwrap());
+		headers.insert(
+			"Clear-Site-Data",
+			HeaderValue::from_str("\"cache\"").unwrap(),
+		);
 
 		Ok((cookies.add(cookie), headers, Redirect::to("/")))
 	} else {
