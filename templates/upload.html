@@ -263,13 +263,14 @@
 			createToast('Must select files before upload', 'text-bg-warning');
 			return;
 		}
+		document.getElementById('uploadButton').disabled = true;
 		if (post == null) {
 			post = await createPost();
 			if (post == null) {
+				document.getElementById('uploadButton').disabled = false;
 				return;
 			}
 		}
-		document.getElementById('uploadButton').disabled = true;
 
 		let filenames = [];
 		let filelengths = [];
