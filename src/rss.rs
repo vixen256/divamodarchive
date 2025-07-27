@@ -4,12 +4,23 @@ use reqwest::{StatusCode, header};
 use serde::Serialize;
 
 #[derive(Serialize)]
+struct Enclosure {
+	#[serde(rename = "@url")]
+	url: String,
+	#[serde(rename = "@length")]
+	length: u64,
+	#[serde(rename = "@type")]
+	media_type: String,
+}
+
+#[derive(Serialize)]
 struct Item {
 	title: String,
 	description: String,
 	link: String,
 	#[serde(rename = "pubDate")]
 	pub_date: String,
+	enclosure: Option<Enclosure>,
 }
 
 #[derive(Serialize)]
@@ -49,15 +60,45 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 	let mut items = vec![];
 	let mut last_build_date = time::PrimitiveDateTime::MIN;
 
-	let posts = sqlx::query!("SELECT id, time, name, text FROM posts ORDER BY time DESC")
-		.fetch_all(&state.db)
-		.await
-		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+	let posts = sqlx::query!(
+		"SELECT id, time, name, text, images FROM posts WHERE private = false ORDER BY time DESC"
+	)
+	.fetch_all(&state.db)
+	.await
+	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
 	for post in posts {
 		if post.time > last_build_date {
 			last_build_date = post.time;
 		}
+
+		let enclosure = if let Some(image) = post.images.first() {
+			let image = image.replace("/public", "/thumbnail");
+			let client = reqwest::Client::new();
+			if let Ok(res) = client.head(&image).send().await {
+				let length = res
+					.headers()
+					.get(reqwest::header::CONTENT_LENGTH)
+					.map(|v| v.to_str().unwrap_or("0").parse().unwrap_or(0u64))
+					.unwrap_or(0);
+				let media_type = res
+					.headers()
+					.get(reqwest::header::CONTENT_TYPE)
+					.map(|v| v.to_str().unwrap_or("image/avif"))
+					.unwrap_or("image/avif");
+
+				Some(Enclosure {
+					url: image,
+					length,
+					media_type: String::from(media_type),
+				})
+			} else {
+				None
+			}
+		} else {
+			None
+		};
+
 		items.push(Item {
 			title: post.name,
 			description: String::from(
@@ -74,6 +115,7 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 				.assume_offset(time::UtcOffset::UTC)
 				.format(&time::format_description::well_known::Rfc2822)
 				.unwrap(),
+			enclosure,
 		});
 	}
 
