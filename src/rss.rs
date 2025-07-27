@@ -100,28 +100,32 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 				None
 			};
 
-			Item {
-				title: post.name,
-				description: String::from(
-					post.text
-						.lines()
-						.next()
-						.unwrap_or_default()
-						.replace('<', "&lt;")
-						.replace('>', "&rt;"),
-				),
-				link: format!("https://divamodarchive.com/posts/{}", post.id),
-				pub_date: post
-					.time
-					.assume_offset(time::UtcOffset::UTC)
-					.format(&time::format_description::well_known::Rfc2822)
-					.unwrap(),
-				enclosure,
-			}
+			(
+				post.time,
+				Item {
+					title: post.name,
+					description: String::from(
+						post.text
+							.lines()
+							.next()
+							.unwrap_or_default()
+							.replace('<', "&lt;")
+							.replace('>', "&rt;"),
+					),
+					link: format!("https://divamodarchive.com/posts/{}", post.id),
+					pub_date: post
+						.time
+						.assume_offset(time::UtcOffset::UTC)
+						.format(&time::format_description::well_known::Rfc2822)
+						.unwrap(),
+					enclosure,
+				},
+			)
 		});
 	}
 
-	let items = set.join_all().await;
+	let mut items = set.join_all().await;
+	items.sort_by(|(a, _), (b, _)| b.cmp(a));
 
 	let xml = Rss {
 		channel: vec![Channel {
@@ -138,7 +142,7 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 				rel: String::from("self"),
 				atom_type: String::from("application/rss+xml"),
 			},
-			item: items,
+			item: items.into_iter().map(|(_, item)| item).collect(),
 		}],
 		xmlns: String::from("http://www.w3.org/2005/Atom"),
 		version: String::from("2.0"),
