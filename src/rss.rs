@@ -57,7 +57,6 @@ struct Rss {
 }
 
 pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), StatusCode> {
-	let mut items = vec![];
 	let mut last_build_date = time::PrimitiveDateTime::MIN;
 
 	let posts = sqlx::query!(
@@ -67,57 +66,62 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 	.await
 	.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+	let mut set = tokio::task::JoinSet::new();
 	for post in posts {
 		if post.time > last_build_date {
 			last_build_date = post.time;
 		}
 
-		let enclosure = if let Some(image) = post.images.first() {
-			let image = image.replace("/public", "/thumbnail");
-			let client = reqwest::Client::new();
-			if let Ok(res) = client.head(&image).send().await {
-				let length = res
-					.headers()
-					.get(reqwest::header::CONTENT_LENGTH)
-					.map(|v| v.to_str().unwrap_or("0").parse().unwrap_or(0u64))
-					.unwrap_or(0);
-				let media_type = res
-					.headers()
-					.get(reqwest::header::CONTENT_TYPE)
-					.map(|v| v.to_str().unwrap_or("image/avif"))
-					.unwrap_or("image/avif");
+		set.spawn(async move {
+			let enclosure = if let Some(image) = post.images.first() {
+				let image = image.replace("/public", "/thumbnail");
+				let client = reqwest::Client::new();
+				if let Ok(res) = client.head(&image).send().await {
+					let length = res
+						.headers()
+						.get(reqwest::header::CONTENT_LENGTH)
+						.map(|v| v.to_str().unwrap_or("0").parse().unwrap_or(0u64))
+						.unwrap_or(0);
+					let media_type = res
+						.headers()
+						.get(reqwest::header::CONTENT_TYPE)
+						.map(|v| v.to_str().unwrap_or("image/avif"))
+						.unwrap_or("image/avif");
 
-				Some(Enclosure {
-					url: image,
-					length,
-					media_type: String::from(media_type),
-				})
+					Some(Enclosure {
+						url: image,
+						length,
+						media_type: String::from(media_type),
+					})
+				} else {
+					None
+				}
 			} else {
 				None
-			}
-		} else {
-			None
-		};
+			};
 
-		items.push(Item {
-			title: post.name,
-			description: String::from(
-				post.text
-					.lines()
-					.next()
-					.unwrap_or_default()
-					.replace('<', "&lt;")
-					.replace('>', "&rt;"),
-			),
-			link: format!("https://divamodarchive.com/posts/{}", post.id),
-			pub_date: post
-				.time
-				.assume_offset(time::UtcOffset::UTC)
-				.format(&time::format_description::well_known::Rfc2822)
-				.unwrap(),
-			enclosure,
+			Item {
+				title: post.name,
+				description: String::from(
+					post.text
+						.lines()
+						.next()
+						.unwrap_or_default()
+						.replace('<', "&lt;")
+						.replace('>', "&rt;"),
+				),
+				link: format!("https://divamodarchive.com/posts/{}", post.id),
+				pub_date: post
+					.time
+					.assume_offset(time::UtcOffset::UTC)
+					.format(&time::format_description::well_known::Rfc2822)
+					.unwrap(),
+				enclosure,
+			}
 		});
 	}
+
+	let items = set.join_all().await;
 
 	let xml = Rss {
 		channel: vec![Channel {
