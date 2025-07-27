@@ -1,6 +1,7 @@
 #![allow(unstable_name_collisions)]
 pub mod api;
 pub mod models;
+pub mod rss;
 pub mod sitemap;
 pub mod web;
 
@@ -211,6 +212,7 @@ async fn main() {
 		.route("/favicon.ico", get(favicon))
 		.route("/dma_black.png", get(dma_black))
 		.route("/sitemap.xml", get(sitemap::sitemap))
+		.route("/rss.xml", get(rss::rss))
 		.route("/login", get(login))
 		.fallback(not_found)
 		.layer(axum::extract::DefaultBodyLimit::disable())

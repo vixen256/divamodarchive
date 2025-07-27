@@ -48,7 +48,6 @@ pub struct Urlset {
 	pub url: Vec<Url>,
 }
 
-#[axum::debug_handler]
 pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String), StatusCode> {
 	let mut urls = Vec::new();
 	let latest_date = sqlx::query!("SELECT time FROM posts ORDER BY time")
