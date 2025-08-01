@@ -1453,13 +1453,15 @@ async fn db_spreadsheet(
 			status: StatusCode::INTERNAL_SERVER_ERROR,
 		});
 	};
-	entries.results.len();
 
 	let filter = entries
 		.results
 		.iter()
 		.filter(|entry| entry.post_id != -1)
-		.map(|entry| format!("post_id={}", entry.post_id))
+		.map(|entry| entry.post_id)
+		.collect::<BTreeSet<_>>()
+		.into_iter()
+		.map(|id| format!("id={}", id))
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
