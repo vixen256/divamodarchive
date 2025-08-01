@@ -10,6 +10,7 @@ use tokio::process::Command;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SearchParams {
+	pub query: Option<String>,
 	pub filter: Option<String>,
 	pub limit: Option<usize>,
 	pub offset: Option<usize>,
@@ -1225,10 +1226,13 @@ pub async fn search_pvs(
 	State(state): State<AppState>,
 ) -> Result<Json<PvSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("pvs");
-	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
+	search.query = query.query.as_ref().map(|query| query.as_str());
 	search.limit = query.limit;
 	search.offset = query.offset;
+
+	search.sort = Some(&["pv_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1236,18 +1240,31 @@ pub async fn search_pvs(
 		String::new()
 	};
 
-	search.filter = Some(filter.as_str());
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
 
-	let pvs = search
+	let mut pvs = search
 		.execute::<MeilisearchPv>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let pvs = pvs.results;
+	let mut hits = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
 
-	let mut vec = Vec::with_capacity(pvs.len());
+	while pvs.estimated_total_hits.unwrap_or(0) > hits.len() {
+		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
+		pvs = search
+			.execute::<MeilisearchPv>()
+			.await
+			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+		let mut results = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
+		hits.append(&mut results);
+	}
+
+	let mut vec = Vec::with_capacity(hits.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
-	for pv in pvs {
+	for pv in hits {
 		let post = if pv.post == -1 {
 			None
 		} else if let Some(post) = posts.get(&pv.post) {
@@ -1362,10 +1379,12 @@ pub async fn search_modules(
 	State(state): State<AppState>,
 ) -> Result<Json<ModuleSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("modules");
-	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
+	search.query = query.query.as_ref().map(|query| query.as_str());
 	search.limit = query.limit;
 	search.offset = query.offset;
+	search.sort = Some(&["module_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1373,18 +1392,39 @@ pub async fn search_modules(
 		String::new()
 	};
 
-	search.filter = Some(filter.as_str());
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
 
-	let modules = search
+	let mut modules = search
 		.execute::<MeilisearchModule>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let modules = modules.results;
+	let mut hits = modules
+		.hits
+		.into_iter()
+		.map(|module| module.result)
+		.collect::<Vec<_>>();
 
-	let mut vec = Vec::with_capacity(modules.len());
+	while modules.estimated_total_hits.unwrap_or(0) > hits.len() {
+		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
+		modules = search
+			.execute::<MeilisearchModule>()
+			.await
+			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+		let mut results = modules
+			.hits
+			.into_iter()
+			.map(|module| module.result)
+			.collect::<Vec<_>>();
+		hits.append(&mut results);
+	}
+
+	let mut vec = Vec::with_capacity(hits.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
-	for module in modules {
+	for module in hits {
 		let post = if module.post_id == -1 {
 			None
 		} else if let Some(post) = posts.get(&module.post_id) {
@@ -1440,10 +1480,12 @@ pub async fn search_cstm_items(
 	State(state): State<AppState>,
 ) -> Result<Json<CstmItemSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("cstm_items");
-	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
+	search.query = query.query.as_ref().map(|query| query.as_str());
 	search.limit = query.limit;
 	search.offset = query.offset;
+	search.sort = Some(&["customize_item_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1451,20 +1493,41 @@ pub async fn search_cstm_items(
 		String::new()
 	};
 
-	search.filter = Some(filter.as_str());
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
 
-	let cstm_items = search
+	let mut cstm_items = search
 		.execute::<MeilisearchCstmItem>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let cstm_items = cstm_items.results;
+	let mut hits = cstm_items
+		.hits
+		.into_iter()
+		.map(|cstm_item| cstm_item.result)
+		.collect::<Vec<_>>();
 
-	let mut vec = Vec::with_capacity(cstm_items.len());
+	while cstm_items.estimated_total_hits.unwrap_or(0) > hits.len() {
+		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
+		cstm_items = search
+			.execute::<MeilisearchCstmItem>()
+			.await
+			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+		let mut results = cstm_items
+			.hits
+			.into_iter()
+			.map(|cstm_item| cstm_item.result)
+			.collect::<Vec<_>>();
+		hits.append(&mut results);
+	}
+
+	let mut vec = Vec::with_capacity(hits.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 	let mut pending_bound_modules: BTreeSet<(i32, Option<i32>)> = BTreeSet::new();
 
-	for cstm_item in cstm_items {
+	for cstm_item in hits {
 		let post = if cstm_item.post_id == -1 {
 			None
 		} else if let Some(post) = posts.get(&cstm_item.post_id) {
@@ -1545,6 +1608,7 @@ pub async fn search_cstm_items(
 
 		let Json(modules) = crate::api::ids::search_modules(
 			Query(crate::api::ids::SearchParams {
+				query: None,
 				filter: Some(filter),
 				limit: Some(pending_bound_modules.len()),
 				offset: Some(0),
@@ -1624,10 +1688,12 @@ pub async fn search_nc_songs(
 	State(state): State<AppState>,
 ) -> Result<Json<NcSongSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("nc_songs");
-	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
+	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
 
+	search.query = query.query.as_ref().map(|query| query.as_str());
 	search.limit = query.limit;
 	search.offset = query.offset;
+	search.sort = Some(&["pv_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1635,19 +1701,40 @@ pub async fn search_nc_songs(
 		String::new()
 	};
 
-	search.filter = Some(filter.as_str());
+	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
+		filter.as_str(),
+	)));
 
-	let nc_songs = search
+	let mut nc_songs = search
 		.execute::<MeilisearchNcSong>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let nc_songs = nc_songs.results;
+	let mut hits = nc_songs
+		.hits
+		.into_iter()
+		.map(|p| p.result)
+		.collect::<Vec<_>>();
 
-	let mut vec = Vec::with_capacity(nc_songs.len());
+	while nc_songs.estimated_total_hits.unwrap_or(0) > hits.len() {
+		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
+		nc_songs = search
+			.execute::<MeilisearchNcSong>()
+			.await
+			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+		let mut results = nc_songs
+			.hits
+			.into_iter()
+			.map(|p| p.result)
+			.collect::<Vec<_>>();
+		hits.append(&mut results);
+	}
+
+	let mut vec = Vec::with_capacity(hits.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 
-	for nc_song in nc_songs {
+	for nc_song in hits {
 		if !posts.contains_key(&nc_song.post_id) {
 			if let Some(mut post) = Post::get_full(nc_song.post_id, &state.db).await {
 				for i in 0..post.files.len() {
@@ -2758,6 +2845,7 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 	}
 
 	let search = SearchParams {
+		query: None,
 		filter: None,
 		limit: Some(u32::MAX as usize),
 		offset: None,
@@ -2856,6 +2944,7 @@ pub async fn all_modules(
 	}
 
 	let search = SearchParams {
+		query: None,
 		filter: None,
 		limit: Some(u32::MAX as usize),
 		offset: None,
@@ -2954,6 +3043,7 @@ pub async fn all_cstm_items(
 	}
 
 	let search = SearchParams {
+		query: None,
 		filter: None,
 		limit: Some(u32::MAX as usize),
 		offset: None,
