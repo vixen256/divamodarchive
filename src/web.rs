@@ -1459,7 +1459,7 @@ async fn db_spreadsheet(
 		.results
 		.iter()
 		.filter(|entry| entry.post_id != -1)
-		.map(|entry| format!("(post={})", entry.post_id))
+		.map(|entry| format!("post_id={}", entry.post_id))
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 

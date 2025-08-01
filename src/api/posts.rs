@@ -508,6 +508,35 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	.execute::<crate::api::ids::MeilisearchCstmItem>()
 	.await;
 
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("nc_songs"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchNcSong>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("sprites"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("aets"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("objsets"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("textures"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.await;
+
 	let mut pending_exists = false;
 	for file in &pending_upload.files {
 		if !tokio::fs::try_exists(format!("/pixeldrain/{}/pending/{file}", user.id))
