@@ -1251,7 +1251,9 @@ pub async fn search_pvs(
 
 	let mut hits = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
 
-	while pvs.estimated_total_hits.unwrap_or(0) > hits.len() {
+	while pvs.estimated_total_hits.unwrap_or(0) > hits.len()
+		&& query.limit.unwrap_or(u32::MAX as usize) > hits.len()
+	{
 		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
 		pvs = search
 			.execute::<MeilisearchPv>()
@@ -1407,7 +1409,9 @@ pub async fn search_modules(
 		.map(|module| module.result)
 		.collect::<Vec<_>>();
 
-	while modules.estimated_total_hits.unwrap_or(0) > hits.len() {
+	while modules.estimated_total_hits.unwrap_or(0) > hits.len()
+		&& query.limit.unwrap_or(u32::MAX as usize) > hits.len()
+	{
 		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
 		modules = search
 			.execute::<MeilisearchModule>()
@@ -1508,7 +1512,9 @@ pub async fn search_cstm_items(
 		.map(|cstm_item| cstm_item.result)
 		.collect::<Vec<_>>();
 
-	while cstm_items.estimated_total_hits.unwrap_or(0) > hits.len() {
+	while cstm_items.estimated_total_hits.unwrap_or(0) > hits.len()
+		&& query.limit.unwrap_or(u32::MAX as usize) > hits.len()
+	{
 		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
 		cstm_items = search
 			.execute::<MeilisearchCstmItem>()
@@ -1716,7 +1722,9 @@ pub async fn search_nc_songs(
 		.map(|p| p.result)
 		.collect::<Vec<_>>();
 
-	while nc_songs.estimated_total_hits.unwrap_or(0) > hits.len() {
+	while nc_songs.estimated_total_hits.unwrap_or(0) > hits.len()
+		&& query.limit.unwrap_or(u32::MAX as usize) > hits.len()
+	{
 		search.offset = Some(hits.len() + query.offset.unwrap_or(0));
 		nc_songs = search
 			.execute::<MeilisearchNcSong>()

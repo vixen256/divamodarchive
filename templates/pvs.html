@@ -55,7 +55,7 @@
 
 	function has_console(nc_song, pv) {
 		for (var i = 0; i < 5; i++) {
-			if (pv.levels[i] != null && nc_song.difficulties[i].console != null) {
+			if (pv.levels[i] != null && nc_song.difficulties[i] != null && nc_song.difficulties[i].console != null) {
 				return true;
 			}
 		}
@@ -65,7 +65,7 @@
 
 	function has_mixed(nc_song, pv) {
 		for (var i = 0; i < 5; i++) {
-			if (pv.levels[i] != null && nc_song.difficulties[i].mixed != null) {
+			if (pv.levels[i] != null && nc_song.difficulties[i] != null && nc_song.difficulties[i].mixed != null) {
 				return true;
 			}
 		}
