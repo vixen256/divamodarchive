@@ -85,6 +85,10 @@ async fn main() {
 	let meilisearch_modules = client.index("modules");
 	let meilisearch_customize = client.index("cstm_items");
 	let meilisearch_nc = client.index("nc_songs");
+	let meilisearch_sprites = client.index("sprites");
+	let meilisearch_aets = client.index("aets");
+	let meilisearch_objsets = client.index("objsets");
+	let meilisearch_textures = client.index("textures");
 
 	meilisearch_posts
 		.set_searchable_attributes(&["name", "text", "authors.name"])
@@ -177,6 +181,58 @@ async fn main() {
 		.unwrap();
 	meilisearch_nc
 		.set_sortable_attributes(&["pv_id", "post_id"])
+		.await
+		.unwrap();
+
+	meilisearch_sprites
+		.set_filterable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_sprites
+		.set_sortable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_sprites
+		.set_searchable_attributes(&["name"])
+		.await
+		.unwrap();
+
+	meilisearch_aets
+		.set_filterable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_aets
+		.set_sortable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_aets
+		.set_searchable_attributes(&["name"])
+		.await
+		.unwrap();
+
+	meilisearch_objsets
+		.set_filterable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_objsets
+		.set_sortable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_objsets
+		.set_searchable_attributes(&["name"])
+		.await
+		.unwrap();
+
+	meilisearch_textures
+		.set_filterable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_textures
+		.set_sortable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_textures
+		.set_searchable_attributes(&["name"])
 		.await
 		.unwrap();
 

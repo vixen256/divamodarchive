@@ -68,6 +68,14 @@ pub struct MeilisearchNcChart {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct MeilisearchDbEntry {
+	pub uid: u64,
+	pub post_id: i32,
+	pub id: u32,
+	pub name: String,
+}
+
+#[derive(Serialize, Deserialize)]
 struct Config {
 	include: Option<Vec<String>>,
 }
@@ -223,6 +231,30 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 							}
 						}
 
+						let spr_db = format!("/{folder}/2d/{prefix}spr_db.bin");
+						let path = Path::new(&spr_db);
+						if path.exists() {
+							parse_spr_db(spr_db, post_id, &state).await;
+						}
+
+						let aet_db = format!("/{folder}/2d/{prefix}aet_db.bin");
+						let path = Path::new(&aet_db);
+						if path.exists() {
+							parse_aet_db(aet_db, post_id, &state).await;
+						}
+
+						let obj_db = format!("/{folder}/2d/{prefix}obj_db.bin");
+						let path = Path::new(&obj_db);
+						if path.exists() {
+							parse_obj_db(obj_db, post_id, &state).await;
+						}
+
+						let tex_db = format!("/{folder}/2d/{prefix}tex_db.bin");
+						let path = Path::new(&tex_db);
+						if path.exists() {
+							parse_tex_db(tex_db, post_id, &state).await;
+						}
+
 						let module_tbl = format!("{folder}/{prefix}gm_module_tbl.farc");
 						let module_tbl = Path::new(&module_tbl);
 						let customize_item_tbl =
@@ -274,6 +306,189 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	optimise_reservations(ReservationType::Song, &state).await;
 	optimise_reservations(ReservationType::Module, &state).await;
 	optimise_reservations(ReservationType::CstmItem, &state).await;
+
+	Some(())
+}
+
+pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+	let spr_db = diva_db::SprDb::from_file(path).ok()?;
+
+	let mut entries = Vec::new();
+	for (id, set) in spr_db.sets {
+		entries.push(MeilisearchDbEntry {
+			uid: (post_id as u64) << 32 | (id as u64),
+			post_id,
+			id,
+			name: set.name,
+		});
+
+		for (id, sprite) in set.sprites {
+			entries.push(MeilisearchDbEntry {
+				uid: (post_id as u64) << 32 | (id as u64),
+				post_id,
+				id,
+				name: sprite.name,
+			});
+		}
+
+		for (id, texture) in set.textures {
+			entries.push(MeilisearchDbEntry {
+				uid: (post_id as u64) << 32 | (id as u64),
+				post_id,
+				id,
+				name: texture.name,
+			});
+		}
+	}
+
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("sprites"))
+		.with_filter("post_id=-1")
+		.execute::<MeilisearchDbEntry>()
+		.await
+		.ok()?;
+
+	let entries = entries
+		.into_iter()
+		.filter(|entry| {
+			!base
+				.hits
+				.iter()
+				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("sprites")
+		.add_or_update(&entries, Some("uid"))
+		.await
+		.ok()?;
+
+	Some(())
+}
+
+pub async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+	let aet_db = diva_db::AetDb::from_file(path).ok()?;
+
+	let mut entries = Vec::new();
+	for (id, set) in aet_db.sets {
+		entries.push(MeilisearchDbEntry {
+			uid: (post_id as u64) << 32 | (id as u64),
+			post_id,
+			id,
+			name: set.name,
+		});
+
+		for (id, scene) in set.scenes {
+			entries.push(MeilisearchDbEntry {
+				uid: (post_id as u64) << 32 | (id as u64),
+				post_id,
+				id,
+				name: scene.name,
+			});
+		}
+	}
+
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("aets"))
+		.with_filter("post_id=-1")
+		.execute::<MeilisearchDbEntry>()
+		.await
+		.ok()?;
+
+	let entries = entries
+		.into_iter()
+		.filter(|entry| {
+			!base
+				.hits
+				.iter()
+				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("aets")
+		.add_or_update(&entries, Some("uid"))
+		.await
+		.ok()?;
+
+	Some(())
+}
+
+pub async fn parse_obj_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+	let obj_db = diva_db::ObjDb::from_file(path).ok()?;
+
+	let mut entries = Vec::new();
+	for (id, set) in obj_db.sets {
+		entries.push(MeilisearchDbEntry {
+			uid: (post_id as u64) << 32 | (id as u64),
+			post_id,
+			id,
+			name: set.name,
+		});
+	}
+
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("objsets"))
+		.with_filter("post_id=-1")
+		.execute::<MeilisearchDbEntry>()
+		.await
+		.ok()?;
+
+	let entries = entries
+		.into_iter()
+		.filter(|entry| {
+			!base
+				.hits
+				.iter()
+				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("objsets")
+		.add_or_update(&entries, Some("uid"))
+		.await
+		.ok()?;
+
+	Some(())
+}
+
+pub async fn parse_tex_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+	let tex_db = diva_db::TexDb::from_file(path).ok()?;
+
+	let mut entries = Vec::new();
+	for (id, name) in tex_db.textures {
+		entries.push(MeilisearchDbEntry {
+			uid: (post_id as u64) << 32 | (id as u64),
+			post_id,
+			id,
+			name,
+		});
+	}
+
+	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("textures"))
+		.with_filter("post_id=-1")
+		.execute::<MeilisearchDbEntry>()
+		.await
+		.ok()?;
+
+	let entries = entries
+		.into_iter()
+		.filter(|entry| {
+			!base
+				.hits
+				.iter()
+				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("textures")
+		.add_or_update(&entries, Some("uid"))
+		.await
+		.ok()?;
 
 	Some(())
 }

@@ -11,6 +11,7 @@ axum-extra = { version = "0.10", features = ["cookie"] }
 axum_html_minifier = "1.0"
 base64 = "0.22"
 comrak = "0.39"
+diva_db = { git = "https://github.com/vixen256/diva_db", features = ["serde"] }
 dotenvy = "0.15"
 itertools = "0.14"
 jsonwebtoken = "9.3"
