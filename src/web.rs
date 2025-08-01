@@ -11,6 +11,7 @@ use axum::{
 	routing::*,
 };
 use axum_extra::extract::CookieJar;
+use base64::prelude::*;
 use itertools::*;
 use std::collections::*;
 
@@ -1134,35 +1135,55 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	})
 	.collect::<HashMap<_, _>>();
 
-	let Json(search) = search_pvs(
-		Query(SearchParams {
-			query: None,
-			filter: None,
-			limit: Some(u32::MAX as usize),
-			offset: Some(0),
-		}),
-		State(state.clone()),
-	)
-	.await
-	.unwrap_or_default();
-
 	let mut pvs: HashMap<i32, Vec<Pv>> = HashMap::new();
-	for pv in &search.pvs {
-		if let Some(reservation) = reservations.get(&pv.id) {
-			if let Some(post) = pv.post {
-				if let Some(user) = users.get(&reservation.user) {
-					if search.posts[&post].authors.contains(user) {
-						reservations.remove(&pv.id);
-					}
-				}
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
+
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("pvs"))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchPv>()
+			.await
+	{
+		for pv in search.results {
+			let post = if pv.post == -1 {
+				None
+			} else if let Some(post) = posts.get(&pv.post) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(pv.post, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			if let Some(original) = pvs.get_mut(&pv.pv_id) {
+				original.push(Pv {
+					uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+					id: pv.pv_id,
+					name: pv.song_name,
+					name_en: pv.song_name_en,
+					song_info: pv.song_info,
+					song_info_en: pv.song_info_en,
+					levels: pv.levels,
+					post,
+				});
+			} else {
+				pvs.insert(
+					pv.pv_id,
+					vec![Pv {
+						uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+						id: pv.pv_id,
+						name: pv.song_name,
+						name_en: pv.song_name_en,
+						song_info: pv.song_info,
+						song_info_en: pv.song_info_en,
+						levels: pv.levels,
+						post,
+					}],
+				);
 			}
 		}
-		if let Some(original) = pvs.get_mut(&pv.id) {
-			original.push(pv.clone());
-		} else {
-			pvs.insert(pv.id, vec![pv.clone()]);
-		}
-	}
+	};
 
 	for record in sqlx::query!(
 		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl WHERE reservation_type = $1",
@@ -1197,7 +1218,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 		reservations,
 		users,
 		pvs,
-		posts: search.posts,
+		posts,
 		last,
 	}
 }
