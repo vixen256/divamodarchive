@@ -3076,13 +3076,6 @@ pub async fn all_cstm_items(
 		reservation.label = Some(record.label.clone());
 	}
 
-	let search = SearchParams {
-		query: None,
-		filter: None,
-		limit: Some(u32::MAX as usize),
-		offset: None,
-	};
-
 	let mut uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>> = BTreeMap::new();
 
 	if let Ok(search) =
