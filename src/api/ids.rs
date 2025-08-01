@@ -2797,7 +2797,7 @@ pub struct AllPvs {
 
 pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (StatusCode, String)> {
 	let mut users = BTreeMap::new();
-	let mut posts = BTreeMap::new();
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 
 	let mut reserved_pvs = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
@@ -2852,29 +2852,44 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 		reservation.label = Some(record.label.clone());
 	}
 
-	let search = SearchParams {
-		query: None,
-		filter: None,
-		limit: Some(u32::MAX as usize),
-		offset: None,
-	};
-
-	let Json(pvs) = search_pvs(Query(search), State(state.clone())).await?;
-
 	let mut uploaded_pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
-	for pv in &pvs.pvs {
-		if let Some(original) = uploaded_pvs.get_mut(&pv.id) {
-			original.push(pv.clone());
-		} else {
-			uploaded_pvs.insert(pv.id, vec![pv.clone()]);
-		}
-	}
 
-	for (id, post) in pvs.posts {
-		if !posts.contains_key(&id) {
-			posts.insert(id, post);
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("pvs"))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchPv>()
+			.await
+	{
+		for pv in search.results {
+			let post = if pv.post == -1 {
+				None
+			} else if let Some(post) = posts.get(&pv.post) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(pv.post, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			let pv = Pv {
+				uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+				id: pv.pv_id,
+				name: pv.song_name,
+				name_en: pv.song_name_en,
+				song_info: pv.song_info,
+				song_info_en: pv.song_info_en,
+				levels: pv.levels,
+				post,
+			};
+
+			if let Some(original) = uploaded_pvs.get_mut(&pv.id) {
+				original.push(pv);
+			} else {
+				uploaded_pvs.insert(pv.id, vec![pv]);
+			}
 		}
-	}
+	};
 
 	Ok(Json(AllPvs {
 		reserved_pvs,
@@ -2896,7 +2911,7 @@ pub async fn all_modules(
 	State(state): State<AppState>,
 ) -> Result<Json<AllModules>, (StatusCode, String)> {
 	let mut users = BTreeMap::new();
-	let mut posts = BTreeMap::new();
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 
 	let mut reserved_modules = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
@@ -2951,29 +2966,40 @@ pub async fn all_modules(
 		reservation.label = Some(record.label.clone());
 	}
 
-	let search = SearchParams {
-		query: None,
-		filter: None,
-		limit: Some(u32::MAX as usize),
-		offset: None,
-	};
-
-	let Json(modules) = search_modules(Query(search), State(state.clone())).await?;
-
 	let mut uploaded_modules: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
-	for module in &modules.modules {
-		if let Some(original) = uploaded_modules.get_mut(&module.id) {
-			original.push(module.clone());
-		} else {
-			uploaded_modules.insert(module.id, vec![module.clone()]);
-		}
-	}
 
-	for (id, post) in modules.posts {
-		if !posts.contains_key(&id) {
-			posts.insert(id, post);
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("modules"))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchModule>()
+			.await
+	{
+		for module in search.results {
+			let post = if module.post_id == -1 {
+				None
+			} else if let Some(post) = posts.get(&module.post_id) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(module.post_id, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			let module = Module {
+				uid: BASE64_STANDARD.encode(module.uid.to_ne_bytes()),
+				post,
+				id: module.module_id,
+				module: module.module,
+			};
+
+			if let Some(original) = uploaded_modules.get_mut(&module.id) {
+				original.push(module);
+			} else {
+				uploaded_modules.insert(module.id, vec![module]);
+			}
 		}
-	}
+	};
 
 	Ok(Json(AllModules {
 		reserved_modules,
@@ -2995,7 +3021,7 @@ pub async fn all_cstm_items(
 	State(state): State<AppState>,
 ) -> Result<Json<AllCstmItems>, (StatusCode, String)> {
 	let mut users = BTreeMap::new();
-	let mut posts = BTreeMap::new();
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 
 	let mut reserved_cstm_items = sqlx::query!(
 		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
@@ -3057,22 +3083,60 @@ pub async fn all_cstm_items(
 		offset: None,
 	};
 
-	let Json(cstm_items) = search_cstm_items(Query(search), State(state.clone())).await?;
-
 	let mut uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>> = BTreeMap::new();
-	for cstm_items in &cstm_items.cstm_items {
-		if let Some(original) = uploaded_cstm_items.get_mut(&cstm_items.id) {
-			original.push(cstm_items.clone());
-		} else {
-			uploaded_cstm_items.insert(cstm_items.id, vec![cstm_items.clone()]);
-		}
-	}
 
-	for (id, post) in cstm_items.posts {
-		if !posts.contains_key(&id) {
-			posts.insert(id, post);
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("cstm_items"))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchCstmItem>()
+			.await
+	{
+		for cstm_item in search.results {
+			let post = if cstm_item.post_id == -1 {
+				None
+			} else if let Some(post) = posts.get(&cstm_item.post_id) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(cstm_item.post_id, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			let customize_item = if cstm_item.customize_item.bind_module == Some(-1) {
+				module_db::CustomizeItem {
+					bind_module: None,
+					chara: cstm_item.customize_item.chara,
+					part: cstm_item.customize_item.part,
+					name: cstm_item.customize_item.name,
+					name_jp: cstm_item.customize_item.name_jp,
+					name_en: cstm_item.customize_item.name_en,
+					name_cn: cstm_item.customize_item.name_cn,
+					name_fr: cstm_item.customize_item.name_fr,
+					name_ge: cstm_item.customize_item.name_ge,
+					name_it: cstm_item.customize_item.name_it,
+					name_kr: cstm_item.customize_item.name_kr,
+					name_sp: cstm_item.customize_item.name_sp,
+					name_tw: cstm_item.customize_item.name_tw,
+				}
+			} else {
+				cstm_item.customize_item
+			};
+
+			let cstm_item = CstmItem {
+				uid: BASE64_STANDARD.encode(cstm_item.uid.to_ne_bytes()),
+				post,
+				id: cstm_item.customize_item_id,
+				cstm_item: customize_item,
+			};
+
+			if let Some(original) = uploaded_cstm_items.get_mut(&cstm_item.id) {
+				original.push(cstm_item);
+			} else {
+				uploaded_cstm_items.insert(cstm_item.id, vec![cstm_item]);
+			}
 		}
-	}
+	};
 
 	Ok(Json(AllCstmItems {
 		reserved_cstm_items,
