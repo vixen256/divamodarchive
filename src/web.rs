@@ -31,6 +31,10 @@ pub fn route(state: AppState) -> Router {
 		.route("/modules", get(modules))
 		.route("/cstm_items", get(cstm_items))
 		.route("/pv_spreadsheet", get(pv_spreadsheet))
+		.route("/sprite_spreadsheet", get(sprite_spreadsheet))
+		.route("/aet_spreadsheet", get(aet_spreadsheet))
+		.route("/objset_spreadsheet", get(objset_spreadsheet))
+		.route("/texture_spreadsheet", get(texture_spreadsheet))
 		.route("/reserve", get(reserve))
 		//.route("/admin", get(admin))
 		.layer(axum::middleware::from_fn(axum_html_minifier::html_minifier))
@@ -611,9 +615,8 @@ async fn post_detail(
 
 	let Json(pvs) = search_pvs(
 		Query(SearchParams {
-			query: None,
 			filter: Some(format!("post={}", post.id)),
-			limit: Some(2000),
+			limit: Some(u32::MAX as usize),
 			offset: Some(0),
 		}),
 		State(state.clone()),
@@ -623,9 +626,8 @@ async fn post_detail(
 
 	let Json(modules) = search_modules(
 		Query(SearchParams {
-			query: None,
 			filter: Some(format!("post_id={}", post.id)),
-			limit: Some(2000),
+			limit: Some(u32::MAX as usize),
 			offset: Some(0),
 		}),
 		State(state.clone()),
@@ -635,9 +637,8 @@ async fn post_detail(
 
 	let Json(cstm_items) = search_cstm_items(
 		Query(SearchParams {
-			query: None,
 			filter: Some(format!("post_id={}", post.id)),
-			limit: Some(2000),
+			limit: Some(u32::MAX as usize),
 			offset: Some(0),
 		}),
 		State(state.clone()),
@@ -647,9 +648,8 @@ async fn post_detail(
 
 	let Json(nc_songs) = search_nc_songs(
 		Query(SearchParams {
-			query: None,
 			filter: Some(format!("post_id={}", post.id)),
-			limit: Some(2000),
+			limit: Some(u32::MAX as usize),
 			offset: Some(0),
 		}),
 		State(state.clone()),
@@ -673,9 +673,8 @@ async fn post_detail(
 
 		let Json(conflicting_pvs) = search_pvs(
 			Query(SearchParams {
-				query: None,
 				filter: Some(filter),
-				limit: Some(2000),
+				limit: Some(u32::MAX as usize),
 				offset: Some(0),
 			}),
 			State(state.clone()),
@@ -704,9 +703,8 @@ async fn post_detail(
 
 		let Json(conflicting_modules) = search_modules(
 			Query(SearchParams {
-				query: None,
 				filter: Some(filter),
-				limit: Some(2000),
+				limit: Some(u32::MAX as usize),
 				offset: Some(0),
 			}),
 			State(state.clone()),
@@ -735,9 +733,8 @@ async fn post_detail(
 
 		let Json(conflicting_cstm_items) = search_cstm_items(
 			Query(SearchParams {
-				query: None,
 				filter: Some(filter),
-				limit: Some(2000),
+				limit: Some(u32::MAX as usize),
 				offset: Some(0),
 			}),
 			State(state.clone()),
@@ -1021,7 +1018,6 @@ struct PvsTemplate {
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
 	let Json(pvs) = search_pvs(
 		Query(SearchParams {
-			query: None,
 			filter: None,
 			limit: Some(20),
 			offset: Some(0),
@@ -1044,7 +1040,6 @@ struct ModulesTemplate {
 async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTemplate {
 	let Json(modules) = search_modules(
 		Query(SearchParams {
-			query: None,
 			filter: None,
 			limit: Some(20),
 			offset: Some(0),
@@ -1067,7 +1062,6 @@ struct CstmItemsTemplate {
 async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmItemsTemplate {
 	let Json(cstm_items) = search_cstm_items(
 		Query(SearchParams {
-			query: None,
 			filter: None,
 			limit: Some(20),
 			offset: Some(0),
@@ -1132,9 +1126,8 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 
 	let Json(search) = search_pvs(
 		Query(SearchParams {
-			query: None,
 			filter: None,
-			limit: Some(usize::MAX),
+			limit: Some(u32::MAX as usize),
 			offset: Some(0),
 		}),
 		State(state.clone()),
@@ -1387,4 +1380,103 @@ async fn upload(
 	}
 
 	Ok(UploadTemplate { base })
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "db_spreadsheet.html")]
+struct DbSpreadsheetTemplate {
+	base: BaseTemplate,
+	human_name: String,
+	entries: Vec<MeilisearchDbEntry>,
+	posts: BTreeMap<i32, Post>,
+}
+
+async fn sprite_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	db_spreadsheet(String::from("Sprite"), String::from("sprites"), base, state).await
+}
+
+async fn aet_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	db_spreadsheet(String::from("Aet"), String::from("aets"), base, state).await
+}
+
+async fn objset_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	db_spreadsheet(String::from("Objset"), String::from("objsets"), base, state).await
+}
+
+async fn texture_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	db_spreadsheet(
+		String::from("Texture"),
+		String::from("textures"),
+		base,
+		state,
+	)
+	.await
+}
+
+async fn db_spreadsheet(
+	human_name: String,
+	index: String,
+	base: BaseTemplate,
+	state: AppState,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	let Ok(entries) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index(index))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchDbEntry>()
+			.await
+	else {
+		return Err(ErrorTemplate {
+			base: base.clone(),
+			status: StatusCode::INTERNAL_SERVER_ERROR,
+		});
+	};
+	entries.results.len();
+
+	let filter = entries
+		.results
+		.iter()
+		.filter(|entry| entry.post_id != -1)
+		.map(|entry| format!("(post={})", entry.post_id))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	let Json(posts) = crate::api::posts::search_posts(
+		Query(crate::api::posts::SearchParams {
+			query: None,
+			sort: None,
+			filter: Some(filter),
+			limit: Some(u32::MAX as usize),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let posts = posts
+		.into_iter()
+		.map(|post| (post.id, post))
+		.collect::<BTreeMap<_, _>>();
+
+	let mut entries = entries.results;
+	entries.sort_by(|a, b| a.id.cmp(&b.id));
+
+	Ok(DbSpreadsheetTemplate {
+		base,
+		human_name,
+		entries,
+		posts,
+	})
 }

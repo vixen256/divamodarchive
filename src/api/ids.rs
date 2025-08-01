@@ -10,7 +10,6 @@ use tokio::process::Command;
 
 #[derive(Serialize, Deserialize, Clone)]
 pub struct SearchParams {
-	pub query: Option<String>,
 	pub filter: Option<String>,
 	pub limit: Option<usize>,
 	pub offset: Option<usize>,
@@ -310,7 +309,7 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	Some(())
 }
 
-pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let spr_db = diva_db::SprDb::from_file(path).ok()?;
 
 	let mut entries = Vec::new();
@@ -341,8 +340,9 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		}
 	}
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("sprites"))
+	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
 		.with_filter("post_id=-1")
+		.with_limit(u32::MAX as usize)
 		.execute::<MeilisearchDbEntry>()
 		.await
 		.ok()?;
@@ -351,9 +351,9 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		.into_iter()
 		.filter(|entry| {
 			!base
-				.hits
+				.results
 				.iter()
-				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+				.any(|base| base.id == entry.id && base.name == entry.name)
 		})
 		.collect::<Vec<_>>();
 
@@ -367,7 +367,7 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 	Some(())
 }
 
-pub async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let aet_db = diva_db::AetDb::from_file(path).ok()?;
 
 	let mut entries = Vec::new();
@@ -389,8 +389,9 @@ pub async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		}
 	}
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("aets"))
+	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
 		.with_filter("post_id=-1")
+		.with_limit(u32::MAX as usize)
 		.execute::<MeilisearchDbEntry>()
 		.await
 		.ok()?;
@@ -399,9 +400,9 @@ pub async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		.into_iter()
 		.filter(|entry| {
 			!base
-				.hits
+				.results
 				.iter()
-				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+				.any(|base| base.id == entry.id && base.name == entry.name)
 		})
 		.collect::<Vec<_>>();
 
@@ -415,7 +416,7 @@ pub async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 	Some(())
 }
 
-pub async fn parse_obj_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+async fn parse_obj_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let obj_db = diva_db::ObjDb::from_file(path).ok()?;
 
 	let mut entries = Vec::new();
@@ -428,8 +429,9 @@ pub async fn parse_obj_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		});
 	}
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("objsets"))
+	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
 		.with_filter("post_id=-1")
+		.with_limit(u32::MAX as usize)
 		.execute::<MeilisearchDbEntry>()
 		.await
 		.ok()?;
@@ -438,9 +440,9 @@ pub async fn parse_obj_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		.into_iter()
 		.filter(|entry| {
 			!base
-				.hits
+				.results
 				.iter()
-				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+				.any(|base| base.id == entry.id && base.name == entry.name)
 		})
 		.collect::<Vec<_>>();
 
@@ -454,7 +456,7 @@ pub async fn parse_obj_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 	Some(())
 }
 
-pub async fn parse_tex_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+async fn parse_tex_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let tex_db = diva_db::TexDb::from_file(path).ok()?;
 
 	let mut entries = Vec::new();
@@ -467,19 +469,21 @@ pub async fn parse_tex_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		});
 	}
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("textures"))
-		.with_filter("post_id=-1")
-		.execute::<MeilisearchDbEntry>()
-		.await
-		.ok()?;
+	let base =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
+			.with_filter("post_id=-1")
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.ok()?;
 
 	let entries = entries
 		.into_iter()
 		.filter(|entry| {
 			!base
-				.hits
+				.results
 				.iter()
-				.any(|base| base.result.id == entry.id && base.result.name == entry.name)
+				.any(|base| base.id == entry.id && base.name == entry.name)
 		})
 		.collect::<Vec<_>>();
 
@@ -527,9 +531,9 @@ async fn parse_module_db<P: AsRef<Path>>(
 		})
 		.collect::<Vec<_>>();
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("modules"))
+	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("modules"))
 		.with_filter("post_id=-1")
-		.with_limit(2000)
+		.with_limit(u32::MAX as usize)
 		.execute::<MeilisearchModule>()
 		.await
 		.ok()?;
@@ -537,9 +541,8 @@ async fn parse_module_db<P: AsRef<Path>>(
 	let mut modules = modules
 		.into_iter()
 		.filter(|module| {
-			!base.hits.iter().any(|base| {
-				base.result.module_id == module.module_id
-					&& base.result.module.name_jp == module.module.name_jp
+			!base.results.iter().any(|base| {
+				base.module_id == module.module_id && base.module.name_jp == module.module.name_jp
 			})
 		})
 		.collect::<Vec<_>>();
@@ -547,11 +550,11 @@ async fn parse_module_db<P: AsRef<Path>>(
 	for module in &mut modules {
 		for item in &mut module.module.cos.items {
 			if item.objset.is_empty() {
-				for base_module in &base.hits {
-					if base_module.result.module.chara != module.module.chara {
+				for base_module in &base.results {
+					if base_module.module.chara != module.module.chara {
 						continue;
 					}
-					for base_item in &base_module.result.module.cos.items {
+					for base_item in &base_module.module.cos.items {
 						if base_item.id == item.id {
 							*item = base_item.clone();
 						}
@@ -568,19 +571,20 @@ async fn parse_module_db<P: AsRef<Path>>(
 		.await
 		.ok()?;
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("cstm_items"))
-		.with_filter("post_id=-1")
-		.with_limit(2000)
-		.execute::<MeilisearchCstmItem>()
-		.await
-		.ok()?;
+	let base =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("cstm_items"))
+			.with_filter("post_id=-1")
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchCstmItem>()
+			.await
+			.ok()?;
 
 	let cstm_items = cstm_items
 		.into_iter()
 		.filter(|cstm_item| {
-			!base.hits.iter().any(|base| {
-				base.result.customize_item_id == cstm_item.customize_item_id
-					&& base.result.customize_item.name_jp == cstm_item.customize_item.name_jp
+			!base.results.iter().any(|base| {
+				base.customize_item_id == cstm_item.customize_item_id
+					&& base.customize_item.name_jp == cstm_item.customize_item.name_jp
 			})
 		})
 		.collect::<Vec<_>>();
@@ -645,9 +649,9 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 		});
 	}
 
-	let base = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("pvs"))
+	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("pvs"))
 		.with_filter("post=-1")
-		.with_limit(300)
+		.with_limit(u32::MAX as usize)
 		.execute::<MeilisearchPv>()
 		.await
 		.unwrap();
@@ -655,10 +659,10 @@ async fn parse_pv_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 	let pvs = documents
 		.into_iter()
 		.filter(|pv| {
-			!base.hits.iter().any(|base| {
-				base.result.pv_id == pv.pv_id
-					&& base.result.song_name == pv.song_name
-					&& base.result.song_name_en == pv.song_name_en
+			!base.results.iter().any(|base| {
+				base.pv_id == pv.pv_id
+					&& base.song_name == pv.song_name
+					&& base.song_name_en == pv.song_name_en
 			})
 		})
 		.collect::<Vec<_>>();
@@ -1221,14 +1225,10 @@ pub async fn search_pvs(
 	State(state): State<AppState>,
 ) -> Result<Json<PvSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("pvs");
-	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
-
-	search.query = query.query.as_ref().map(|query| query.as_str());
+	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
 
 	search.limit = query.limit;
 	search.offset = query.offset;
-
-	search.sort = Some(&["pv_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1236,16 +1236,14 @@ pub async fn search_pvs(
 		String::new()
 	};
 
-	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
-		filter.as_str(),
-	)));
+	search.filter = Some(filter.as_str());
 
 	let pvs = search
 		.execute::<MeilisearchPv>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let pvs = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
+	let pvs = pvs.results;
 
 	let mut vec = Vec::with_capacity(pvs.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
@@ -1297,16 +1295,16 @@ pub async fn search_pvs(
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
-	let search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("nc_songs"))
-		.with_limit(10000)
-		.with_sort(&["pv_id:asc"])
-		.with_filter(&filter)
-		.execute::<MeilisearchNcSong>()
-		.await;
+	let search =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("nc_songs"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&filter)
+			.execute::<MeilisearchNcSong>()
+			.await;
 
 	let mut nc_songs: BTreeMap<i32, Vec<NcSong>> = BTreeMap::new();
 	if let Ok(result) = search {
-		for nc_song in result.hits.into_iter().map(|nc_song| nc_song.result) {
+		for nc_song in result.results {
 			if !posts.contains_key(&nc_song.post_id) {
 				if let Some(mut post) = Post::get_full(nc_song.post_id, &state.db).await {
 					for i in 0..post.files.len() {
@@ -1364,14 +1362,10 @@ pub async fn search_modules(
 	State(state): State<AppState>,
 ) -> Result<Json<ModuleSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("modules");
-	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
-
-	search.query = query.query.as_ref().map(|query| query.as_str());
+	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
 
 	search.limit = query.limit;
 	search.offset = query.offset;
-
-	search.sort = Some(&["module_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1379,20 +1373,14 @@ pub async fn search_modules(
 		String::new()
 	};
 
-	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
-		filter.as_str(),
-	)));
+	search.filter = Some(filter.as_str());
 
 	let modules = search
 		.execute::<MeilisearchModule>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let modules = modules
-		.hits
-		.into_iter()
-		.map(|module| module.result)
-		.collect::<Vec<_>>();
+	let modules = modules.results;
 
 	let mut vec = Vec::with_capacity(modules.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
@@ -1452,14 +1440,10 @@ pub async fn search_cstm_items(
 	State(state): State<AppState>,
 ) -> Result<Json<CstmItemSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("cstm_items");
-	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
-
-	search.query = query.query.as_ref().map(|query| query.as_str());
+	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
 
 	search.limit = query.limit;
 	search.offset = query.offset;
-
-	search.sort = Some(&["customize_item_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1467,20 +1451,14 @@ pub async fn search_cstm_items(
 		String::new()
 	};
 
-	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
-		filter.as_str(),
-	)));
+	search.filter = Some(filter.as_str());
 
 	let cstm_items = search
 		.execute::<MeilisearchCstmItem>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let cstm_items = cstm_items
-		.hits
-		.into_iter()
-		.map(|cstm_item| cstm_item.result)
-		.collect::<Vec<_>>();
+	let cstm_items = cstm_items.results;
 
 	let mut vec = Vec::with_capacity(cstm_items.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
@@ -1567,7 +1545,6 @@ pub async fn search_cstm_items(
 
 		let Json(modules) = crate::api::ids::search_modules(
 			Query(crate::api::ids::SearchParams {
-				query: None,
 				filter: Some(filter),
 				limit: Some(pending_bound_modules.len()),
 				offset: Some(0),
@@ -1647,14 +1624,10 @@ pub async fn search_nc_songs(
 	State(state): State<AppState>,
 ) -> Result<Json<NcSongSearch>, (StatusCode, String)> {
 	let index = state.meilisearch.index("nc_songs");
-	let mut search = meilisearch_sdk::search::SearchQuery::new(&index);
-
-	search.query = query.query.as_ref().map(|query| query.as_str());
+	let mut search = meilisearch_sdk::documents::DocumentsQuery::new(&index);
 
 	search.limit = query.limit;
 	search.offset = query.offset;
-
-	search.sort = Some(&["pv_id:asc"]);
 
 	let filter = if let Some(filter) = &query.filter {
 		format!("{filter}")
@@ -1662,20 +1635,14 @@ pub async fn search_nc_songs(
 		String::new()
 	};
 
-	search.filter = Some(meilisearch_sdk::search::Filter::new(sqlx::Either::Left(
-		filter.as_str(),
-	)));
+	search.filter = Some(filter.as_str());
 
 	let nc_songs = search
 		.execute::<MeilisearchNcSong>()
 		.await
 		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
 
-	let nc_songs = nc_songs
-		.hits
-		.into_iter()
-		.map(|p| p.result)
-		.collect::<Vec<_>>();
+	let nc_songs = nc_songs.results;
 
 	let mut vec = Vec::with_capacity(nc_songs.len());
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
@@ -1713,16 +1680,15 @@ pub async fn search_nc_songs(
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
-	let search = meilisearch_sdk::search::SearchQuery::new(&state.meilisearch.index("pvs"))
-		.with_limit(10000)
-		.with_sort(&["pv_id:asc"])
+	let search = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("pvs"))
+		.with_limit(u32::MAX as usize)
 		.with_filter(&filter)
 		.execute::<MeilisearchPv>()
 		.await;
 
 	let mut pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
 	if let Ok(result) = search {
-		for pv in result.hits.into_iter().map(|pv| pv.result) {
+		for pv in result.results {
 			let post = if pv.post == -1 {
 				None
 			} else if let Some(post) = posts.get(&pv.post) {
@@ -2172,19 +2138,18 @@ pub async fn check_reserve_range(
 				.intersperse(String::from(" OR "))
 				.collect::<String>();
 
-			let search = meilisearch_sdk::search::SearchQuery::new(&index)
-				.with_limit(10000)
-				.with_sort(&["pv_id:asc"])
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
 				.with_filter(&filter)
 				.execute::<MeilisearchPv>()
 				.await;
 
-			search.map_or(Vec::new(), |search| {
+			search.map_or(BTreeMap::new(), |search| {
 				search
-					.hits
+					.results
 					.into_iter()
-					.map(|pv| (pv.result.pv_id, pv.result.post))
-					.collect::<Vec<_>>()
+					.map(|pv| (pv.pv_id, pv.post))
+					.collect::<BTreeMap<_, _>>()
 			})
 		}
 		ReservationType::Module => {
@@ -2195,19 +2160,18 @@ pub async fn check_reserve_range(
 				.intersperse(String::from(" OR "))
 				.collect::<String>();
 
-			let search = meilisearch_sdk::search::SearchQuery::new(&index)
-				.with_limit(10000)
-				.with_sort(&["module_id:asc"])
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
 				.with_filter(&filter)
 				.execute::<MeilisearchModule>()
 				.await;
 
-			search.map_or(Vec::new(), |search| {
+			search.map_or(BTreeMap::new(), |search| {
 				search
-					.hits
+					.results
 					.into_iter()
-					.map(|module| (module.result.module_id, module.result.post_id))
-					.collect::<Vec<_>>()
+					.map(|module| (module.module_id, module.post_id))
+					.collect::<BTreeMap<_, _>>()
 			})
 		}
 		ReservationType::CstmItem => {
@@ -2218,19 +2182,18 @@ pub async fn check_reserve_range(
 				.intersperse(String::from(" OR "))
 				.collect::<String>();
 
-			let search = meilisearch_sdk::search::SearchQuery::new(&index)
-				.with_limit(10000)
-				.with_sort(&["customize_item_id:asc"])
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
 				.with_filter(&filter)
 				.execute::<MeilisearchCstmItem>()
 				.await;
 
-			search.map_or(Vec::new(), |search| {
+			search.map_or(BTreeMap::new(), |search| {
 				search
-					.hits
+					.results
 					.into_iter()
-					.map(|cstm_item| (cstm_item.result.customize_item_id, cstm_item.result.post_id))
-					.collect::<Vec<_>>()
+					.map(|cstm_item| (cstm_item.customize_item_id, cstm_item.post_id))
+					.collect::<BTreeMap<_, _>>()
 			})
 		}
 	};
@@ -2306,18 +2269,17 @@ pub async fn get_user_uploads(
 					.intersperse(String::from(" OR "))
 					.collect::<String>();
 
-				let search = meilisearch_sdk::search::SearchQuery::new(&index)
-					.with_limit(10000)
-					.with_sort(&["pv_id:asc"])
+				let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+					.with_limit(u32::MAX as usize)
 					.with_filter(&filter)
 					.execute::<MeilisearchPv>()
 					.await;
 
 				search.map_or(BTreeSet::new(), |search| {
 					search
-						.hits
+						.results
 						.into_iter()
-						.map(|pv| pv.result.pv_id)
+						.map(|pv| pv.pv_id)
 						.collect::<BTreeSet<_>>()
 				})
 			}
@@ -2330,18 +2292,17 @@ pub async fn get_user_uploads(
 					.intersperse(String::from(" OR "))
 					.collect::<String>();
 
-				let search = meilisearch_sdk::search::SearchQuery::new(&index)
-					.with_limit(10000)
-					.with_sort(&["module_id:asc"])
+				let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+					.with_limit(u32::MAX as usize)
 					.with_filter(&filter)
 					.execute::<MeilisearchModule>()
 					.await;
 
 				search.map_or(BTreeSet::new(), |search| {
 					search
-						.hits
+						.results
 						.into_iter()
-						.map(|module| module.result.module_id)
+						.map(|module| module.module_id)
 						.collect::<BTreeSet<_>>()
 				})
 			}
@@ -2354,18 +2315,17 @@ pub async fn get_user_uploads(
 					.intersperse(String::from(" OR "))
 					.collect::<String>();
 
-				let search = meilisearch_sdk::search::SearchQuery::new(&index)
-					.with_limit(10000)
-					.with_sort(&["customize_item_id:asc"])
+				let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+					.with_limit(u32::MAX as usize)
 					.with_filter(&filter)
 					.execute::<MeilisearchCstmItem>()
 					.await;
 
 				search.map_or(BTreeSet::new(), |search| {
 					search
-						.hits
+						.results
 						.into_iter()
-						.map(|cstm_item| cstm_item.result.customize_item_id)
+						.map(|cstm_item| cstm_item.customize_item_id)
 						.collect::<BTreeSet<_>>()
 				})
 			}
@@ -2452,51 +2412,48 @@ pub async fn find_reservable_range(
 		ReservationType::Song => {
 			let index = state.meilisearch.index("pvs");
 
-			let search = meilisearch_sdk::search::SearchQuery::new(&index)
-				.with_limit(100000)
-				.with_sort(&["pv_id:asc"])
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
 				.execute::<MeilisearchPv>()
 				.await;
 
 			search.map_or(BTreeSet::new(), |search| {
 				search
-					.hits
+					.results
 					.into_iter()
-					.map(|pv| pv.result.pv_id)
+					.map(|pv| pv.pv_id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
 		ReservationType::Module => {
 			let index = state.meilisearch.index("modules");
 
-			let search = meilisearch_sdk::search::SearchQuery::new(&index)
-				.with_limit(100000)
-				.with_sort(&["module_id:asc"])
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
 				.execute::<MeilisearchModule>()
 				.await;
 
 			search.map_or(BTreeSet::new(), |search| {
 				search
-					.hits
+					.results
 					.into_iter()
-					.map(|module| module.result.module_id)
+					.map(|module| module.module_id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
 		ReservationType::CstmItem => {
 			let index = state.meilisearch.index("cstm_items");
 
-			let search = meilisearch_sdk::search::SearchQuery::new(&index)
-				.with_limit(100000)
-				.with_sort(&["customize_item_id:asc"])
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
 				.execute::<MeilisearchCstmItem>()
 				.await;
 
 			search.map_or(BTreeSet::new(), |search| {
 				search
-					.hits
+					.results
 					.into_iter()
-					.map(|cstm_item| cstm_item.result.customize_item_id)
+					.map(|cstm_item| cstm_item.customize_item_id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
@@ -2587,18 +2544,17 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 						.intersperse(String::from(" OR "))
 						.collect::<String>();
 
-					let search = meilisearch_sdk::search::SearchQuery::new(&index)
-						.with_limit(10000)
-						.with_sort(&["pv_id:asc"])
+					let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+						.with_limit(u32::MAX as usize)
 						.with_filter(&filter)
 						.execute::<MeilisearchPv>()
 						.await;
 
 					search.map_or(BTreeSet::new(), |search| {
 						search
-							.hits
+							.results
 							.into_iter()
-							.map(|pv| pv.result.pv_id)
+							.map(|pv| pv.pv_id)
 							.collect::<BTreeSet<_>>()
 					})
 				}
@@ -2611,18 +2567,17 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 						.intersperse(String::from(" OR "))
 						.collect::<String>();
 
-					let search = meilisearch_sdk::search::SearchQuery::new(&index)
-						.with_limit(10000)
-						.with_sort(&["module_id:asc"])
+					let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+						.with_limit(u32::MAX as usize)
 						.with_filter(&filter)
 						.execute::<MeilisearchModule>()
 						.await;
 
 					search.map_or(BTreeSet::new(), |search| {
 						search
-							.hits
+							.results
 							.into_iter()
-							.map(|module| module.result.module_id)
+							.map(|module| module.module_id)
 							.collect::<BTreeSet<_>>()
 					})
 				}
@@ -2635,18 +2590,17 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 						.intersperse(String::from(" OR "))
 						.collect::<String>();
 
-					let search = meilisearch_sdk::search::SearchQuery::new(&index)
-						.with_limit(10000)
-						.with_sort(&["customize_item_id:asc"])
+					let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+						.with_limit(u32::MAX as usize)
 						.with_filter(&filter)
 						.execute::<MeilisearchCstmItem>()
 						.await;
 
 					search.map_or(BTreeSet::new(), |search| {
 						search
-							.hits
+							.results
 							.into_iter()
-							.map(|cstm_item| cstm_item.result.customize_item_id)
+							.map(|cstm_item| cstm_item.customize_item_id)
 							.collect::<BTreeSet<_>>()
 					})
 				}
@@ -2804,9 +2758,8 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 	}
 
 	let search = SearchParams {
-		query: None,
 		filter: None,
-		limit: Some(usize::MAX),
+		limit: Some(u32::MAX as usize),
 		offset: None,
 	};
 
@@ -2903,9 +2856,8 @@ pub async fn all_modules(
 	}
 
 	let search = SearchParams {
-		query: None,
 		filter: None,
-		limit: Some(usize::MAX),
+		limit: Some(u32::MAX as usize),
 		offset: None,
 	};
 
@@ -3002,9 +2954,8 @@ pub async fn all_cstm_items(
 	}
 
 	let search = SearchParams {
-		query: None,
 		filter: None,
-		limit: Some(usize::MAX),
+		limit: Some(u32::MAX as usize),
 		offset: None,
 	};
 

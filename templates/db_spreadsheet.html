@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+{% let human_name = human_name | ref %}
+{% call base::draw_embed(format!("{human_name} Spreadsheet"), "") %}
+{% endblock head %}
+
+{% block content %}
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Name</th>
+			<th>Source</th>
+		</tr>
+	</thead>
+	<tbody>
+
+	{% for entry in entries %}
+		<tr>
+			<td>{{ entry.id }}</td>
+			<td>{{ entry.name }}</td>
+			<td>{% if entry.post_id != -1 && posts.contains_key(entry.post_id) %}<a href="/post/{{ entry.post_id }}">{{ posts[entry.post_id | ref].name }}</a>{% else %}MM+{% endif %}</td>
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endblock content %}
