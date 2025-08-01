@@ -615,6 +615,7 @@ async fn post_detail(
 
 	let Json(pvs) = search_pvs(
 		Query(SearchParams {
+			query: None,
 			filter: Some(format!("post={}", post.id)),
 			limit: Some(u32::MAX as usize),
 			offset: Some(0),
@@ -626,6 +627,7 @@ async fn post_detail(
 
 	let Json(modules) = search_modules(
 		Query(SearchParams {
+			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(u32::MAX as usize),
 			offset: Some(0),
@@ -637,6 +639,7 @@ async fn post_detail(
 
 	let Json(cstm_items) = search_cstm_items(
 		Query(SearchParams {
+			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(u32::MAX as usize),
 			offset: Some(0),
@@ -648,6 +651,7 @@ async fn post_detail(
 
 	let Json(nc_songs) = search_nc_songs(
 		Query(SearchParams {
+			query: None,
 			filter: Some(format!("post_id={}", post.id)),
 			limit: Some(u32::MAX as usize),
 			offset: Some(0),
@@ -673,6 +677,7 @@ async fn post_detail(
 
 		let Json(conflicting_pvs) = search_pvs(
 			Query(SearchParams {
+				query: None,
 				filter: Some(filter),
 				limit: Some(u32::MAX as usize),
 				offset: Some(0),
@@ -703,6 +708,7 @@ async fn post_detail(
 
 		let Json(conflicting_modules) = search_modules(
 			Query(SearchParams {
+				query: None,
 				filter: Some(filter),
 				limit: Some(u32::MAX as usize),
 				offset: Some(0),
@@ -733,6 +739,7 @@ async fn post_detail(
 
 		let Json(conflicting_cstm_items) = search_cstm_items(
 			Query(SearchParams {
+				query: None,
 				filter: Some(filter),
 				limit: Some(u32::MAX as usize),
 				offset: Some(0),
@@ -1018,6 +1025,7 @@ struct PvsTemplate {
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
 	let Json(pvs) = search_pvs(
 		Query(SearchParams {
+			query: None,
 			filter: None,
 			limit: Some(20),
 			offset: Some(0),
@@ -1040,6 +1048,7 @@ struct ModulesTemplate {
 async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTemplate {
 	let Json(modules) = search_modules(
 		Query(SearchParams {
+			query: None,
 			filter: None,
 			limit: Some(20),
 			offset: Some(0),
@@ -1062,6 +1071,7 @@ struct CstmItemsTemplate {
 async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmItemsTemplate {
 	let Json(cstm_items) = search_cstm_items(
 		Query(SearchParams {
+			query: None,
 			filter: None,
 			limit: Some(20),
 			offset: Some(0),
@@ -1126,6 +1136,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 
 	let Json(search) = search_pvs(
 		Query(SearchParams {
+			query: None,
 			filter: None,
 			limit: Some(u32::MAX as usize),
 			offset: Some(0),
