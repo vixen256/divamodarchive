@@ -242,13 +242,13 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 							parse_aet_db(aet_db, post_id, &state).await;
 						}
 
-						let obj_db = format!("/{folder}/2d/{prefix}obj_db.bin");
+						let obj_db = format!("/{folder}/objset/{prefix}obj_db.bin");
 						let path = Path::new(&obj_db);
 						if path.exists() {
 							parse_obj_db(obj_db, post_id, &state).await;
 						}
 
-						let tex_db = format!("/{folder}/2d/{prefix}tex_db.bin");
+						let tex_db = format!("/{folder}/objset/{prefix}tex_db.bin");
 						let path = Path::new(&tex_db);
 						if path.exists() {
 							parse_tex_db(tex_db, post_id, &state).await;
