@@ -140,12 +140,6 @@ pub const DB_PREFIXES: [&'static str; 21] = [
 
 pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	let post = Post::get_short(post_id, &state.db).await?;
-	if post.post_type == PostType::Plugin
-		|| post.post_type == PostType::Cover
-		|| post.post_type == PostType::Ui
-	{
-		return None;
-	}
 
 	for file in &post.local_files {
 		let file = format!("/pixeldrain/{file}");
@@ -310,7 +304,7 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	Some(())
 }
 
-async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let spr_db = diva_db::SprDb::from_file(path).ok()?;
 
 	let mut entries = Vec::new();
