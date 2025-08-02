@@ -218,7 +218,26 @@
 		<div id="reservationConflicts" class="p-1 pb-0 collapse">
 			{% if conflicting_pvs.pvs.len() > 0 %}
 			<h6 class="mt-2">PVs:</h6>
-			{% call pv_helpers::draw_pv_list(conflicting_pvs, true, true) %}
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Conflict Name</th>
+						<th>Conflict source</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for pv in conflicting_pvs.pvs %}
+					<tr>
+						<td>{{ pv.id }}</td>
+						<td>{% if let Some(pv) = pvs.find_pv(*pv.id) %}{{ pv.name_en }}{% endif %}</td>
+						<td>{{ pv.name_en }}</td>
+						<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ conflicting_pvs.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
 			{% endif %}
 
 			{% if conflicting_pv_reservations.len() > 0 %}
@@ -249,7 +268,26 @@
 
 			{% if conflicting_modules.modules.len() > 0 %}
 			<h6 class="mt-2">Modules:</h6>
-			{% call module_helpers::draw_module_list(conflicting_modules, true, true) %}
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Conflict Name</th>
+						<th>Conflict source</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for module in conflicting_modules.modules %}
+					<tr>
+						<td>{{ module.id }}</td>
+						<td>{% if let Some(module) = modules.find_module(*module.id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
+						<td>{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}</td>
+						<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}">{{ conflicting_modules.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
 			{% endif %}
 
 			{% if conflicting_module_reservations.len() > 0 %}
@@ -280,7 +318,26 @@
 
 			{% if conflicting_cstm_items.cstm_items.len() > 0 %}
 			<h6 class="mt-2">Customize Items:</h6>
-			{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true, true) %}
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Conflict Name</th>
+						<th>Conflict source</th>
+					</tr>
+				</thead>
+				<tbody>
+					{% for cstm_item in conflicting_cstm_items.cstm_items %}
+					<tr>
+						<td>{{ cstm_item.id }}</td>
+						<td>{% if let Some(cstm_item) = cstm_items.find_cstm_item(*cstm_item.id) %}{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
+						<td>{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}</td>
+						<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}">{{ conflicting_cstm_items.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				</tbody>
+			</table>
 			{% endif %}
 
 			{% if conflicting_cstm_item_reservations.len() > 0 %}
@@ -474,7 +531,7 @@
 						<td>{{ id }}</td>
 						<td>{{ local_name }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -500,7 +557,7 @@
 						<td>{{ id }}</td>
 						<td>{{ local_name }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -526,7 +583,7 @@
 						<td>{{ id }}</td>
 						<td>{{ local_name }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -552,7 +609,7 @@
 						<td>{{ id }}</td>
 						<td>{{ local_name }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -566,21 +623,21 @@
 	{% if pvs.pvs.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following songs: </h4>
-		{% call pv_helpers::draw_pv_list(pvs, false, false) %}
+		{% call pv_helpers::draw_pv_list(pvs, false) %}
 	</div>
 	{% endif %}
 
 	{% if modules.modules.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following modules: </h4>
-		{% call module_helpers::draw_module_list(modules, false, false) %}
+		{% call module_helpers::draw_module_list(modules, false) %}
 	</div>
 	{% endif %}
 
 	{% if cstm_items.cstm_items.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following customize items: </h4>
-		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false, false) %}
+		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}
 	</div>
 	{% endif %}
 
