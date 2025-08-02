@@ -185,7 +185,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch_sprites
-		.set_filterable_attributes(&["id", "post_id"])
+		.set_filterable_attributes(&["id", "post_id", "name"])
 		.await
 		.unwrap();
 	meilisearch_sprites
@@ -198,7 +198,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch_aets
-		.set_filterable_attributes(&["id", "post_id"])
+		.set_filterable_attributes(&["id", "post_id", "name"])
 		.await
 		.unwrap();
 	meilisearch_aets
@@ -211,7 +211,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch_objsets
-		.set_filterable_attributes(&["id", "post_id"])
+		.set_filterable_attributes(&["id", "post_id", "name"])
 		.await
 		.unwrap();
 	meilisearch_objsets
@@ -224,7 +224,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch_textures
-		.set_filterable_attributes(&["id", "post_id"])
+		.set_filterable_attributes(&["id", "post_id", "name"])
 		.await
 		.unwrap();
 	meilisearch_textures

@@ -558,10 +558,10 @@ struct PostTemplate {
 	conflicting_pv_reservations: BTreeMap<User, Vec<i32>>,
 	conflicting_module_reservations: BTreeMap<User, Vec<i32>>,
 	conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>>,
-	conflicting_sprites: BTreeMap<i32, Vec<u32>>,
-	conflicting_aets: BTreeMap<i32, Vec<u32>>,
-	conflicting_objsets: BTreeMap<i32, Vec<u32>>,
-	conflicting_textures: BTreeMap<i32, Vec<u32>>,
+	conflicting_sprites: BTreeMap<i32, Vec<(u32, String, String)>>,
+	conflicting_aets: BTreeMap<i32, Vec<(u32, String, String)>>,
+	conflicting_objsets: BTreeMap<i32, Vec<(u32, String, String)>>,
+	conflicting_textures: BTreeMap<i32, Vec<(u32, String, String)>>,
 	conflicting_db_posts: BTreeMap<i32, Post>,
 	body_markdown: String,
 }
@@ -874,10 +874,10 @@ async fn post_detail(
 		}
 	}
 
-	let mut conflicting_sprites: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
-	let mut conflicting_aets: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
-	let mut conflicting_objsets: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
-	let mut conflicting_textures: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
+	let mut conflicting_sprites: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
+	let mut conflicting_aets: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
+	let mut conflicting_objsets: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
+	let mut conflicting_textures: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
 	let mut conflicting_db_posts = BTreeMap::new();
 
 	if let Ok(entries) =
@@ -886,11 +886,16 @@ async fn post_detail(
 			.with_filter(&format!("post_id={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
-	{
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry))
+					.collect::<BTreeMap<_, _>>()
+			}) {
 		let search = entries
-			.results
 			.iter()
-			.map(|entry| format!("id={}", entry.id))
+			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
 			.intersperse(String::from(" OR "))
 			.collect::<String>();
 
@@ -903,9 +908,20 @@ async fn post_detail(
 		{
 			for conflict in conflicts.results {
 				if let Some(existing) = conflicting_sprites.get_mut(&conflict.post_id) {
-					existing.push(conflict.id);
+					existing.push((
+						conflict.id,
+						entries[&conflict.id].name.clone(),
+						conflict.name,
+					));
 				} else {
-					conflicting_sprites.insert(conflict.post_id, vec![conflict.id]);
+					conflicting_sprites.insert(
+						conflict.post_id,
+						vec![(
+							conflict.id,
+							entries[&conflict.id].name.clone(),
+							conflict.name,
+						)],
+					);
 				}
 
 				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
@@ -923,11 +939,16 @@ async fn post_detail(
 			.with_filter(&format!("post_id={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
-	{
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry))
+					.collect::<BTreeMap<_, _>>()
+			}) {
 		let search = entries
-			.results
 			.iter()
-			.map(|entry| format!("id={}", entry.id))
+			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
 			.intersperse(String::from(" OR "))
 			.collect::<String>();
 
@@ -940,9 +961,20 @@ async fn post_detail(
 		{
 			for conflict in conflicts.results {
 				if let Some(existing) = conflicting_aets.get_mut(&conflict.post_id) {
-					existing.push(conflict.id);
+					existing.push((
+						conflict.id,
+						entries[&conflict.id].name.clone(),
+						conflict.name,
+					));
 				} else {
-					conflicting_aets.insert(conflict.post_id, vec![conflict.id]);
+					conflicting_aets.insert(
+						conflict.post_id,
+						vec![(
+							conflict.id,
+							entries[&conflict.id].name.clone(),
+							conflict.name,
+						)],
+					);
 				}
 
 				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
@@ -960,11 +992,16 @@ async fn post_detail(
 			.with_filter(&format!("post_id={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
-	{
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry))
+					.collect::<BTreeMap<_, _>>()
+			}) {
 		let search = entries
-			.results
 			.iter()
-			.map(|entry| format!("id={}", entry.id))
+			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
 			.intersperse(String::from(" OR "))
 			.collect::<String>();
 
@@ -977,9 +1014,20 @@ async fn post_detail(
 		{
 			for conflict in conflicts.results {
 				if let Some(existing) = conflicting_objsets.get_mut(&conflict.post_id) {
-					existing.push(conflict.id);
+					existing.push((
+						conflict.id,
+						entries[&conflict.id].name.clone(),
+						conflict.name,
+					));
 				} else {
-					conflicting_objsets.insert(conflict.post_id, vec![conflict.id]);
+					conflicting_objsets.insert(
+						conflict.post_id,
+						vec![(
+							conflict.id,
+							entries[&conflict.id].name.clone(),
+							conflict.name,
+						)],
+					);
 				}
 
 				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
@@ -997,11 +1045,16 @@ async fn post_detail(
 			.with_filter(&format!("post_id={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
-	{
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry))
+					.collect::<BTreeMap<_, _>>()
+			}) {
 		let search = entries
-			.results
 			.iter()
-			.map(|entry| format!("id={}", entry.id))
+			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
 			.intersperse(String::from(" OR "))
 			.collect::<String>();
 
@@ -1014,9 +1067,20 @@ async fn post_detail(
 		{
 			for conflict in conflicts.results {
 				if let Some(existing) = conflicting_textures.get_mut(&conflict.post_id) {
-					existing.push(conflict.id);
+					existing.push((
+						conflict.id,
+						entries[&conflict.id].name.clone(),
+						conflict.name,
+					));
 				} else {
-					conflicting_textures.insert(conflict.post_id, vec![conflict.id]);
+					conflicting_textures.insert(
+						conflict.post_id,
+						vec![(
+							conflict.id,
+							entries[&conflict.id].name.clone(),
+							conflict.name,
+						)],
+					);
 				}
 
 				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {

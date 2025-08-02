@@ -216,9 +216,8 @@
 			<h5 class="mb-0">This mod conflicts with the following:</h5>
 		</button>
 		<div id="reservationConflicts" class="p-1 collapse">
-			<h4>This mod conflicts with the following:</h4>
 			{% if conflicting_pvs.pvs.len() > 0 %}
-			<h5>PVs:</h5>
+			<h6>PVs:</h6>
 			{% call pv_helpers::draw_pv_list(conflicting_pvs, true) %}
 			{% endif %}
 
@@ -239,12 +238,12 @@
 			{% endif %}
 
 			{% if conflicting_modules.modules.len() > 0 %}
-			<h5>Modules:</h5>
+			<h6>Modules:</h6>
 			{% call module_helpers::draw_module_list(conflicting_modules, true) %}
 			{% endif %}
 
 			{% if conflicting_module_reservations.len() > 0 %}
-			<h5>Reserved Modules:</h5>
+			<h6>Reserved Modules:</h6>
 			{% for (user, ids) in conflicting_module_reservations %}
 			<p>
 				{{ user.display_name }}:
@@ -260,12 +259,12 @@
 			{% endif %}
 
 			{% if conflicting_cstm_items.cstm_items.len() > 0 %}
-			<h5>Customize Items:</h5>
+			<h6>Customize Items:</h6>
 			{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true) %}
 			{% endif %}
 
 			{% if conflicting_cstm_item_reservations.len() > 0 %}
-			<h5>Reserved Customize Items:</h5>
+			<h6>Reserved Customize Items:</h6>
 			{% for (user, ids) in conflicting_cstm_item_reservations %}
 			<p>
 				{{ user.display_name }}:
@@ -275,68 +274,6 @@
 					{% else %}
 						{{ id }}, 
 					{% endif %}
-				{% endfor %}
-			</p>
-			{% endfor %}
-			{% endif %}
-		</div>
-	</div>
-	{% endif %}
-
-	{% if
-		conflicting_sprites.len() > 0 ||
-		conflicting_aets.len() > 0 ||
-		conflicting_objsets.len() > 0 ||
-		conflicting_textures.len() > 0
-	%}
-	<div class="alert alert-warning mb-0">
-		<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#dbConflicts">
-			<h5 class="mb-0">This mod may conflict with the following:</h5>
-		</button>
-		<div id="dbConflicts" class="p-1 collapse">
-			{% if conflicting_sprites.len() > 0 %}
-			<h6>Sprite IDs:</h6>
-			{% for (post_id, ids) in conflicting_sprites %}
-			<p>
-				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-				{% for id in ids %}
-					{{ id }}{% if !loop.last %}, {% endif %}
-				{% endfor %}
-			</p>
-			{% endfor %}
-			{% endif %}
-
-			{% if conflicting_aets.len() > 0 %}
-			<h5>Aet IDs:</h5>
-			{% for (post_id, ids) in conflicting_aets %}
-			<p>
-				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-				{% for id in ids %}
-					{{ id }}{% if !loop.last %}, {% endif %}
-				{% endfor %}
-			</p>
-			{% endfor %}
-			{% endif %}
-
-			{% if conflicting_objsets.len() > 0 %}
-			<h5>Objset IDs:</h5>
-			{% for (post_id, ids) in conflicting_objsets %}
-			<p>
-				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-				{% for id in ids %}
-					{{ id }}{% if !loop.last %}, {% endif %}
-				{% endfor %}
-			</p>
-			{% endfor %}
-			{% endif %}
-
-			{% if conflicting_textures.len() > 0 %}
-			<h5>Texture IDs:</h5>
-			{% for (post_id, ids) in conflicting_textures %}
-			<p>
-				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-				{% for id in ids %}
-					{{ id }}{% if !loop.last %}, {% endif %}
 				{% endfor %}
 			</p>
 			{% endfor %}
@@ -505,9 +442,126 @@
 		{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
 	</div>
 	{% endif %}
+	
+		{% if
+		conflicting_sprites.len() > 0 ||
+		conflicting_aets.len() > 0 ||
+		conflicting_objsets.len() > 0 ||
+		conflicting_textures.len() > 0
+	%}
+	<div class="alert alert-warning mb-0">
+		<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#dbConflicts">
+			<h5 class="mb-0">This mod may conflict with the following:</h5>
+		</button>
+		<div id="dbConflicts" class="p-1 collapse">
+			{% if conflicting_sprites.len() > 0 %}
+			<h6>Sprite IDs:</h6>
+			<table class="table table-sm">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Conflicting Name</th>
+						<th>Conflict Source</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (post_id, ids) in conflicting_sprites %}
+					{% for (id, local_name, conflict_name) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{{ local_name }}</td>
+						<td>{{ conflict_name }}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endif %}
+
+			{% if conflicting_aets.len() > 0 %}
+			<h6>Aet IDs:</h6>
+			<table class="table table-sm">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Conflicting Name</th>
+						<th>Conflict Source</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (post_id, ids) in conflicting_aets %}
+					{% for (id, local_name, conflict_name) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{{ local_name }}</td>
+						<td>{{ conflict_name }}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endif %}
+
+			{% if conflicting_objsets.len() > 0 %}
+			<h6>Objset IDs:</h6>
+			<table class="table table-sm">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Conflicting Name</th>
+						<th>Conflict Source</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (post_id, ids) in conflicting_objsets %}
+					{% for (id, local_name, conflict_name) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{{ local_name }}</td>
+						<td>{{ conflict_name }}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endif %}
+
+			{% if conflicting_textures.len() > 0 %}
+			<h6>Texture IDs:</h6>
+			<table class="table table-sm">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Conflicting Name</th>
+						<th>Conflict Source</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (post_id, ids) in conflicting_textures %}
+					{% for (id, local_name, conflict_name) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{{ local_name }}</td>
+						<td>{{ conflict_name }}</td>
+						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endif %}
+		</div>
+	</div>
+	{% endif %}
 
 	{% if let Some(user) = user %}
-	<br>
 	<button class="btn btn-sm btn-primary" style="width: 100%" type="button" data-bs-toggle="collapse" data-bs-target="#commentInput-1"
 		aria-expanded="false" aria-controls="commentInput-1" id="startCommentButton-1">Comment</button>
 	<div class="collapse row g-1 m-0" id="commentInput-1">
