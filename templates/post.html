@@ -257,7 +257,7 @@
 					<tr>
 						<td>{{ id }}</td>
 						<td>{% if let Some(pv) = pvs.find_pv(**id) %}{{ pv.name }}{% endif %}</td>
-						<td>{{ label }}</td>
+						<td>{{ label | autolink }}</td>
 						<td>{{ user.display_name }}</td>
 					</tr>
 					{% endfor %}
@@ -307,7 +307,7 @@
 					<tr>
 						<td>{{ id }}</td>
 						<td>{% if let Some(module) = modules.find_module(**id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
-						<td>{{ label }}</td>
+						<td>{{ label | autolink }}</td>
 						<td>{{ user.display_name }}</td>
 					</tr>
 					{% endfor %}
@@ -357,7 +357,7 @@
 					<tr>
 						<td>{{ id }}</td>
 						<td>{% if let Some(cstm_item) = cstm_items.find_cstm_item(**id) %}{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
-						<td>{{ label }}</td>
+						<td>{{ label | autolink }}</td>
 						<td>{{ user.display_name }}</td>
 					</tr>
 					{% endfor %}
