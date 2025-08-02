@@ -211,70 +211,75 @@
 		conflicting_module_reservations.len() > 0 ||
 		conflicting_cstm_item_reservations.len() > 0
 	%}
-	<div class="card text-white bg-danger card-body">
-		<h4>This mod conflicts with the following:</h4>
-		{% if conflicting_pvs.pvs.len() > 0 %}
-		<h5>PVs:</h5>
-		{% call pv_helpers::draw_pv_list(conflicting_pvs, true) %}
-		{% endif %}
+	<div class="alert alert-danger mb-0">
+	<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#reservationConflicts">
+			<h5 class="mb-0">This mod conflicts with the following:</h5>
+		</button>
+		<div id="reservationConflicts" class="p-1 collapse">
+			<h4>This mod conflicts with the following:</h4>
+			{% if conflicting_pvs.pvs.len() > 0 %}
+			<h5>PVs:</h5>
+			{% call pv_helpers::draw_pv_list(conflicting_pvs, true) %}
+			{% endif %}
 
-		{% if conflicting_pv_reservations.len() > 0 %}
-		<h5>Reserved PVs:</h5>
-		{% for (user, ids) in conflicting_pv_reservations %}
-		<p>
-			{{ user.display_name }}:
-			{% for (i, id) in ids.iter().enumerate() %}
-				{% if i == ids.len() - 1 %}
-					{{ id }}
-				{% else %}
-					{{ id }}, 
-				{% endif %}
+			{% if conflicting_pv_reservations.len() > 0 %}
+			<h5>Reserved PVs:</h5>
+			{% for (user, ids) in conflicting_pv_reservations %}
+			<p>
+				{{ user.display_name }}:
+				{% for (i, id) in ids.iter().enumerate() %}
+					{% if i == ids.len() - 1 %}
+						{{ id }}
+					{% else %}
+						{{ id }}, 
+					{% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
 
-		{% if conflicting_modules.modules.len() > 0 %}
-		<h5>Modules:</h5>
-		{% call module_helpers::draw_module_list(conflicting_modules, true) %}
-		{% endif %}
+			{% if conflicting_modules.modules.len() > 0 %}
+			<h5>Modules:</h5>
+			{% call module_helpers::draw_module_list(conflicting_modules, true) %}
+			{% endif %}
 
-		{% if conflicting_module_reservations.len() > 0 %}
-		<h5>Reserved Modules:</h5>
-		{% for (user, ids) in conflicting_module_reservations %}
-		<p>
-			{{ user.display_name }}:
-			{% for (i, id) in ids.iter().enumerate() %}
-				{% if i == ids.len() - 1 %}
-					{{ id }}
-				{% else %}
-					{{ id }}, 
-				{% endif %}
+			{% if conflicting_module_reservations.len() > 0 %}
+			<h5>Reserved Modules:</h5>
+			{% for (user, ids) in conflicting_module_reservations %}
+			<p>
+				{{ user.display_name }}:
+				{% for (i, id) in ids.iter().enumerate() %}
+					{% if i == ids.len() - 1 %}
+						{{ id }}
+					{% else %}
+						{{ id }}, 
+					{% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
 
-		{% if conflicting_cstm_items.cstm_items.len() > 0 %}
-		<h5>Customize Items:</h5>
-		{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true) %}
-		{% endif %}
+			{% if conflicting_cstm_items.cstm_items.len() > 0 %}
+			<h5>Customize Items:</h5>
+			{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true) %}
+			{% endif %}
 
-		{% if conflicting_cstm_item_reservations.len() > 0 %}
-		<h5>Reserved Customize Items:</h5>
-		{% for (user, ids) in conflicting_cstm_item_reservations %}
-		<p>
-			{{ user.display_name }}:
-			{% for (i, id) in ids.iter().enumerate() %}
-				{% if i == ids.len() - 1 %}
-					{{ id }}
-				{% else %}
-					{{ id }}, 
-				{% endif %}
+			{% if conflicting_cstm_item_reservations.len() > 0 %}
+			<h5>Reserved Customize Items:</h5>
+			{% for (user, ids) in conflicting_cstm_item_reservations %}
+			<p>
+				{{ user.display_name }}:
+				{% for (i, id) in ids.iter().enumerate() %}
+					{% if i == ids.len() - 1 %}
+						{{ id }}
+					{% else %}
+						{{ id }}, 
+					{% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
+		</div>
 	</div>
 	{% endif %}
 
@@ -284,55 +289,59 @@
 		conflicting_objsets.len() > 0 ||
 		conflicting_textures.len() > 0
 	%}
-	<div class="card text-white bg-warning card-body">
-		<h4>This mod may conflict with the following:</h4>
-		{% if conflicting_sprites.len() > 0 %}
-		<h5>Sprite IDs:</h5>
-		{% for (post_id, ids) in conflicting_sprites %}
-		<p>
-			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-			{% for id in ids %}
-				{{ id }}{% if !loop.last %}, {% endif %}
+	<div class="alert alert-warning mb-0">
+		<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#dbConflicts">
+			<h5 class="mb-0">This mod may conflict with the following:</h5>
+		</button>
+		<div id="dbConflicts" class="p-1 collapse">
+			{% if conflicting_sprites.len() > 0 %}
+			<h6>Sprite IDs:</h6>
+			{% for (post_id, ids) in conflicting_sprites %}
+			<p>
+				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+				{% for id in ids %}
+					{{ id }}{% if !loop.last %}, {% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
 
-		{% if conflicting_aets.len() > 0 %}
-		<h5>Aet IDs:</h5>
-		{% for (post_id, ids) in conflicting_aets %}
-		<p>
-			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-			{% for id in ids %}
-				{{ id }}{% if !loop.last %}, {% endif %}
+			{% if conflicting_aets.len() > 0 %}
+			<h5>Aet IDs:</h5>
+			{% for (post_id, ids) in conflicting_aets %}
+			<p>
+				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+				{% for id in ids %}
+					{{ id }}{% if !loop.last %}, {% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
 
-		{% if conflicting_objsets.len() > 0 %}
-		<h5>Objset IDs:</h5>
-		{% for (post_id, ids) in conflicting_objsets %}
-		<p>
-			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-			{% for id in ids %}
-				{{ id }}{% if !loop.last %}, {% endif %}
+			{% if conflicting_objsets.len() > 0 %}
+			<h5>Objset IDs:</h5>
+			{% for (post_id, ids) in conflicting_objsets %}
+			<p>
+				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+				{% for id in ids %}
+					{{ id }}{% if !loop.last %}, {% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
 
-		{% if conflicting_textures.len() > 0 %}
-		<h5>Texture IDs:</h5>
-		{% for (post_id, ids) in conflicting_textures %}
-		<p>
-			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
-			{% for id in ids %}
-				{{ id }}{% if !loop.last %}, {% endif %}
+			{% if conflicting_textures.len() > 0 %}
+			<h5>Texture IDs:</h5>
+			{% for (post_id, ids) in conflicting_textures %}
+			<p>
+				{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+				{% for id in ids %}
+					{{ id }}{% if !loop.last %}, {% endif %}
+				{% endfor %}
+			</p>
 			{% endfor %}
-		</p>
-		{% endfor %}
-		{% endif %}
+			{% endif %}
+		</div>
 	</div>
 	{% endif %}
 
