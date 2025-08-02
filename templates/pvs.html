@@ -517,5 +517,6 @@
 <br>
 {% call pv_helpers::draw_pv_list(pvs, true, false) %}
 <br>
-<button class="btn btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if pvs.pvs.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if pvs.pvs.len() < 20 %}hidden{% endif %}>Load more</button>
+<br>
 {% endblock content %}

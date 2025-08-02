@@ -111,4 +111,5 @@
 {% call post_helpers::draw_post_list(posts) %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if posts.len() != 20 %}hidden{% endif %}>Load more</button>
+<br>
 {% endblock content %}

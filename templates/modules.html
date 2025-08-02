@@ -239,4 +239,5 @@
 {% call module_helpers::draw_module_list(modules, true, false) %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if modules.modules.len() < 20 %}hidden{% endif %}>Load more</button>
+<br>
 {% endblock content %}
