@@ -140,6 +140,9 @@ pub const DB_PREFIXES: [&'static str; 21] = [
 
 pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	let post = Post::get_short(post_id, &state.db).await?;
+	if post.post_type == PostType::Cover {
+		return None;
+	}
 
 	for file in &post.local_files {
 		let file = format!("/pixeldrain/{file}");
