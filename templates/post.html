@@ -278,6 +278,64 @@
 	</div>
 	{% endif %}
 
+	{% if
+		conflicting_sprites.len() > 0 ||
+		conflicting_aets.len() > 0 ||
+		conflicting_objsets.len() > 0 ||
+		conflicting_textures.len() > 0
+	%}
+	<div class="card text-white bg-warning card-body">
+		<h4>This mod may conflict with the following:</h4>
+		{% if conflicting_sprites.len() > 0 %}
+		<h5>Sprite IDs:</h5>
+		{% for (post_id, ids) in conflicting_sprites %}
+		<p>
+			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+			{% for id in ids %}
+				{{ id }}{% if !loop.last %}, {% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+
+		{% if conflicting_aets.len() > 0 %}
+		<h5>Aet IDs:</h5>
+		{% for (post_id, ids) in conflicting_aets %}
+		<p>
+			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+			{% for id in ids %}
+				{{ id }}{% if !loop.last %}, {% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+
+		{% if conflicting_objsets.len() > 0 %}
+		<h5>Objset IDs:</h5>
+		{% for (post_id, ids) in conflicting_objsets %}
+		<p>
+			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+			{% for id in ids %}
+				{{ id }}{% if !loop.last %}, {% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+
+		{% if conflicting_textures.len() > 0 %}
+		<h5>Texture IDs:</h5>
+		{% for (post_id, ids) in conflicting_textures %}
+		<p>
+			{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}{{ conflicting_db_posts[post_id].name }}{% else %}MM+{% endif %}:
+			{% for id in ids %}
+				{{ id }}{% if !loop.last %}, {% endif %}
+			{% endfor %}
+		</p>
+		{% endfor %}
+		{% endif %}
+	</div>
+	{% endif %}
+
 	<div class="col-md-7 card card-body">
 		<h2 class="text card-title pb-2" style="text-align: center">{{ post.name }} </h2>
 		<div class="row">

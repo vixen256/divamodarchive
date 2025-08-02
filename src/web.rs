@@ -558,6 +558,11 @@ struct PostTemplate {
 	conflicting_pv_reservations: BTreeMap<User, Vec<i32>>,
 	conflicting_module_reservations: BTreeMap<User, Vec<i32>>,
 	conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>>,
+	conflicting_sprites: BTreeMap<i32, Vec<u32>>,
+	conflicting_aets: BTreeMap<i32, Vec<u32>>,
+	conflicting_objsets: BTreeMap<i32, Vec<u32>>,
+	conflicting_textures: BTreeMap<i32, Vec<u32>>,
+	conflicting_db_posts: BTreeMap<i32, Post>,
 	body_markdown: String,
 }
 
@@ -869,6 +874,160 @@ async fn post_detail(
 		}
 	}
 
+	let mut conflicting_sprites: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
+	let mut conflicting_aets: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
+	let mut conflicting_objsets: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
+	let mut conflicting_textures: BTreeMap<i32, Vec<u32>> = BTreeMap::new();
+	let mut conflicting_db_posts = BTreeMap::new();
+
+	if let Ok(entries) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		let search = entries
+			.results
+			.iter()
+			.map(|entry| format!("id={}", entry.id))
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(conflicts) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!("({search}) AND post_id!={}", post.id))
+				.execute::<MeilisearchDbEntry>()
+				.await
+		{
+			for conflict in conflicts.results {
+				if let Some(existing) = conflicting_sprites.get_mut(&conflict.post_id) {
+					existing.push(conflict.id);
+				} else {
+					conflicting_sprites.insert(conflict.post_id, vec![conflict.id]);
+				}
+
+				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflicting_db_posts.insert(post.id, post);
+					}
+				}
+			}
+		}
+	}
+
+	if let Ok(entries) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		let search = entries
+			.results
+			.iter()
+			.map(|entry| format!("id={}", entry.id))
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(conflicts) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!("({search}) AND post_id!={}", post.id))
+				.execute::<MeilisearchDbEntry>()
+				.await
+		{
+			for conflict in conflicts.results {
+				if let Some(existing) = conflicting_aets.get_mut(&conflict.post_id) {
+					existing.push(conflict.id);
+				} else {
+					conflicting_aets.insert(conflict.post_id, vec![conflict.id]);
+				}
+
+				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflicting_db_posts.insert(post.id, post);
+					}
+				}
+			}
+		}
+	}
+
+	if let Ok(entries) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		let search = entries
+			.results
+			.iter()
+			.map(|entry| format!("id={}", entry.id))
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(conflicts) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!("({search}) AND post_id!={}", post.id))
+				.execute::<MeilisearchDbEntry>()
+				.await
+		{
+			for conflict in conflicts.results {
+				if let Some(existing) = conflicting_objsets.get_mut(&conflict.post_id) {
+					existing.push(conflict.id);
+				} else {
+					conflicting_objsets.insert(conflict.post_id, vec![conflict.id]);
+				}
+
+				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflicting_db_posts.insert(post.id, post);
+					}
+				}
+			}
+		}
+	}
+
+	if let Ok(entries) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		let search = entries
+			.results
+			.iter()
+			.map(|entry| format!("id={}", entry.id))
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(conflicts) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!("({search}) AND post_id!={}", post.id))
+				.execute::<MeilisearchDbEntry>()
+				.await
+		{
+			for conflict in conflicts.results {
+				if let Some(existing) = conflicting_textures.get_mut(&conflict.post_id) {
+					existing.push(conflict.id);
+				} else {
+					conflicting_textures.insert(conflict.post_id, vec![conflict.id]);
+				}
+
+				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflicting_db_posts.insert(post.id, post);
+					}
+				}
+			}
+		}
+	}
+
 	let options = comrak::Options {
 		extension: comrak::ExtensionOptions::builder()
 			.strikethrough(true)
@@ -913,6 +1072,11 @@ async fn post_detail(
 		conflicting_pv_reservations,
 		conflicting_module_reservations,
 		conflicting_cstm_item_reservations,
+		conflicting_sprites,
+		conflicting_aets,
+		conflicting_objsets,
+		conflicting_textures,
+		conflicting_db_posts,
 		body_markdown,
 	})
 }
@@ -1156,31 +1320,21 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 				None
 			};
 
-			if let Some(original) = pvs.get_mut(&pv.pv_id) {
-				original.push(Pv {
-					uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
-					id: pv.pv_id,
-					name: pv.song_name,
-					name_en: pv.song_name_en,
-					song_info: pv.song_info,
-					song_info_en: pv.song_info_en,
-					levels: pv.levels,
-					post,
-				});
+			let pv = Pv {
+				uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+				id: pv.pv_id,
+				name: pv.song_name,
+				name_en: pv.song_name_en,
+				song_info: pv.song_info,
+				song_info_en: pv.song_info_en,
+				levels: pv.levels,
+				post,
+			};
+
+			if let Some(original) = pvs.get_mut(&pv.id) {
+				original.push(pv);
 			} else {
-				pvs.insert(
-					pv.pv_id,
-					vec![Pv {
-						uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
-						id: pv.pv_id,
-						name: pv.song_name,
-						name_en: pv.song_name_en,
-						song_info: pv.song_info,
-						song_info_en: pv.song_info_en,
-						levels: pv.levels,
-						post,
-					}],
-				);
+				pvs.insert(pv.id, vec![pv]);
 			}
 		}
 	};
