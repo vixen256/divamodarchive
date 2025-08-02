@@ -445,35 +445,7 @@
 	{% endif %}
 	{% endif %}
 
-	{% if pvs.pvs.len() > 0 %}
-	<div class="card card-body">
-		<h4>This mod adds the following songs: </h4>
-		{% call pv_helpers::draw_pv_list(pvs, false, false) %}
-	</div>
-	{% endif %}
-
-	{% if modules.modules.len() > 0 %}
-	<div class="card card-body">
-		<h4>This mod adds the following modules: </h4>
-		{% call module_helpers::draw_module_list(modules, false, false) %}
-	</div>
-	{% endif %}
-
-	{% if cstm_items.cstm_items.len() > 0 %}
-	<div class="card card-body">
-		<h4>This mod adds the following customize items: </h4>
-		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false, false) %}
-	</div>
-	{% endif %}
-
-	{% if nc_songs.nc_songs.len() > 0 && nc_songs.contains_other_posts_songs(post) %}
-	<div class="card card-body">
-		<h4>This mod adds the following New Classics Songs: </h4>
-		{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
-	</div>
-	{% endif %}
-	
-		{% if
+	{% if
 		conflicting_sprites.len() > 0 ||
 		conflicting_aets.len() > 0 ||
 		conflicting_objsets.len() > 0 ||
@@ -588,6 +560,34 @@
 			</table>
 			{% endif %}
 		</div>
+	</div>
+	{% endif %}
+
+	{% if pvs.pvs.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod adds the following songs: </h4>
+		{% call pv_helpers::draw_pv_list(pvs, false, false) %}
+	</div>
+	{% endif %}
+
+	{% if modules.modules.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod adds the following modules: </h4>
+		{% call module_helpers::draw_module_list(modules, false, false) %}
+	</div>
+	{% endif %}
+
+	{% if cstm_items.cstm_items.len() > 0 %}
+	<div class="card card-body">
+		<h4>This mod adds the following customize items: </h4>
+		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false, false) %}
+	</div>
+	{% endif %}
+
+	{% if nc_songs.nc_songs.len() > 0 && nc_songs.contains_other_posts_songs(post) %}
+	<div class="card card-body">
+		<h4>This mod adds the following New Classics Songs: </h4>
+		{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
 	</div>
 	{% endif %}
 
