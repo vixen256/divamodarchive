@@ -555,9 +555,9 @@ struct PostTemplate {
 	conflicting_pvs: PvSearch,
 	conflicting_modules: ModuleSearch,
 	conflicting_cstm_items: CstmItemSearch,
-	conflicting_pv_reservations: BTreeMap<User, Vec<i32>>,
-	conflicting_module_reservations: BTreeMap<User, Vec<i32>>,
-	conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>>,
+	conflicting_pv_reservations: BTreeMap<User, Vec<(i32, String)>>,
+	conflicting_module_reservations: BTreeMap<User, Vec<(i32, String)>>,
+	conflicting_cstm_item_reservations: BTreeMap<User, Vec<(i32, String)>>,
 	conflicting_sprites: BTreeMap<i32, Vec<(u32, String, String)>>,
 	conflicting_aets: BTreeMap<i32, Vec<(u32, String, String)>>,
 	conflicting_objsets: BTreeMap<i32, Vec<(u32, String, String)>>,
@@ -760,9 +760,10 @@ async fn post_detail(
 		CstmItemSearch::default()
 	};
 
-	let mut conflicting_pv_reservations: BTreeMap<User, Vec<i32>> = BTreeMap::new();
-	let mut conflicting_module_reservations: BTreeMap<User, Vec<i32>> = BTreeMap::new();
-	let mut conflicting_cstm_item_reservations: BTreeMap<User, Vec<i32>> = BTreeMap::new();
+	let mut conflicting_pv_reservations: BTreeMap<User, Vec<(i32, String)>> = BTreeMap::new();
+	let mut conflicting_module_reservations: BTreeMap<User, Vec<(i32, String)>> = BTreeMap::new();
+	let mut conflicting_cstm_item_reservations: BTreeMap<User, Vec<(i32, String)>> =
+		BTreeMap::new();
 
 	for pv in &pvs.pvs {
 		let users = sqlx::query_as!(
@@ -788,16 +789,31 @@ async fn post_detail(
 				continue;
 			}
 
-			if let Some(conflict) = conflicting_pv_reservations.get_mut(&user) {
-				conflict.push(pv.id);
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				ReservationType::Song as i32,
+				pv.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
 			} else {
-				conflicting_pv_reservations.insert(user, vec![pv.id]);
+				String::new()
+			};
+
+			if let Some(conflict) = conflicting_pv_reservations.get_mut(&user) {
+				conflict.push((pv.id, label));
+			} else {
+				conflicting_pv_reservations.insert(user, vec![(pv.id, label)]);
 			}
 		}
 	}
 
 	for module in &modules.modules {
-		let reservations = sqlx::query!(
+		let users = sqlx::query_as!(
+			User,
 			r#"
 			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
 			FROM reservations r
@@ -814,29 +830,36 @@ async fn post_detail(
 		.fetch_all(&state.db)
 		.await
 		.unwrap_or_default();
-		for reservation in reservations {
-			let user = User {
-				id: reservation.id,
-				name: reservation.name,
-				avatar: reservation.avatar,
-				display_name: reservation.display_name,
-				public_likes: reservation.public_likes,
-				theme: reservation.theme.into(),
-			};
+		for user in users {
 			if post.authors.contains(&user) {
 				continue;
 			}
 
-			if let Some(conflict) = conflicting_module_reservations.get_mut(&user) {
-				conflict.push(module.id);
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				ReservationType::Module as i32,
+				module.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
 			} else {
-				conflicting_module_reservations.insert(user, vec![module.id]);
+				String::new()
+			};
+
+			if let Some(conflict) = conflicting_module_reservations.get_mut(&user) {
+				conflict.push((module.id, label));
+			} else {
+				conflicting_module_reservations.insert(user, vec![(module.id, label)]);
 			}
 		}
 	}
 
 	for cstm_item in &cstm_items.cstm_items {
-		let reservations = sqlx::query!(
+		let users = sqlx::query_as!(
+			User,
 			r#"
 			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
 			FROM reservations r
@@ -853,23 +876,29 @@ async fn post_detail(
 		.fetch_all(&state.db)
 		.await
 		.unwrap_or_default();
-		for reservation in reservations {
-			let user = User {
-				id: reservation.id,
-				name: reservation.name,
-				avatar: reservation.avatar,
-				display_name: reservation.display_name,
-				public_likes: reservation.public_likes,
-				theme: reservation.theme.into(),
-			};
+		for user in users {
 			if post.authors.contains(&user) {
 				continue;
 			}
 
-			if let Some(conflict) = conflicting_cstm_item_reservations.get_mut(&user) {
-				conflict.push(cstm_item.id);
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				ReservationType::CstmItem as i32,
+				cstm_item.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
 			} else {
-				conflicting_cstm_item_reservations.insert(user, vec![cstm_item.id]);
+				String::new()
+			};
+
+			if let Some(conflict) = conflicting_cstm_item_reservations.get_mut(&user) {
+				conflict.push((cstm_item.id, label));
+			} else {
+				conflicting_cstm_item_reservations.insert(user, vec![(cstm_item.id, label)]);
 			}
 		}
 	}

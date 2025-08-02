@@ -1218,6 +1218,12 @@ pub struct PvSearch {
 	pub posts: BTreeMap<i32, Post>,
 }
 
+impl PvSearch {
+	pub fn find_pv(&self, id: i32) -> Option<&Pv> {
+		self.pvs.iter().find(|pv| pv.id == id)
+	}
+}
+
 pub async fn search_pvs(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -1373,6 +1379,12 @@ pub struct ModuleSearch {
 	pub posts: BTreeMap<i32, Post>,
 }
 
+impl ModuleSearch {
+	pub fn find_module(&self, id: i32) -> Option<&Module> {
+		self.modules.iter().find(|module| module.id == id)
+	}
+}
+
 pub async fn search_modules(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -1474,6 +1486,12 @@ pub struct CstmItemSearch {
 	pub cstm_items: Vec<CstmItem>,
 	pub bound_modules: BTreeMap<i32, Module>,
 	pub posts: BTreeMap<i32, Post>,
+}
+
+impl CstmItemSearch {
+	pub fn find_cstm_item(&self, id: i32) -> Option<&CstmItem> {
+		self.cstm_items.iter().find(|cstm_item| cstm_item.id == id)
+	}
 }
 
 pub async fn search_cstm_items(

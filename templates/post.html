@@ -212,71 +212,101 @@
 		conflicting_cstm_item_reservations.len() > 0
 	%}
 	<div class="alert alert-danger mb-0">
-	<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#reservationConflicts">
+	<button class="accordion accordion-button p-1 pb-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#reservationConflicts">
 			<h5 class="mb-0">This mod conflicts with the following:</h5>
 		</button>
-		<div id="reservationConflicts" class="p-1 collapse">
+		<div id="reservationConflicts" class="p-1 pb-0 collapse">
 			{% if conflicting_pvs.pvs.len() > 0 %}
-			<h6>PVs:</h6>
-			{% call pv_helpers::draw_pv_list(conflicting_pvs, true) %}
+			<h6 class="mt-2">PVs:</h6>
+			{% call pv_helpers::draw_pv_list(conflicting_pvs, true, true) %}
 			{% endif %}
 
 			{% if conflicting_pv_reservations.len() > 0 %}
-			<h5>Reserved PVs:</h5>
-			{% for (user, ids) in conflicting_pv_reservations %}
-			<p>
-				{{ user.display_name }}:
-				{% for (i, id) in ids.iter().enumerate() %}
-					{% if i == ids.len() - 1 %}
-						{{ id }}
-					{% else %}
-						{{ id }}, 
-					{% endif %}
+			<h6 class="mt-2">Reserved PVs:</h6>
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Label</th>
+						<th>User</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (user, ids) in conflicting_pv_reservations %}
+					{% for (id, label) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{% if let Some(pv) = pvs.find_pv(**id) %}{{ pv.name }}{% endif %}</td>
+						<td>{{ label }}</td>
+						<td>{{ user.display_name }}</td>
+					</tr>
+					{% endfor %}
 				{% endfor %}
-			</p>
-			{% endfor %}
+				</tbody>
+			</table>
 			{% endif %}
 
 			{% if conflicting_modules.modules.len() > 0 %}
-			<h6>Modules:</h6>
-			{% call module_helpers::draw_module_list(conflicting_modules, true) %}
+			<h6 class="mt-2">Modules:</h6>
+			{% call module_helpers::draw_module_list(conflicting_modules, true, true) %}
 			{% endif %}
 
 			{% if conflicting_module_reservations.len() > 0 %}
-			<h6>Reserved Modules:</h6>
-			{% for (user, ids) in conflicting_module_reservations %}
-			<p>
-				{{ user.display_name }}:
-				{% for (i, id) in ids.iter().enumerate() %}
-					{% if i == ids.len() - 1 %}
-						{{ id }}
-					{% else %}
-						{{ id }}, 
-					{% endif %}
+			<h6 class="mt-2">Reserved Modules:</h6>
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Label</th>
+						<th>User</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (user, ids) in conflicting_module_reservations %}
+					{% for (id, label) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{% if let Some(module) = modules.find_module(**id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
+						<td>{{ label }}</td>
+						<td>{{ user.display_name }}</td>
+					</tr>
+					{% endfor %}
 				{% endfor %}
-			</p>
-			{% endfor %}
+				</tbody>
+			</table>
 			{% endif %}
 
 			{% if conflicting_cstm_items.cstm_items.len() > 0 %}
-			<h6>Customize Items:</h6>
-			{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true) %}
+			<h6 class="mt-2">Customize Items:</h6>
+			{% call cstm_item_helpers::draw_cstm_items_list(conflicting_cstm_items, true, true) %}
 			{% endif %}
 
 			{% if conflicting_cstm_item_reservations.len() > 0 %}
-			<h6>Reserved Customize Items:</h6>
-			{% for (user, ids) in conflicting_cstm_item_reservations %}
-			<p>
-				{{ user.display_name }}:
-				{% for (i, id) in ids.iter().enumerate() %}
-					{% if i == ids.len() - 1 %}
-						{{ id }}
-					{% else %}
-						{{ id }}, 
-					{% endif %}
+			<h6 class="mt-2">Reserved Customize Items:</h6>
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Local Name</th>
+						<th>Label</th>
+						<th>User</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (user, ids) in conflicting_cstm_item_reservations %}
+					{% for (id, label) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{% if let Some(cstm_item) = cstm_items.find_cstm_item(**id) %}{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
+						<td>{{ label }}</td>
+						<td>{{ user.display_name }}</td>
+					</tr>
+					{% endfor %}
 				{% endfor %}
-			</p>
-			{% endfor %}
+				</tbody>
+			</table>
 			{% endif %}
 		</div>
 	</div>
@@ -418,21 +448,21 @@
 	{% if pvs.pvs.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following songs: </h4>
-		{% call pv_helpers::draw_pv_list(pvs, false) %}
+		{% call pv_helpers::draw_pv_list(pvs, false, false) %}
 	</div>
 	{% endif %}
 
 	{% if modules.modules.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following modules: </h4>
-		{% call module_helpers::draw_module_list(modules, false) %}
+		{% call module_helpers::draw_module_list(modules, false, false) %}
 	</div>
 	{% endif %}
 
 	{% if cstm_items.cstm_items.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod adds the following customize items: </h4>
-		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}
+		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false, false) %}
 	</div>
 	{% endif %}
 
@@ -450,13 +480,13 @@
 		conflicting_textures.len() > 0
 	%}
 	<div class="alert alert-warning mb-0">
-		<button class="accordion accordion-button p-1 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#dbConflicts">
+		<button class="accordion accordion-button p-1 pb-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#dbConflicts">
 			<h5 class="mb-0">This mod may conflict with the following:</h5>
 		</button>
-		<div id="dbConflicts" class="p-1 collapse">
+		<div id="dbConflicts" class="p-1 pb-0 collapse">
 			{% if conflicting_sprites.len() > 0 %}
-			<h6>Sprite IDs:</h6>
-			<table class="table table-sm">
+			<h6 class="mt-2">Sprite IDs:</h6>
+			<table class="table table-sm m-0">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -481,8 +511,8 @@
 			{% endif %}
 
 			{% if conflicting_aets.len() > 0 %}
-			<h6>Aet IDs:</h6>
-			<table class="table table-sm">
+			<h6 class="mt-2">Aet IDs:</h6>
+			<table class="table table-sm m-0">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -507,8 +537,8 @@
 			{% endif %}
 
 			{% if conflicting_objsets.len() > 0 %}
-			<h6>Objset IDs:</h6>
-			<table class="table table-sm">
+			<h6 class="mt-2">Objset IDs:</h6>
+			<table class="table table-sm m-0">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -533,8 +563,8 @@
 			{% endif %}
 
 			{% if conflicting_textures.len() > 0 %}
-			<h6>Texture IDs:</h6>
-			<table class="table table-sm">
+			<h6 class="mt-2">Texture IDs:</h6>
+			<table class="table table-sm m-0">
 				<thead>
 					<tr>
 						<th>ID</th>

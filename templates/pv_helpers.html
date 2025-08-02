@@ -1,5 +1,5 @@
-{% macro draw_pv_list(pv_search, show_source) %}
-<table class="table sm-table table-hover">
+{% macro draw_pv_list(pv_search, show_source, small) %}
+<table class="table {% if small %}table-sm m-0{% else %}sm-table{% endif %} table-hover">
 	<thead>
 		<tr>
 			<th>Name (EN)</th>
