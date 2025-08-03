@@ -123,7 +123,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch_modules
-		.set_filterable_attributes(&["post_id", "module_id"])
+		.set_filterable_attributes(&["post_id", "module_id", "chara", "cos.id", "cos.items.id"])
 		.await
 		.unwrap();
 	meilisearch_modules

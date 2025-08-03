@@ -704,9 +704,19 @@ async fn post_detail(
 			.iter()
 			.map(|module| {
 				format!(
-					"(module_id={} AND post_id!={})",
+					"module_id={} OR (chara={} AND (cos.id={} OR {}))",
 					module.id,
-					module.post.unwrap_or(-1)
+					serde_json::to_string(&module.module.chara).unwrap(),
+					module.module.cos.id,
+					module
+						.module
+						.cos
+						.items
+						.iter()
+						.filter(|item| item.id > 1000)
+						.map(|item| format!("cos.items.id={}", item.id))
+						.intersperse(String::from(" OR "))
+						.collect::<String>(),
 				)
 			})
 			.intersperse(String::from(" OR "))
@@ -715,7 +725,7 @@ async fn post_detail(
 		let Json(conflicting_modules) = search_modules(
 			Query(SearchParams {
 				query: None,
-				filter: Some(filter),
+				filter: Some(format!("({}) AND post_id!={}", filter, post.id)),
 				limit: Some(u32::MAX as usize),
 				offset: Some(0),
 			}),
