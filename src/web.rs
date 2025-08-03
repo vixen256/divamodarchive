@@ -706,7 +706,9 @@ async fn post_detail(
 				format!(
 					"module_id={} OR (chara={} AND cos.id={})",
 					module.id,
-					serde_json::to_string(&module.module.chara).unwrap(),
+					serde_json::to_string(&module.module.chara)
+						.unwrap()
+						.trim_matches('\"'),
 					module.module.cos.id,
 				)
 			})
