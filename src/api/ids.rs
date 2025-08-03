@@ -2020,7 +2020,6 @@ pub async fn delete_reservation(
 	let reservered_ids = sqlx::query!(
 		r#"
 		SELECT * FROM reservations r
-		LEFT JOIN users u ON r.user_id = u.id
 		WHERE r.reservation_type = $1
 		AND r.user_id = $2
 		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
@@ -2614,7 +2613,6 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 		let reservered_ids = sqlx::query!(
 			r#"
 			SELECT * FROM reservations r
-			LEFT JOIN users u ON r.user_id = u.id
 			WHERE r.reservation_type = $1
 			AND r.user_id = $2
 			"#,
@@ -2752,6 +2750,11 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 			}
 		}
 
+		sqlx::query!("BEGIN WORK").execute(&state.db).await;
+		sqlx::query!("LOCK TABLE reservations")
+			.execute(&state.db)
+			.await;
+
 		_ = sqlx::query!(
 			r#"
 			UPDATE reservations r
@@ -2767,7 +2770,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 
 		for reservation in ranges {
 			_ = sqlx::query!(
-				"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
+				"INSERT INTO reservations(user_id, reservation_type, range_start, length, time) VALUES($1, $2, $3, $4, $5)",
 				reservation.user.id,
 				reservation.reservation_type as i32,
 				reservation.range_start,
@@ -2790,6 +2793,8 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 		)
 		.execute(&state.db)
 		.await;
+
+		sqlx::query!("COMMIT WORK").execute(&state.db).await;
 	}
 }
 
