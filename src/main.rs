@@ -31,6 +31,7 @@ pub struct AppState {
 
 #[tokio::main]
 async fn main() {
+	env_logger::init();
 	dotenvy::dotenv().expect(".env must exist");
 
 	let database_url = std::env::var("DATABASE_URL").expect("DATABASE_URL must exist");
