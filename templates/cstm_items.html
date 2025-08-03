@@ -199,7 +199,7 @@
 	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
-		var cstm_items = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("cstm_items").children.length);
+		var cstm_items = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("cstm_items").children.length / 2);
 		if (clear) {
 			document.getElementById("cstm_items").innerHTML = "";
 		}

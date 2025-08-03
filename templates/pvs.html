@@ -490,7 +490,7 @@
 	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
-		var pvs = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("pvs").children.length);
+		var pvs = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("pvs").children.length / 2);
 		if (clear) {
 			document.getElementById("pvs").innerHTML = "";
 		}

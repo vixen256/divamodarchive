@@ -217,7 +217,7 @@
 	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
-		var modules = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("modules").children.length);
+		var modules = await search(document.getElementById("searchQuery").value, clear ? 0 : document.getElementById("modules").children.length / 2);
 		if (clear) {
 			document.getElementById("modules").innerHTML = "";
 		}
