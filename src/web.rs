@@ -704,19 +704,10 @@ async fn post_detail(
 			.iter()
 			.map(|module| {
 				format!(
-					"module_id={} OR (chara={} AND (cos.id={} OR {}))",
+					"module_id={} OR (chara={} AND cos.id={})",
 					module.id,
 					serde_json::to_string(&module.module.chara).unwrap(),
 					module.module.cos.id,
-					module
-						.module
-						.cos
-						.items
-						.iter()
-						.filter(|item| item.id > 1000)
-						.map(|item| format!("cos.items.id={}", item.id))
-						.intersperse(String::from(" OR "))
-						.collect::<String>(),
 				)
 			})
 			.intersperse(String::from(" OR "))
