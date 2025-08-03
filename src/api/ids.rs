@@ -2750,10 +2750,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 			}
 		}
 
-		sqlx::query!("BEGIN WORK").execute(&state.db).await;
-		sqlx::query!("LOCK TABLE reservations")
-			.execute(&state.db)
-			.await;
+		_ = sqlx::query!("BEGIN WORK").execute(&state.db).await;
 
 		_ = sqlx::query!(
 			r#"
@@ -2794,7 +2791,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 		.execute(&state.db)
 		.await;
 
-		sqlx::query!("COMMIT WORK").execute(&state.db).await;
+		_ = sqlx::query!("COMMIT WORK").execute(&state.db).await;
 	}
 }
 
