@@ -1129,7 +1129,7 @@ async fn post_detail(
 	let requires_expatch = pvs
 		.pvs
 		.iter()
-		.any(|pv| (pv.levels[3].is_some() || pv.levels[4].is_some() && !pv.levels[2].is_none()));
+		.any(|pv| (pv.levels[3].is_some() || pv.levels[4].is_some()) && !pv.levels[2].is_none());
 
 	let requires_nc = nc_songs.nc_songs.iter().any(|nc_song| {
 		nc_songs.pvs.get(&nc_song.pv_id).map_or(false, |pvs| {
