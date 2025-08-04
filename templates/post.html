@@ -203,6 +203,17 @@
 </script>
 
 <div class="row align-items-md-stretch gap-3 m-1">
+	{% if requires_expatch || requires_nc %}
+	<div class="alert alert-danger mb-0">
+		{% if requires_expatch %}
+		<p>This mod contains songs that do not have a hard chart, <a href="https://github.com/nastys/ExPatch/releases/latest">ExPatch</a> must be installed to access these songs.</p>
+		{% endif %}
+		{% if requires_nc %}
+		<p>This mod contains songs that do not have an arcade chart, <a href="/post/169">New Classics</a> must be installed to access these songs.</p>
+		{% endif %}
+	</div>
+	{% endif %}
+
 	{% if
 		conflicting_pvs.pvs.len() > 0 ||
 		conflicting_modules.modules.len() > 0 ||

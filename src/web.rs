@@ -563,6 +563,8 @@ struct PostTemplate {
 	conflicting_objsets: BTreeMap<i32, Vec<(u32, String, String)>>,
 	conflicting_textures: BTreeMap<i32, Vec<(u32, String, String)>>,
 	conflicting_db_posts: BTreeMap<i32, Post>,
+	requires_expatch: bool,
+	requires_nc: bool,
 	body_markdown: String,
 }
 
@@ -1124,6 +1126,23 @@ async fn post_detail(
 		}
 	}
 
+	let requires_expatch = pvs
+		.pvs
+		.iter()
+		.any(|pv| (pv.levels[3].is_some() || pv.levels[4].is_some() && !pv.levels[2].is_none()));
+
+	let requires_nc = nc_songs.nc_songs.iter().any(|nc_song| {
+		nc_songs.pvs.get(&nc_song.pv_id).map_or(false, |pvs| {
+			pvs.iter().all(|pv| pv.post.unwrap_or(-1) != post.id)
+		}) || nc_song
+			.difficulties
+			.iter()
+			.filter_map(|difficulty| difficulty.clone())
+			.all(|difficulty| difficulty.arcade.is_none())
+	}) && !post.dependencies.as_ref().map_or(false, |dependencies| {
+		dependencies.iter().any(|post| post.id == 169)
+	});
+
 	let options = comrak::Options {
 		extension: comrak::ExtensionOptions::builder()
 			.strikethrough(true)
@@ -1173,6 +1192,8 @@ async fn post_detail(
 		conflicting_objsets,
 		conflicting_textures,
 		conflicting_db_posts,
+		requires_expatch,
+		requires_nc,
 		body_markdown,
 	})
 }
