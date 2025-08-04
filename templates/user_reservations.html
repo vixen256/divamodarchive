@@ -184,4 +184,46 @@
 	</tbody>
 </table>
 {% endif %}
+{% for (chara, reservations) in cos_reservations %}
+{% if reservations.len() > 0 %}
+<h1 class="text">{{ chara.to_string() }} Costumes</h1>
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Label</th>
+			<th>Time</th>
+			{% if is_owner %}
+			<th />
+			{% endif %}
+		</tr>
+	</thead>
+	<tbody>
+	{% for (id, reservation) in reservations %}
+		<tr id="Cos{{ chara.to_string() }}{{id}}">
+			<td>{{ id }}</td>
+			{% if is_owner %}
+				<td>
+					{% if let Some(label) = reservation.label %}
+						<input class="w-50" type="text" id="Cos{{ chara.to_string() }}{{ id }}Label" autocomplete="off" value="{{ label }}">
+					{% else %}
+						<input class="w-50" type="text" id="Cos{{ chara.to_string() }}{{ id }}Label" autocomplete="off">
+					{% endif %}
+					<button id="" class="btn btn-primary btn-sm" type="button" onclick="label_reservation('Cos{{ chara.to_string() }}', {{ id }})">Update</button>
+				</td>
+			{% else if let Some(label) = reservation.label %}
+				<td>{{ label | autolink }}</td>
+			{% else %}
+				<td />
+			{% endif %}
+			<td>{{ reservation.time.date() }}</td>
+			{% if is_owner %}
+			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Cos{{ chara.to_string() }}', {{ id }})">Delete</button></td>
+			{% endif %}
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endif %}
+{% endfor %}
 {% endblock content %}

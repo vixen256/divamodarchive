@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% import "base.html" as base %}
+
+{% block head %}
+{% call base::draw_embed("Customize Item Spreadsheet", "") %}
+{% endblock head %}
+
+{% block content %}
+<div class="row m-2">
+	<div class="col-md-3 offset-md-3">
+		<a class="btn btn-primary" style="width: 100%" href="/cstm_items">Search</a>
+	</div>
+	<div class="col-md-3">
+		<a class="btn btn-danger" style="width: 100%" href="/reserve">Reserve IDs</a>
+	</div>
+</div>
+<table class="table table-sm table-striped table-bordered">
+	<thead>
+		<tr>
+			<th>ID</th>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>Source / Reservation Date</th>
+		</tr>
+	</thead>
+	<tbody>
+
+	{% if let Some((i, cstm_items)) = cstm_items.first_key_value() %}
+		<tr>
+			<td>{{ i }}</td>
+		{% for cstm_item in cstm_items %}
+				{% if !loop.first %}
+		</tr>
+		<tr>
+			<td>{{ i }}</td>
+			{% endif %}
+			<td>{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(String::new() | ref) }}</td>
+			<td>{{ cstm_item.cstm_item.name_jp.as_ref().unwrap_or(String::new() | ref) }}</td>
+			<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+			{% endfor %}
+		</tr>
+	{% endif %}
+
+	{% for ((last, _), (next, cstm_items)) in cstm_items.iter().zip(cstm_items.iter().skip(1)) %}
+		{% for i in (*last + 1)..(*next) %}
+		{% if let Some(reservation) = reservations.get(i) %}
+		<tr>
+			<td>{{ i }}</td>
+			{% if let Some(user) = users.get(reservation.user) %}
+			<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+			{% else %}
+			<td class="red-background">Reserved</td>
+			{% endif %}
+			{% if let Some(label) = reservation.label %}
+			<td class="red-background">{{ label | autolink }}</td>
+			{% else %}
+			<td class="red-background"/>
+			{% endif %}
+			<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		{% else if i <= 10000 %}
+		<tr>
+			<td>{{ i }}</td>
+			<td />
+			<td />
+			<td>Unused</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+
+		<tr>
+			<td>{{ next }}</td>
+			{% if let Some(reservation) = reservations.get(next) %}
+				{% if let Some(user) = users.get(reservation.user) %}
+				<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+				{% else %}
+				<td class="red-background">Reserved</td>
+				{% endif %}
+				{% if let Some(label) = reservation.label %}
+				<td class="red-background">{{ label | autolink }}</td>
+				{% else %}
+				<td class="red-background"/>
+				{% endif %}
+				<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		<tr>
+				<td>{{ next }}</td>
+			{% endif %}
+
+			{% for cstm_item in cstm_items %}
+				{% if !loop.first %}
+		</tr>
+		<tr>
+				<td>{{ next }}</td>
+				{% endif %}
+				<td>{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(String::new() | ref) }}</td>
+				<td>{{ cstm_item.cstm_item.name_jp.as_ref().unwrap_or(String::new() | ref) }}</td>
+				<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+			{% endfor %}
+		</tr>
+	{% endfor %}
+	</tbody>
+</table>
+{% endblock content %}

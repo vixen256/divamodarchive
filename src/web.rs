@@ -32,6 +32,19 @@ pub fn route(state: AppState) -> Router {
 		.route("/modules", get(modules))
 		.route("/cstm_items", get(cstm_items))
 		.route("/pv_spreadsheet", get(pv_spreadsheet))
+		.route("/module_spreadsheet", get(module_spreadsheet))
+		.route("/cos_spreadsheet/miku", get(miku_cos_spreadsheet))
+		.route("/cos_spreadsheet/rin", get(rin_cos_spreadsheet))
+		.route("/cos_spreadsheet/len", get(len_cos_spreadsheet))
+		.route("/cos_spreadsheet/luka", get(luka_cos_spreadsheet))
+		.route("/cos_spreadsheet/neru", get(neru_cos_spreadsheet))
+		.route("/cos_spreadsheet/haku", get(haku_cos_spreadsheet))
+		.route("/cos_spreadsheet/kaito", get(kaito_cos_spreadsheet))
+		.route("/cos_spreadsheet/meiko", get(meiko_cos_spreadsheet))
+		.route("/cos_spreadsheet/sakine", get(sakine_cos_spreadsheet))
+		.route("/cos_spreadsheet/teto", get(teto_cos_spreadsheet))
+		.route("/cos_spreadsheet/extra", get(extra_cos_spreadsheet))
+		.route("/cstm_item_spreadsheet", get(cstm_item_spreadsheet))
 		.route("/sprite_spreadsheet", get(sprite_spreadsheet))
 		.route("/aet_spreadsheet", get(aet_spreadsheet))
 		.route("/objset_spreadsheet", get(objset_spreadsheet))
@@ -371,6 +384,7 @@ struct UserReservationsTemplate {
 	song_reservations: BTreeMap<i32, Reservation>,
 	module_reservations: BTreeMap<i32, Reservation>,
 	cstm_item_reservations: BTreeMap<i32, Reservation>,
+	cos_reservations: BTreeMap<module_db::Chara, BTreeMap<i32, Reservation>>,
 }
 
 async fn user_reservations(
@@ -485,43 +499,103 @@ async fn user_reservations(
 	})
 	.collect::<BTreeMap<_, _>>();
 
+	let mut cos_reservations = BTreeMap::new();
+	for chara in (module_db::Chara::Miku as i32)..=(module_db::Chara::Extra as i32) {
+		let module_chara = module_db::Chara::try_from(chara).unwrap();
+		cos_reservations.insert(module_chara, sqlx::query!(
+			"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
+			chara + 10,
+			owner.id
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default()
+		.iter()
+		.flat_map(|reservation| {
+			if !users.contains_key(&reservation.user_id) {
+				users.insert(
+					reservation.user_id,
+					User {
+						id: reservation.user_id,
+						name: reservation.name.clone(),
+						avatar: reservation.avatar.clone(),
+						display_name: reservation.display_name.clone(),
+						public_likes: reservation.public_likes,
+						theme: reservation.theme.into(),
+					},
+				);
+			}
+			(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+				(
+					i,
+					Reservation {
+						user: reservation.user_id,
+						reservation_type: reservation.reservation_type.into(),
+						time: reservation.time.assume_offset(time::UtcOffset::UTC),
+						label: None,
+					},
+				)
+			})
+		})
+		.collect::<BTreeMap<_, _>>());
+	}
+
 	for record in sqlx::query!(
-		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl"
+		"SELECT * FROM reservation_labels rl WHERE rl.user_id = $1",
+		owner.id,
 	)
 	.fetch_all(&state.db)
 	.await
 	.unwrap_or_default()
 	{
 		let reservation_type: ReservationType = record.reservation_type.into();
-		match reservation_type {
+		let reservation = match reservation_type {
 			ReservationType::Song => {
 				let Some(reservation) = song_reservations.get_mut(&record.id) else {
 					continue;
 				};
-				if reservation.user != record.user_id {
-					continue;
-				};
-				reservation.label = Some(record.label.clone());
+				reservation
 			}
 			ReservationType::Module => {
 				let Some(reservation) = module_reservations.get_mut(&record.id) else {
 					continue;
 				};
-				if reservation.user != record.user_id {
-					continue;
-				};
-				reservation.label = Some(record.label.clone());
+				reservation
 			}
 			ReservationType::CstmItem => {
 				let Some(reservation) = cstm_item_reservations.get_mut(&record.id) else {
 					continue;
 				};
-				if reservation.user != record.user_id {
+				reservation
+			}
+			ReservationType::CosMiku
+			| ReservationType::CosRin
+			| ReservationType::CosLen
+			| ReservationType::CosLuka
+			| ReservationType::CosNeru
+			| ReservationType::CosHaku
+			| ReservationType::CosKaito
+			| ReservationType::CosMeiko
+			| ReservationType::CosSakine
+			| ReservationType::CosTeto
+			| ReservationType::CosExtra => {
+				let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
+				let Some(reservations) = cos_reservations.get_mut(&chara) else {
+					println!("Couldnt get chara {}", chara.to_string());
 					continue;
 				};
-				reservation.label = Some(record.label.clone());
+				let Some(reservation) = reservations.get_mut(&record.id) else {
+					println!(
+						"Couldnt get reservation {}, {}",
+						chara.to_string(),
+						record.id
+					);
+					continue;
+				};
+				reservation
 			}
-		}
+		};
+		reservation.label = Some(record.label.clone());
 	}
 
 	Ok(UserReservationsTemplate {
@@ -530,6 +604,7 @@ async fn user_reservations(
 		song_reservations,
 		module_reservations,
 		cstm_item_reservations,
+		cos_reservations,
 	})
 }
 
@@ -1372,9 +1447,8 @@ struct PvSpreadsheet {
 	base: BaseTemplate,
 	reservations: HashMap<i32, Reservation>,
 	users: HashMap<i64, User>,
-	pvs: HashMap<i32, Vec<Pv>>,
+	pvs: BTreeMap<i32, Vec<Pv>>,
 	posts: BTreeMap<i32, Post>,
-	last: i32,
 }
 
 async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> PvSpreadsheet {
@@ -1416,7 +1490,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	})
 	.collect::<HashMap<_, _>>();
 
-	let mut pvs: HashMap<i32, Vec<Pv>> = HashMap::new();
+	let mut pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
 
 	if let Ok(search) =
@@ -1473,24 +1547,409 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 		}
 	}
 
-	let reservation_set = reservations.keys().collect::<BTreeSet<_>>();
-	let largest_reservation = reservation_set.last().unwrap_or(&&1000);
-	let pv_set = pvs.keys().collect::<BTreeSet<_>>();
-	let largest_pv = pv_set.last().unwrap_or(&&1000);
-
-	let last = if largest_reservation >= largest_pv {
-		**largest_reservation
-	} else {
-		**largest_pv
-	};
-
 	PvSpreadsheet {
 		base,
 		reservations,
 		users,
 		pvs,
 		posts,
-		last,
+	}
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "module_spreadsheet.html")]
+struct ModuleSpreadsheet {
+	base: BaseTemplate,
+	reservations: HashMap<i32, Reservation>,
+	users: HashMap<i64, User>,
+	modules: BTreeMap<i32, Vec<Module>>,
+	posts: BTreeMap<i32, Post>,
+}
+
+async fn module_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> ModuleSpreadsheet {
+	let mut users = HashMap::new();
+
+	let mut reservations = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		ReservationType::Module as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
+	})
+	.collect::<HashMap<_, _>>();
+
+	let mut modules: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
+
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("modules"))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchModule>()
+			.await
+	{
+		for module in search.results {
+			let post = if module.post_id == -1 {
+				None
+			} else if let Some(post) = posts.get(&module.post_id) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(module.post_id, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			let module = Module {
+				uid: BASE64_STANDARD.encode(module.uid.to_ne_bytes()),
+				post,
+				id: module.module_id,
+				module: module.module,
+			};
+
+			if let Some(original) = modules.get_mut(&module.id) {
+				original.push(module);
+			} else {
+				modules.insert(module.id, vec![module]);
+			}
+		}
+	};
+
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl WHERE reservation_type = $1",
+		ReservationType::Module as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	{
+		if let Some(reservation) = reservations.get_mut(&record.id) {
+			if reservation.user != record.user_id
+			{
+				continue;
+			};
+			reservation.label = Some(record.label.clone());
+		}
+	}
+
+	ModuleSpreadsheet {
+		base,
+		reservations,
+		users,
+		modules,
+		posts,
+	}
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "cos_spreadsheet.html")]
+struct CosSpreadsheet {
+	base: BaseTemplate,
+	chara: module_db::Chara,
+	reservations: HashMap<i32, Reservation>,
+	users: HashMap<i64, User>,
+	costumes: BTreeMap<i32, Vec<Module>>,
+	posts: BTreeMap<i32, Post>,
+}
+
+async fn miku_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Miku, state).await
+}
+
+async fn rin_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Rin, state).await
+}
+
+async fn len_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Len, state).await
+}
+
+async fn luka_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Luka, state).await
+}
+
+async fn neru_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Neru, state).await
+}
+
+async fn haku_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Haku, state).await
+}
+
+async fn kaito_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Kaito, state).await
+}
+
+async fn meiko_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Meiko, state).await
+}
+
+async fn sakine_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Sakine, state).await
+}
+
+async fn teto_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Teto, state).await
+}
+
+async fn extra_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+	cos_spreadsheet(base, module_db::Chara::Extra, state).await
+}
+
+async fn cos_spreadsheet(
+	base: BaseTemplate,
+	chara: module_db::Chara,
+	state: AppState,
+) -> CosSpreadsheet {
+	let mut users = HashMap::new();
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
+
+	let mut costumes: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
+
+	let mut reservations: HashMap<i32, Reservation> = 
+		sqlx::query!(
+			"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+			chara.clone() as i32 + 10,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default()
+		.iter()
+		.flat_map(|reservation| {
+			if !users.contains_key(&reservation.user_id) {
+				users.insert(
+					reservation.user_id,
+					User {
+						id: reservation.user_id,
+						name: reservation.name.clone(),
+						avatar: reservation.avatar.clone(),
+						display_name: reservation.display_name.clone(),
+						public_likes: reservation.public_likes,
+						theme: reservation.theme.into(),
+					},
+				);
+			}
+			(reservation.range_start..(reservation.range_start + reservation.length)).map(
+				move |i| {
+					(
+						i,
+						Reservation {
+							user: reservation.user_id,
+							reservation_type: reservation.reservation_type.into(),
+							time: reservation.time.assume_offset(time::UtcOffset::UTC),
+							label: None,
+						},
+					)
+				},
+			)
+		})
+		.collect::<HashMap<_, _>>();
+
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("modules"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!(
+				"chara={}",
+				serde_json::to_string(&chara).unwrap().trim_matches('\"'),
+			))
+			.execute::<MeilisearchModule>()
+			.await
+	{
+		for module in search.results {
+			let post = if module.post_id == -1 {
+				None
+			} else if let Some(post) = posts.get(&module.post_id) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(module.post_id, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			let module = Module {
+				uid: BASE64_STANDARD.encode(module.uid.to_ne_bytes()),
+				post,
+				id: module.module_id,
+				module: module.module,
+			};
+
+			if let Some(original) = costumes.get_mut(&module.module.cos.id) {
+				original.push(module);
+			} else {
+				costumes.insert(module.module.cos.id, vec![module]);
+			}
+		}
+	};
+
+	for record in sqlx::query!(
+			"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl WHERE reservation_type = $1",
+			chara.clone() as i32 + 10,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default()
+		{
+				if let Some(reservation) = reservations.get_mut(&record.id) {
+					if reservation.user != record.user_id
+					{
+						continue;
+					};
+					reservation.label = Some(record.label.clone());
+				}
+			
+		}
+
+	CosSpreadsheet {
+		base,
+		chara,
+		reservations,
+		users,
+		costumes,
+		posts,
+	}
+}
+
+#[derive(Template, WebTemplate)]
+#[template(path = "cstm_item_spreadsheet.html")]
+struct CstmItemSpreadsheet {
+	base: BaseTemplate,
+	reservations: HashMap<i32, Reservation>,
+	users: HashMap<i64, User>,
+	cstm_items: BTreeMap<i32, Vec<CstmItem>>,
+	posts: BTreeMap<i32, Post>,
+}
+
+async fn cstm_item_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> CstmItemSpreadsheet {
+	let mut users = HashMap::new();
+
+	let mut reservations = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		ReservationType::CstmItem as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
+				},
+			)
+		})
+	})
+	.collect::<HashMap<_, _>>();
+
+	let mut cstm_items: BTreeMap<i32, Vec<CstmItem>> = BTreeMap::new();
+	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
+
+	if let Ok(search) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("cstm_items"))
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchCstmItem>()
+			.await
+	{
+		for cstm_item in search.results {
+			let post = if cstm_item.post_id == -1 {
+				None
+			} else if let Some(post) = posts.get(&cstm_item.post_id) {
+				Some(post.id)
+			} else if let Some(post) = Post::get_full(cstm_item.post_id, &state.db).await {
+				posts.insert(post.id, post.clone());
+				Some(post.id)
+			} else {
+				None
+			};
+
+			let cstm_item = CstmItem {
+				uid: BASE64_STANDARD.encode(cstm_item.uid.to_ne_bytes()),
+				post,
+				id: cstm_item.customize_item_id,
+				cstm_item: cstm_item.customize_item,
+			};
+
+			if let Some(original) = cstm_items.get_mut(&cstm_item.id) {
+				original.push(cstm_item);
+			} else {
+				cstm_items.insert(cstm_item.id, vec![cstm_item]);
+			}
+		}
+	};
+
+	for record in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label, rl.reservation_type FROM reservation_labels rl WHERE reservation_type = $1",
+		ReservationType::CstmItem as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	{
+		if let Some(reservation) = reservations.get_mut(&record.id) {
+			if reservation.user != record.user_id
+			{
+				continue;
+			};
+			reservation.label = Some(record.label.clone());
+		}
+	}
+
+	CstmItemSpreadsheet {
+		base,
+		reservations,
+		users,
+		cstm_items,
+		posts,
 	}
 }
 

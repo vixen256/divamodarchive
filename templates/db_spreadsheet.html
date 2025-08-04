@@ -17,7 +17,27 @@
 	</thead>
 	<tbody>
 
-	{% for entry in entries %}
+	{% if let Some(entry) = entries.first() %}
+		<tr>
+			<td>{{ entry.id }}</td>
+			<td>{{ entry.name }}</td>
+			<td>{% if entry.post_id != -1 && posts.contains_key(entry.post_id) %}<a href="/post/{{ entry.post_id }}">{{ posts[entry.post_id | ref].name }}</a>{% else %}MM+{% endif %}</td>
+		</tr>
+	{% endif %}
+
+	{% for (last, entry) in entries.iter().zip(entries.iter().skip(1)) %}
+		{% if entry.id <= 10000 %}
+		{% for i in (last.id + 1)..entry.id %}
+		{% if i <= 10000 %}
+		<tr>
+			<td>{{ i }}</td>
+			<td />
+			<td>Unused</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+		{% endif %}
+
 		<tr>
 			<td>{{ entry.id }}</td>
 			<td>{{ entry.name }}</td>

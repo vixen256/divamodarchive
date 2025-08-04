@@ -1870,6 +1870,17 @@ pub enum ReservationType {
 	Song = 0,
 	Module = 1,
 	CstmItem = 2,
+	CosMiku = 10,
+	CosRin = 11,
+	CosLen = 12,
+	CosLuka = 13,
+	CosNeru = 14,
+	CosHaku = 15,
+	CosKaito = 16,
+	CosMeiko = 17,
+	CosSakine = 18,
+	CosTeto = 19,
+	CosExtra = 20,
 }
 
 impl From<i32> for ReservationType {
@@ -1877,6 +1888,17 @@ impl From<i32> for ReservationType {
 		match value {
 			1 => Self::Module,
 			2 => Self::CstmItem,
+			10 => Self::CosMiku,
+			11 => Self::CosRin,
+			12 => Self::CosLen,
+			13 => Self::CosLuka,
+			14 => Self::CosNeru,
+			15 => Self::CosHaku,
+			16 => Self::CosKaito,
+			17 => Self::CosMeiko,
+			18 => Self::CosSakine,
+			19 => Self::CosTeto,
+			20 => Self::CosExtra,
 			_ => Self::Song,
 		}
 	}
@@ -2305,6 +2327,42 @@ pub async fn check_reserve_range(
 					.collect::<BTreeMap<_, _>>()
 			})
 		}
+		ReservationType::CosMiku
+		| ReservationType::CosRin
+		| ReservationType::CosLen
+		| ReservationType::CosLuka
+		| ReservationType::CosNeru
+		| ReservationType::CosHaku
+		| ReservationType::CosKaito
+		| ReservationType::CosMeiko
+		| ReservationType::CosSakine
+		| ReservationType::CosTeto
+		| ReservationType::CosExtra => {
+			let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
+			let index = state.meilisearch.index("modules");
+
+			let filter = (start..(start + length))
+				.map(|id| format!("cos.id={id}"))
+				.intersperse(String::from(" OR "))
+				.collect::<String>();
+
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!(
+					"({filter}) AND chara={}",
+					serde_json::to_string(&chara).unwrap().trim_matches('\"'),
+				))
+				.execute::<MeilisearchModule>()
+				.await;
+
+			search.map_or(BTreeMap::new(), |search| {
+				search
+					.results
+					.into_iter()
+					.map(|module| (module.module.cos.id, module.post_id))
+					.collect::<BTreeMap<_, _>>()
+			})
+		}
 	};
 
 	let mut partial_range = Vec::new();
@@ -2323,9 +2381,10 @@ pub async fn check_reserve_range(
 	}
 
 	let conflicts = sqlx::query!(
-		"SELECT u.id, r.range_start, r.length FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE (r.range_start = $1 OR r.range_start + r.length > $1) AND r.range_start < $2",
+		"SELECT u.id, r.range_start, r.length FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE (r.range_start = $1 OR r.range_start + r.length > $1) AND r.range_start < $2 AND r.reservation_type = $3",
 		start,
-		(start + length)
+		(start + length),
+		reservation_type as i32,
 	)
 	.fetch_all(&state.db)
 	.await
@@ -2435,6 +2494,43 @@ pub async fn get_user_uploads(
 						.results
 						.into_iter()
 						.map(|cstm_item| cstm_item.customize_item_id)
+						.collect::<BTreeSet<_>>()
+				})
+			}
+			ReservationType::CosMiku
+			| ReservationType::CosRin
+			| ReservationType::CosLen
+			| ReservationType::CosLuka
+			| ReservationType::CosNeru
+			| ReservationType::CosHaku
+			| ReservationType::CosKaito
+			| ReservationType::CosMeiko
+			| ReservationType::CosSakine
+			| ReservationType::CosTeto
+			| ReservationType::CosExtra => {
+				let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
+				let index = state.meilisearch.index("modules");
+
+				let filter = user_posts
+					.iter()
+					.map(|post| format!("post_id={}", post.post_id))
+					.intersperse(String::from(" OR "))
+					.collect::<String>();
+
+				let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+					.with_limit(u32::MAX as usize)
+					.with_filter(&format!(
+						"({filter}) AND chara={}",
+						serde_json::to_string(&chara).unwrap().trim_matches('\"'),
+					))
+					.execute::<MeilisearchModule>()
+					.await;
+
+				search.map_or(BTreeSet::new(), |search| {
+					search
+						.results
+						.into_iter()
+						.map(|module| module.module.cos.id)
 						.collect::<BTreeSet<_>>()
 				})
 			}
@@ -2563,6 +2659,37 @@ pub async fn find_reservable_range(
 					.results
 					.into_iter()
 					.map(|cstm_item| cstm_item.customize_item_id)
+					.collect::<BTreeSet<_>>()
+			})
+		}
+		ReservationType::CosMiku
+		| ReservationType::CosRin
+		| ReservationType::CosLen
+		| ReservationType::CosLuka
+		| ReservationType::CosNeru
+		| ReservationType::CosHaku
+		| ReservationType::CosKaito
+		| ReservationType::CosMeiko
+		| ReservationType::CosSakine
+		| ReservationType::CosTeto
+		| ReservationType::CosExtra => {
+			let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
+			let index = state.meilisearch.index("modules");
+
+			let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!(
+					"chara={}",
+					serde_json::to_string(&chara).unwrap().trim_matches('\"'),
+				))
+				.execute::<MeilisearchModule>()
+				.await;
+
+			search.map_or(BTreeSet::new(), |search| {
+				search
+					.results
+					.into_iter()
+					.map(|module| module.module.cos.id)
 					.collect::<BTreeSet<_>>()
 			})
 		}
@@ -2709,6 +2836,43 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 							.results
 							.into_iter()
 							.map(|cstm_item| cstm_item.customize_item_id)
+							.collect::<BTreeSet<_>>()
+					})
+				}
+				ReservationType::CosMiku
+				| ReservationType::CosRin
+				| ReservationType::CosLen
+				| ReservationType::CosLuka
+				| ReservationType::CosNeru
+				| ReservationType::CosHaku
+				| ReservationType::CosKaito
+				| ReservationType::CosMeiko
+				| ReservationType::CosSakine
+				| ReservationType::CosTeto
+				| ReservationType::CosExtra => {
+					let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
+					let index = state.meilisearch.index("modules");
+
+					let filter = user_posts
+						.iter()
+						.map(|post| format!("post_id={}", post.post_id))
+						.intersperse(String::from(" OR "))
+						.collect::<String>();
+
+					let search = meilisearch_sdk::documents::DocumentsQuery::new(&index)
+						.with_limit(u32::MAX as usize)
+						.with_filter(&format!(
+							"({filter}) AND chara={}",
+							serde_json::to_string(&chara).unwrap().trim_matches('\"'),
+						))
+						.execute::<MeilisearchModule>()
+						.await;
+
+					search.map_or(BTreeSet::new(), |search| {
+						search
+							.results
+							.into_iter()
+							.map(|module| module.module.cos.id)
 							.collect::<BTreeSet<_>>()
 					})
 				}

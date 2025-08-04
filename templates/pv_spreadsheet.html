@@ -3,11 +3,6 @@
 
 {% block head %}
 {% call base::draw_embed("PV Spreadsheet", "") %}
-<style>
-	.red-background {
-		background-color: #FF6D6D !important;
-	}
-</style>
 {% endblock head %}
 
 {% block content %}
@@ -30,41 +25,25 @@
 	</thead>
 	<tbody>
 
-	{% for i in 1..=last %}
-	{% if i != 700 && i != 701 && i != 988 && i != 999 %}
-	{% if let Some(pvs) = pvs.get(i) %}
+	{% if let Some((i, pvs)) = pvs.first_key_value() %}
 		<tr>
 			<td>{{ i }}</td>
-
-			{% if let Some(reservation) = reservations.get(i) %}
-				{% if let Some(user) = users.get(reservation.user) %}
-				<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
-				{% else %}
-				<td class="red-background">Reserved</td>
-				{% endif %}
-				{% if let Some(label) = reservation.label %}
-				<td class="red-background">{{ label | autolink }}</td>
-				{% else %}
-				<td class="red-background"/>
-				{% endif %}
-				<td class="red-background">{{ reservation.time.date() }}</td>
+		{% for pv in pvs %}
+				{% if !loop.first %}
 		</tr>
 		<tr>
-				<td>{{ i }}</td>
+			<td>{{ i }}</td>
 			{% endif %}
-
-			{% for pv in pvs %}
-				{% if !loop.first %}
-					</tr>
-					<tr>
-					<td>{{ i }}</td>
-				{% endif %}
-				<td>{{ pv.name_en }}</td>
-				<td>{{ pv.name }}</td>
-				<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+			<td>{{ pv.name_en }}</td>
+			<td>{{ pv.name }}</td>
+			<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 			{% endfor %}
 		</tr>
-	{% else if let Some(reservation) = reservations.get(i) %}
+	{% endif %}
+
+	{% for ((last, _), (next, pvs)) in pvs.iter().zip(pvs.iter().skip(1)) %}
+		{% for i in (*last + 1)..(*next) %}
+		{% if let Some(reservation) = reservations.get(i) %}
 		<tr>
 			<td>{{ i }}</td>
 			{% if let Some(user) = users.get(reservation.user) %}
@@ -79,16 +58,47 @@
 			{% endif %}
 			<td class="red-background">{{ reservation.time.date() }}</td>
 		</tr>
-	{% else if i <= 10000 %}
+		{% else if i <= 10000 %}
 		<tr>
 			<td>{{ i }}</td>
 			<td />
 			<td />
 			<td>Unused</td>
 		</tr>
-	{% endif %}
-	{% endif %}
+		{% endif %}
+		{% endfor %}
+
+		<tr>
+			<td>{{ next }}</td>
+			{% if let Some(reservation) = reservations.get(next) %}
+				{% if let Some(user) = users.get(reservation.user) %}
+				<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+				{% else %}
+				<td class="red-background">Reserved</td>
+				{% endif %}
+				{% if let Some(label) = reservation.label %}
+				<td class="red-background">{{ label | autolink }}</td>
+				{% else %}
+				<td class="red-background"/>
+				{% endif %}
+				<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		<tr>
+				<td>{{ next }}</td>
+			{% endif %}
+
+			{% for pv in pvs %}
+				{% if !loop.first %}
+		</tr>
+		<tr>
+				<td>{{ next }}</td>
+				{% endif %}
+				<td>{{ pv.name_en }}</td>
+				<td>{{ pv.name }}</td>
+				<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+			{% endfor %}
+		</tr>
 	{% endfor %}
 	</tbody>
 </table>
-{% endblock content %}	
+{% endblock content %}
