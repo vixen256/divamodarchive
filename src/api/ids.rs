@@ -2098,50 +2098,54 @@ pub async fn delete_reservation(
 		}
 	}
 
-	_ = sqlx::query!(
-		r#"
-		UPDATE reservations r
-		SET time = '2000-01-01'
-		WHERE r.reservation_type = $1
-		AND r.user_id = $2
-		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
-		"#,
-		query.reservation_type as i32,
-		user.id,
-		query.start,
-		(query.start + query.length)
-	)
-	.execute(&state.db)
-	.await;
-
-	for reservation in ranges {
+	if let Ok(mut transaction) = state.db.begin().await {
 		_ = sqlx::query!(
-			"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
-			reservation.user.id,
-			reservation.reservation_type as i32,
-			reservation.range_start,
-			reservation.length,
-			time::PrimitiveDateTime::new(reservation.time.date(), reservation.time.time()),
+			r#"
+			UPDATE reservations r
+			SET time = '2000-01-01'
+			WHERE r.reservation_type = $1
+			AND r.user_id = $2
+			AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+			"#,
+			query.reservation_type as i32,
+			user.id,
+			query.start,
+			(query.start + query.length)
 		)
-		.execute(&state.db)
+		.execute(&mut *transaction)
 		.await;
-	}
 
-	_ = sqlx::query!(
-		r#"
-		DELETE FROM reservations r
-		WHERE time = '2000-01-01'
-		AND r.reservation_type = $1
-		AND r.user_id = $2
-		AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
-		"#,
-		query.reservation_type as i32,
-		user.id,
-		query.start,
-		(query.start + query.length)
-	)
-	.execute(&state.db)
-	.await;
+		for reservation in ranges {
+			_ = sqlx::query!(
+				"INSERT INTO reservations VALUES($1, $2, $3, $4, $5)",
+				reservation.user.id,
+				reservation.reservation_type as i32,
+				reservation.range_start,
+				reservation.length,
+				time::PrimitiveDateTime::new(reservation.time.date(), reservation.time.time()),
+			)
+			.execute(&mut *transaction)
+			.await;
+		}
+
+		_ = sqlx::query!(
+			r#"
+			DELETE FROM reservations r
+			WHERE time = '2000-01-01'
+			AND r.reservation_type = $1
+			AND r.user_id = $2
+			AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
+			"#,
+			query.reservation_type as i32,
+			user.id,
+			query.start,
+			(query.start + query.length)
+		)
+		.execute(&mut *transaction)
+		.await;
+
+		_ = transaction.commit().await;
+	}
 }
 
 #[derive(Serialize, Deserialize)]
@@ -2911,11 +2915,11 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 		if let Ok(mut transaction) = state.db.begin().await {
 			_ = sqlx::query!(
 				r#"
-			UPDATE reservations r
-			SET time = '2000-01-01'
-			WHERE r.reservation_type = $1
-			AND r.user_id = $2
-			"#,
+				UPDATE reservations r
+				SET time = '2000-01-01'
+				WHERE r.reservation_type = $1
+				AND r.user_id = $2
+				"#,
 				reservation_type as i32,
 				user.id,
 			)
@@ -2937,11 +2941,11 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 
 			_ = sqlx::query!(
 				r#"
-			DELETE FROM reservations r
-			WHERE time = '2000-01-01'
-			AND r.reservation_type = $1
-			AND r.user_id = $2
-			"#,
+				DELETE FROM reservations r
+				WHERE time = '2000-01-01'
+				AND r.reservation_type = $1
+				AND r.user_id = $2
+				"#,
 				reservation_type as i32,
 				user.id,
 			)
