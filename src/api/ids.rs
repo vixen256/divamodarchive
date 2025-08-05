@@ -1880,7 +1880,6 @@ pub enum ReservationType {
 	CosMeiko = 17,
 	CosSakine = 18,
 	CosTeto = 19,
-	CosExtra = 20,
 }
 
 impl From<i32> for ReservationType {
@@ -1898,7 +1897,6 @@ impl From<i32> for ReservationType {
 			17 => Self::CosMeiko,
 			18 => Self::CosSakine,
 			19 => Self::CosTeto,
-			20 => Self::CosExtra,
 			_ => Self::Song,
 		}
 	}
@@ -2336,8 +2334,7 @@ pub async fn check_reserve_range(
 		| ReservationType::CosKaito
 		| ReservationType::CosMeiko
 		| ReservationType::CosSakine
-		| ReservationType::CosTeto
-		| ReservationType::CosExtra => {
+		| ReservationType::CosTeto => {
 			let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
 			let index = state.meilisearch.index("modules");
 
@@ -2506,8 +2503,7 @@ pub async fn get_user_uploads(
 			| ReservationType::CosKaito
 			| ReservationType::CosMeiko
 			| ReservationType::CosSakine
-			| ReservationType::CosTeto
-			| ReservationType::CosExtra => {
+			| ReservationType::CosTeto => {
 				let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
 				let index = state.meilisearch.index("modules");
 
@@ -2671,8 +2667,7 @@ pub async fn find_reservable_range(
 		| ReservationType::CosKaito
 		| ReservationType::CosMeiko
 		| ReservationType::CosSakine
-		| ReservationType::CosTeto
-		| ReservationType::CosExtra => {
+		| ReservationType::CosTeto => {
 			let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
 			let index = state.meilisearch.index("modules");
 
@@ -2848,8 +2843,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 				| ReservationType::CosKaito
 				| ReservationType::CosMeiko
 				| ReservationType::CosSakine
-				| ReservationType::CosTeto
-				| ReservationType::CosExtra => {
+				| ReservationType::CosTeto => {
 					let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
 					let index = state.meilisearch.index("modules");
 

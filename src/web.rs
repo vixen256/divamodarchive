@@ -43,7 +43,6 @@ pub fn route(state: AppState) -> Router {
 		.route("/cos_spreadsheet/meiko", get(meiko_cos_spreadsheet))
 		.route("/cos_spreadsheet/sakine", get(sakine_cos_spreadsheet))
 		.route("/cos_spreadsheet/teto", get(teto_cos_spreadsheet))
-		.route("/cos_spreadsheet/extra", get(extra_cos_spreadsheet))
 		.route("/cstm_item_spreadsheet", get(cstm_item_spreadsheet))
 		.route("/sprite_spreadsheet", get(sprite_spreadsheet))
 		.route("/aet_spreadsheet", get(aet_spreadsheet))
@@ -500,7 +499,7 @@ async fn user_reservations(
 	.collect::<BTreeMap<_, _>>();
 
 	let mut cos_reservations = BTreeMap::new();
-	for chara in (module_db::Chara::Miku as i32)..=(module_db::Chara::Extra as i32) {
+	for chara in (module_db::Chara::Miku as i32)..=(module_db::Chara::Teto as i32) {
 		let module_chara = module_db::Chara::try_from(chara).unwrap();
 		cos_reservations.insert(module_chara, sqlx::query!(
 			"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1 AND r.user_id = $2",
@@ -1719,10 +1718,6 @@ async fn sakine_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState
 
 async fn teto_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
 	cos_spreadsheet(base, module_db::Chara::Teto, state).await
-}
-
-async fn extra_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
-	cos_spreadsheet(base, module_db::Chara::Extra, state).await
 }
 
 async fn cos_spreadsheet(
