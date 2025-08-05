@@ -576,8 +576,7 @@ async fn user_reservations(
 			| ReservationType::CosKaito
 			| ReservationType::CosMeiko
 			| ReservationType::CosSakine
-			| ReservationType::CosTeto
-			| ReservationType::CosExtra => {
+			| ReservationType::CosTeto => {
 				let chara = module_db::Chara::try_from(reservation_type as i32 - 10).unwrap();
 				let Some(reservations) = cos_reservations.get_mut(&chara) else {
 					println!("Couldnt get chara {}", chara.to_string());
