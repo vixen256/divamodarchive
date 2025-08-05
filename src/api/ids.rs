@@ -2908,23 +2908,22 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 			}
 		}
 
-		_ = sqlx::query!("BEGIN WORK").execute(&state.db).await;
-
-		_ = sqlx::query!(
-			r#"
+		if let Ok(mut transaction) = state.db.begin().await {
+			_ = sqlx::query!(
+				r#"
 			UPDATE reservations r
 			SET time = '2000-01-01'
 			WHERE r.reservation_type = $1
 			AND r.user_id = $2
 			"#,
-			reservation_type as i32,
-			user.id,
-		)
-		.execute(&state.db)
-		.await;
+				reservation_type as i32,
+				user.id,
+			)
+			.execute(&mut *transaction)
+			.await;
 
-		for reservation in ranges {
-			_ = sqlx::query!(
+			for reservation in ranges {
+				_ = sqlx::query!(
 				"INSERT INTO reservations(user_id, reservation_type, range_start, length, time) VALUES($1, $2, $3, $4, $5)",
 				reservation.user.id,
 				reservation.reservation_type as i32,
@@ -2932,24 +2931,25 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 				reservation.length,
 				time::PrimitiveDateTime::new(reservation.time.date(), reservation.time.time()),
 			)
-			.execute(&state.db)
+			.execute(&mut *transaction)
 			.await;
-		}
+			}
 
-		_ = sqlx::query!(
-			r#"
+			_ = sqlx::query!(
+				r#"
 			DELETE FROM reservations r
 			WHERE time = '2000-01-01'
 			AND r.reservation_type = $1
 			AND r.user_id = $2
 			"#,
-			reservation_type as i32,
-			user.id,
-		)
-		.execute(&state.db)
-		.await;
+				reservation_type as i32,
+				user.id,
+			)
+			.execute(&mut *transaction)
+			.await;
 
-		_ = sqlx::query!("COMMIT WORK").execute(&state.db).await;
+			_ = transaction.commit().await;
+		}
 	}
 }
 
