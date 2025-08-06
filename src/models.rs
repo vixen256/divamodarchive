@@ -1,4 +1,5 @@
 use crate::{AppState, Config};
+use askama::Template;
 use axum::RequestPartsExt;
 use axum::extract::*;
 use axum::http::{StatusCode, header::*, request::*};
@@ -467,11 +468,22 @@ impl User {
 	}
 }
 
-#[derive(askama::Template, askama_web::WebTemplate)]
+#[derive(askama::Template)]
 #[template(path = "error.html")]
 pub struct ErrorTemplate {
 	pub base: crate::web::BaseTemplate,
 	pub status: StatusCode,
+}
+
+impl IntoResponse for ErrorTemplate {
+	fn into_response(self) -> Response {
+		let mut headers = HeaderMap::new();
+		headers.insert(
+			CONTENT_TYPE,
+			HeaderValue::from_static("text/html; charset=utf-8"),
+		);
+		(self.status, headers, self.render().unwrap_or(String::new())).into_response()
+	}
 }
 
 impl<S> FromRequestParts<S> for User
