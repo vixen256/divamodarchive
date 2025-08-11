@@ -175,6 +175,25 @@
 </tbody>`;
 		}
 
+		html += `
+<thead>
+	<tr>
+		<td>Object</td>
+		<td />
+		<td />
+		<td />
+	</tr>
+</thead>
+<tbody>
+	<tr class="table-dark">
+		<td>${cstm_item.cstm_item.chara.replace("ALL", "CMN")}ITM${cstm_item.cstm_item.obj_id}</td>
+		<td />
+		<td />
+		<td />
+	</tr>
+</tbody>
+		`;
+
 		table.innerHTML = html;
 		card.appendChild(table);
 		collapsing.appendChild(card);

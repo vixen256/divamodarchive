@@ -98,6 +98,38 @@
 							</tbody>
 							{% endif %}
 							{% endif %}
+							<thead>
+								<tr>
+									<td>Object</td>
+									<td />
+									<td />
+									<td />
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>
+										{% match cstm_item.cstm_item.chara %}
+											{% when module_db::Chara::Miku %}MIKITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Rin %}RINITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Len %}LENITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Luka %}LUKITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Neru %}NERITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Haku %}HAKITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Kaito %}KAIITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Meiko %}MEIITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Sakine %}SAKITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Teto %}TETITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::Extra %}EXTITM{{ cstm_item.cstm_item.obj_id }}
+											{% when module_db::Chara::All %}CMNITM{{ cstm_item.cstm_item.obj_id }}
+										{% endmatch %}
+
+									</td>
+									<td />
+									<td />
+									<td />
+								</tr>
+							</tbody>
 						</table>
 					</div>
 				</div>
