@@ -206,7 +206,7 @@
 		var params = new URLSearchParams();
 		if (query != null) params.append("query", query);
 		if (offset != null) params.append("offset", offset);
-		params.append("limit", "20");
+		params.append("limit", "100");
 		var options = {
 			method: 'GET',
 		}
@@ -225,7 +225,7 @@
 			getModuleHtml(module, modules.posts);
 		}
 
-		if (modules.modules.length == 20) {
+		if (modules.modules.length == 100) {
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
@@ -238,6 +238,6 @@
 <br><br>
 {% call module_helpers::draw_module_list(modules, true) %}
 <br>
-<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if modules.modules.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if modules.modules.len() < 100 %}hidden{% endif %}>Load more</button>
 <br>
 {% endblock content %}

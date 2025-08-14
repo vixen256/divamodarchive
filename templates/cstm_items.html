@@ -207,7 +207,7 @@
 		var params = new URLSearchParams();
 		if (query != null) params.append("query", query);
 		if (offset != null) params.append("offset", offset);
-		params.append("limit", "20");
+		params.append("limit", "100");
 		var options = {
 			method: 'GET',
 		}
@@ -226,7 +226,7 @@
 			getCstmItemHtml(cstm_item, cstm_items.posts, cstm_items.bound_modules);
 		}
 
-		if (cstm_items.cstm_items.length == 20) {
+		if (cstm_items.cstm_items.length == 100) {
 			document.getElementById("loadMore").hidden = false;
 		}
 	}
@@ -239,6 +239,6 @@
 <br><br>
 {% call cstm_item_helpers::draw_cstm_items_list(cstm_items, true) %}
 <br>
-<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if cstm_items.cstm_items.len() < 20 %}hidden{% endif %}>Load more</button>
+<button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if cstm_items.cstm_items.len() < 100 %}hidden{% endif %}>Load more</button>
 <br>
 {% endblock content %}

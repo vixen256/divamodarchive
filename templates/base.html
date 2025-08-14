@@ -75,7 +75,7 @@
 			if (sort != null && sort != "" && sort != "time:desc") params.append("sort", sort);
 			if (filter != null && filter != "" && filter != "null") params.append("filter", filter);
 			if (offset != null && offset != 0) params.append("offset", offset);
-			params.append("limit", "20");
+			params.append("limit", "40");
 
 			return await fetch("/api/v1/posts?" + params.toString(), {method: 'GET'}).then(res => res.json());
 		}

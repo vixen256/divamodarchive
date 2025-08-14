@@ -1306,7 +1306,7 @@ async fn search(
 		FROM posts
 		WHERE private = false
 		ORDER BY time DESC
-		LIMIT 20
+		LIMIT 40
 		"#
 	)
 	.fetch_all(&state.db)
@@ -1382,7 +1382,7 @@ async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
 		Query(SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(20),
+			limit: Some(100),
 			offset: Some(0),
 		}),
 		State(state),
@@ -1405,7 +1405,7 @@ async fn modules(base: BaseTemplate, State(state): State<AppState>) -> ModulesTe
 		Query(SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(20),
+			limit: Some(100),
 			offset: Some(0),
 		}),
 		State(state),
@@ -1428,7 +1428,7 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 		Query(SearchParams {
 			query: None,
 			filter: None,
-			limit: Some(20),
+			limit: Some(100),
 			offset: Some(0),
 		}),
 		State(state),
