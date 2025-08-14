@@ -1220,7 +1220,7 @@ pub async fn user_settings(
 	user: User,
 	State(state): State<AppState>,
 	Json(settings): Json<UserSettings>,
-) {
+) -> axum::http::HeaderMap {
 	_ = sqlx::query!(
 		"UPDATE users SET display_name = $1, public_likes = $2, theme = $3 WHERE id = $4",
 		settings.display_name,
@@ -1230,4 +1230,12 @@ pub async fn user_settings(
 	)
 	.execute(&state.db)
 	.await;
+
+	let mut headers = axum::http::HeaderMap::new();
+	headers.insert(
+		"Clear-Site-Data",
+		axum::http::HeaderValue::from_str("\"cache\"").unwrap(),
+	);
+
+	headers
 }
