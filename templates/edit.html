@@ -567,7 +567,7 @@
 			<br>
 			<input class="form-check-input" type="checkbox" id="explicit" {% if post.explicit %}checked="true"{% endif %} onclick="document.getElementById('explicit_reason').hidden = !document.getElementById('explicit').checked">
 			<label class="form-check-label ms-1" for="explicit">Explicit</label>
-			<input {% if !post.explicit %}hidden{% endif %}class="w-100" type="text" id="explicit_reason" placeholder="Explicit reason" autocomplete="off" value="{% if let Some(explicit_reason) = post.explicit_reason %}{{ explicit_reason }}{% endif %}">
+			<input {% if !post.explicit %}hidden="true"{% endif %} class="w-100" type="text" id="explicit_reason" placeholder="Explicit reason" autocomplete="off" value="{% if let Some(explicit_reason) = post.explicit_reason %}{{ explicit_reason }}{% endif %}">
 		</div>
 
 		<button class="btn btn-info" onclick="updateMetadata()" type="button">Update</button>
