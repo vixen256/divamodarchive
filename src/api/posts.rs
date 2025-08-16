@@ -89,39 +89,46 @@ pub async fn remove_image(
 
 	let mut images = post.images;
 	let old_image = images.remove(index);
-	let Some(old_image) = old_image.trim_end_matches("/public").split("/").last() else {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	};
-
-	let cloudflare_url = format!(
-		"https://api.cloudflare.com/client/v4/accounts/{}/images/v1/{}",
-		state.config.cloudflare_account_id, old_image
-	);
-
-	let Ok(response) = reqwest::Client::new()
-		.delete(&cloudflare_url)
-		.header(
-			header::AUTHORIZATION.to_string(),
-			format!("Bearer {}", state.config.cloudflare_image_token),
-		)
+	if reqwest::Client::new()
+		.head(&old_image)
 		.send()
 		.await
-	else {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	};
+		.map_or(false, |res| res.status().is_success())
+	{
+		let Some(old_image) = old_image.trim_end_matches("/public").split("/").last() else {
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
+		};
 
-	if !response.status().is_success() {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	}
+		let cloudflare_url = format!(
+			"https://api.cloudflare.com/client/v4/accounts/{}/images/v1/{}",
+			state.config.cloudflare_account_id, old_image
+		);
 
-	let Ok(response) = response
-		.json::<CloudflareApiResponse<CloudflareEmpty>>()
-		.await
-	else {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
-	};
-	if !response.success {
-		return Err(StatusCode::INTERNAL_SERVER_ERROR);
+		let Ok(response) = reqwest::Client::new()
+			.delete(&cloudflare_url)
+			.header(
+				header::AUTHORIZATION.to_string(),
+				format!("Bearer {}", state.config.cloudflare_image_token),
+			)
+			.send()
+			.await
+		else {
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
+		};
+
+		if !response.status().is_success() {
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
+		}
+
+		let Ok(response) = response
+			.json::<CloudflareApiResponse<CloudflareEmpty>>()
+			.await
+		else {
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
+		};
+		if !response.success {
+			return Err(StatusCode::INTERNAL_SERVER_ERROR);
+		}
 	}
 
 	_ = sqlx::query!("UPDATE posts SET images=$1 WHERE id=$2", &images, post_id)
