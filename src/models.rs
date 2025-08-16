@@ -8,16 +8,19 @@ use axum_extra::extract::cookie::{Cookie, CookieJar};
 use jsonwebtoken::*;
 use serde::{Deserialize, Serialize};
 use std::collections::{BTreeMap, HashMap};
+use utoipa::ToSchema;
 
-#[derive(Serialize, Deserialize, Clone, Eq, Ord)]
+#[derive(Serialize, Deserialize, Clone, Eq, Ord, ToSchema)]
 pub struct User {
 	pub id: i64,
 	pub name: String,
 	pub avatar: String,
 	pub display_name: String,
 	#[serde(skip)]
+	#[schema(ignore)]
 	pub public_likes: bool,
 	#[serde(skip)]
+	#[schema(ignore)]
 	pub theme: Theme,
 }
 
@@ -57,7 +60,7 @@ pub struct Token {
 }
 
 #[repr(i32)]
-#[derive(PartialEq, Serialize, Deserialize, Clone)]
+#[derive(PartialEq, Serialize, Deserialize, Clone, ToSchema)]
 pub enum PostType {
 	Plugin = 0,
 	Module = 1,
@@ -93,7 +96,7 @@ impl std::fmt::Display for PostType {
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Post {
 	pub id: i32,
 	pub name: String,
@@ -106,8 +109,10 @@ pub struct Post {
 	pub download_count: i64,
 	pub like_count: i64,
 	pub authors: Vec<User>,
+	#[schema(no_recursion)]
 	pub dependencies: Option<Vec<Post>>,
 	#[serde(skip)]
+	#[schema(ignore)]
 	pub comments: Option<Comments>,
 	#[serde(rename = "file_names")]
 	pub local_files: Vec<String>,

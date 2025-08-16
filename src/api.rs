@@ -2,12 +2,29 @@ use crate::AppState;
 use axum::{Router, routing::*};
 use ids::*;
 use posts::*;
+use utoipa::OpenApi;
 
 pub mod ids;
 pub mod posts;
 
+#[derive(OpenApi)]
+#[openapi(paths(
+	search_posts,
+	count_posts,
+	get_post,
+	search_pvs,
+	search_modules,
+	search_cstm_items,
+	search_nc_songs,
+	all_pvs,
+	all_modules,
+	all_cstm_items
+))]
+struct ApiDoc;
+
 pub fn route(state: AppState) -> Router {
 	Router::new()
+		.merge(utoipa_swagger_ui::SwaggerUi::new("/api/v1").url("/api/v1.json", ApiDoc::openapi()))
 		.route("/api/v1/posts", get(search_posts).post(create_post))
 		.route("/api/v1/posts/count", get(count_posts))
 		.route(

@@ -7,6 +7,7 @@ use axum::{
 };
 use serde::{Deserialize, Serialize};
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
+use utoipa::IntoParams;
 
 #[derive(Serialize, Deserialize)]
 struct CloudflareDirectUploadResult {
@@ -760,6 +761,18 @@ pub async fn like(Path(id): Path<i32>, user: User, State(state): State<AppState>
 	StatusCode::OK
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/posts/{id}",
+	params(
+		("id" = i32, Path)
+	),
+	responses(
+		(status = 200, body = Post, content_type = "application/json"),
+		(status = 401),
+		(status = 404)
+	)
+)]
 pub async fn get_post(
 	Path(id): Path<i32>,
 	State(state): State<AppState>,
@@ -811,15 +824,32 @@ pub async fn get_multiple_posts(
 	search_posts(Query(params), State(state)).await
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, IntoParams)]
 pub struct SearchParams {
 	pub query: Option<String>,
+	/// One of time:desc, time:asc, like_count:desc, download_count:desc
 	pub sort: Option<String>,
+	/**
+	A meilisearch filter, such as `post_type = Plugin AND id != 100`
+	Attributes: post_type, id
+	post_type values are shown in the PostType schema, id is an i32
+	*/
 	pub filter: Option<String>,
 	pub limit: Option<usize>,
 	pub offset: Option<usize>,
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/posts",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = Vec<Post>, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn search_posts(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -853,7 +883,7 @@ pub async fn search_posts(
 	let posts = search
 		.execute::<Post>()
 		.await
-		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+		.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 	let posts = posts
 		.hits
@@ -884,6 +914,17 @@ pub async fn search_posts(
 	Ok(Json(vec))
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/posts/count",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = usize, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn count_posts(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -917,7 +958,7 @@ pub async fn count_posts(
 	let posts = search
 		.execute::<Post>()
 		.await
-		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+		.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 	Ok(Json(posts.estimated_total_hits.unwrap_or(0)))
 }

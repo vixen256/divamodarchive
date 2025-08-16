@@ -17,8 +17,8 @@ env_logger = "0.11"
 itertools = "0.14"
 jsonwebtoken = "9.3"
 meilisearch-sdk = "0.28"
-module_db = { git = "https://github.com/vixen256/module_db" }
-pv_db = { git = "https://github.com/vixen256/pv_db" }
+module_db = { git = "https://github.com/vixen256/module_db", features = ["utoipa"] }
+pv_db = { git = "https://github.com/vixen256/pv_db", features = ["utoipa"] }
 quick-xml = { version = "0.37", features = ["serialize"] }
 regex = "1.11"
 reqwest = { version = "0.12", features = ["json"] }
@@ -37,6 +37,8 @@ tokio = { version = "1.45", features = ["full"] }
 toml = "0.8"
 tower-http = { version = "0.6", features = ["full"] }
 url = "2.5"
+utoipa = { version = "5.4", features = ["axum_extras", "time"] }
+utoipa-swagger-ui = { version = "9.0", features = ["axum"] }
 walkdir = "2.5"
 
 [profile.dev.package.sqlx-macros]

@@ -7,10 +7,20 @@ use serde::{Deserialize, Serialize};
 use std::collections::*;
 use std::path::Path;
 use tokio::process::Command;
+use utoipa::{IntoParams, ToSchema};
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, IntoParams)]
 pub struct SearchParams {
 	pub query: Option<String>,
+	/**
+	A meilisearch filter, such as `post != 100`
+	Attributes depend on search
+	PVs: post, pv_id
+	Modules: post_id, module_id, chara, cos.id, cos.items.id
+	Cstm_items: post_id, customize_item_id
+	NC Songs: post_id, pv_id
+	Sprites/Aets/Objsets/Textures: post_id, id, name
+	*/
 	pub filter: Option<String>,
 	pub limit: Option<usize>,
 	pub offset: Option<usize>,
@@ -54,14 +64,14 @@ pub struct MeilisearchNcSong {
 	pub difficulties: [Option<MeilisearchNcDifficulty>; 5],
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct MeilisearchNcDifficulty {
 	pub arcade: Option<MeilisearchNcChart>,
 	pub console: Option<MeilisearchNcChart>,
 	pub mixed: Option<MeilisearchNcChart>,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct MeilisearchNcChart {
 	// If is none its inhereted from the songs existing pv_db
 	pub level: Option<pv_db::Level>,
@@ -839,7 +849,7 @@ pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()
 	Some(())
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct Pv {
 	pub uid: String,
 	pub post: Option<i32>,
@@ -976,7 +986,7 @@ impl Pv {
 	}
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct Module {
 	pub uid: String,
 	pub post: Option<i32>,
@@ -984,7 +994,7 @@ pub struct Module {
 	pub module: module_db::Module,
 }
 
-#[derive(Serialize, Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone, ToSchema)]
 pub struct CstmItem {
 	pub uid: String,
 	pub post: Option<i32>,
@@ -992,7 +1002,7 @@ pub struct CstmItem {
 	pub cstm_item: module_db::CustomizeItem,
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 pub struct NcSong {
 	pub uid: String,
 	pub post: i32,
@@ -1211,7 +1221,7 @@ impl NcSong {
 	}
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 pub struct PvSearch {
 	pub pvs: Vec<Pv>,
 	pub nc_songs: BTreeMap<i32, Vec<NcSong>>,
@@ -1224,6 +1234,17 @@ impl PvSearch {
 	}
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/pvs",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = PvSearch, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn search_pvs(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -1250,7 +1271,7 @@ pub async fn search_pvs(
 	let mut pvs = search
 		.execute::<MeilisearchPv>()
 		.await
-		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+		.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 	let mut hits = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
 
@@ -1261,7 +1282,7 @@ pub async fn search_pvs(
 		pvs = search
 			.execute::<MeilisearchPv>()
 			.await
-			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+			.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 		let mut results = pvs.hits.into_iter().map(|p| p.result).collect::<Vec<_>>();
 		hits.append(&mut results);
@@ -1373,7 +1394,7 @@ pub async fn search_pvs(
 	}))
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 pub struct ModuleSearch {
 	pub modules: Vec<Module>,
 	pub posts: BTreeMap<i32, Post>,
@@ -1385,6 +1406,17 @@ impl ModuleSearch {
 	}
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/modules",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = ModuleSearch, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn search_modules(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -1410,7 +1442,7 @@ pub async fn search_modules(
 	let mut modules = search
 		.execute::<MeilisearchModule>()
 		.await
-		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+		.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 	let mut hits = modules
 		.hits
@@ -1425,7 +1457,7 @@ pub async fn search_modules(
 		modules = search
 			.execute::<MeilisearchModule>()
 			.await
-			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+			.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 		let mut results = modules
 			.hits
@@ -1481,7 +1513,7 @@ pub async fn search_modules(
 	}))
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 pub struct CstmItemSearch {
 	pub cstm_items: Vec<CstmItem>,
 	pub bound_modules: BTreeMap<i32, Module>,
@@ -1494,6 +1526,17 @@ impl CstmItemSearch {
 	}
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/cstm_items",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = CstmItemSearch, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn search_cstm_items(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -1519,7 +1562,7 @@ pub async fn search_cstm_items(
 	let mut cstm_items = search
 		.execute::<MeilisearchCstmItem>()
 		.await
-		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+		.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 	let mut hits = cstm_items
 		.hits
@@ -1534,7 +1577,7 @@ pub async fn search_cstm_items(
 		cstm_items = search
 			.execute::<MeilisearchCstmItem>()
 			.await
-			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+			.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 		let mut results = cstm_items
 			.hits
@@ -1668,7 +1711,7 @@ pub async fn search_cstm_items(
 	}))
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 pub struct NcSongSearch {
 	pub nc_songs: Vec<NcSong>,
 	pub pvs: BTreeMap<i32, Vec<Pv>>,
@@ -1705,6 +1748,17 @@ impl NcSongSearch {
 	}
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/nc_songs",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = NcSongSearch, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn search_nc_songs(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,
@@ -1730,7 +1784,7 @@ pub async fn search_nc_songs(
 	let mut nc_songs = search
 		.execute::<MeilisearchNcSong>()
 		.await
-		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+		.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 	let mut hits = nc_songs
 		.hits
@@ -1745,7 +1799,7 @@ pub async fn search_nc_songs(
 		nc_songs = search
 			.execute::<MeilisearchNcSong>()
 			.await
-			.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+			.map_err(|e| (StatusCode::BAD_REQUEST, e.to_string()))?;
 
 		let mut results = nc_songs
 			.hits
@@ -1865,7 +1919,7 @@ pub async fn search_nc_songs(
 	}))
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, PartialOrd, Eq, Ord)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, PartialOrd, Eq, Ord, ToSchema)]
 #[repr(i32)]
 pub enum ReservationType {
 	Song = 0,
@@ -2958,7 +3012,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 	}
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct Reservation {
 	pub user: i64,
 	pub reservation_type: ReservationType,
@@ -2967,7 +3021,7 @@ pub struct Reservation {
 	pub label: Option<String>,
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct AllPvs {
 	pub reserved_pvs: BTreeMap<i32, Reservation>,
 	pub uploaded_pvs: BTreeMap<i32, Vec<Pv>>,
@@ -2975,6 +3029,14 @@ pub struct AllPvs {
 	pub posts: BTreeMap<i32, Post>,
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/all_pvs",
+	responses(
+		(status = 200, body = AllPvs, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (StatusCode, String)> {
 	let mut users = BTreeMap::new();
 	let mut posts: BTreeMap<i32, Post> = BTreeMap::new();
@@ -3079,7 +3141,7 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 	}))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct AllModules {
 	pub reserved_modules: BTreeMap<i32, Reservation>,
 	pub uploaded_modules: BTreeMap<i32, Vec<Module>>,
@@ -3087,6 +3149,14 @@ pub struct AllModules {
 	pub posts: BTreeMap<i32, Post>,
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/all_modules",
+	responses(
+		(status = 200, body = AllModules, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn all_modules(
 	State(state): State<AppState>,
 ) -> Result<Json<AllModules>, (StatusCode, String)> {
@@ -3189,7 +3259,7 @@ pub async fn all_modules(
 	}))
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub struct AllCstmItems {
 	pub reserved_cstm_items: BTreeMap<i32, Reservation>,
 	pub uploaded_cstm_items: BTreeMap<i32, Vec<CstmItem>>,
@@ -3197,6 +3267,14 @@ pub struct AllCstmItems {
 	pub posts: BTreeMap<i32, Post>,
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/all_cstm_items",
+	responses(
+		(status = 200, body = AllCstmItems, content_type = "application/json"),
+		(status = 400, body = String)
+	)
+)]
 pub async fn all_cstm_items(
 	State(state): State<AppState>,
 ) -> Result<Json<AllCstmItems>, (StatusCode, String)> {
