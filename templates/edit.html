@@ -366,8 +366,21 @@
 			var formatter = new Intl.NumberFormat('en-GB', {notation: 'compact', roundingMode: 'floor', maximumFractionDigits: 1});
 			var html = `
 <div class="card shadow" style="height: 100%">
-	<div class="card-img-top ratio ratio-16x9 bg-clear border-none">
-		<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image" width="100%" loading="lazy">
+	<div class="card-img-top bg-clear border-none clearfix">
+		<div class="ratio ratio-16x9">
+			<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image w-100" loading="lazy">
+		</div>
+		`;
+
+			if (post.explicit) {
+				html += `
+		<div class="card-img-overlay p-1">
+			<span class="float-end badge rounded-pill bg-danger" style="font-size: 1rem">Explicit</span>
+		</div>
+				`;
+			}
+
+			html += `
 	</div>
 	<div class="card-body clearfix">
 		<p class="col-auto float-end ms-1 text text-align-right">
