@@ -514,8 +514,7 @@ async fn parse_module_db<P: AsRef<Path>>(
 	state: AppState,
 ) -> Option<()> {
 	let module_db =
-		module_db::ModuleDb::from_files(module_tbl, customize_item_tbl, chritm_prop, str_array)
-			.await?;
+		module_db::ModuleDb::from_files(module_tbl, customize_item_tbl, chritm_prop, str_array)?;
 
 	let modules = module_db
 		.modules
