@@ -223,10 +223,13 @@ where
 
 impl BaseTemplate {
 	pub fn theme(&self) -> Theme {
-		let Some(user) = &self.user else {
-			return Theme::default();
-		};
-		user.theme
+		self.user
+			.as_ref()
+			.map_or(Theme::default(), |user| user.theme)
+	}
+
+	pub fn show_explicit(&self) -> bool {
+		self.user.as_ref().map_or(false, |user| user.show_explicit)
 	}
 }
 
@@ -444,6 +447,7 @@ async fn user_reservations(
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}
@@ -481,6 +485,7 @@ async fn user_reservations(
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}
@@ -521,6 +526,7 @@ async fn user_reservations(
 						display_name: reservation.display_name.clone(),
 						public_likes: reservation.public_likes,
 						theme: reservation.theme.into(),
+						show_explicit: reservation.show_explicit
 					},
 				);
 			}
@@ -847,7 +853,7 @@ async fn post_detail(
 		let users = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 			FROM reservations r
 			LEFT JOIN users u ON r.user_id = u.id
 			WHERE r.reservation_type = 0
@@ -893,7 +899,7 @@ async fn post_detail(
 		let users = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 			FROM reservations r
 			LEFT JOIN users u ON r.user_id = u.id
 			WHERE r.reservation_type = 1
@@ -939,7 +945,7 @@ async fn post_detail(
 		let users = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 			FROM reservations r
 			LEFT JOIN users u ON r.user_id = u.id
 			WHERE r.reservation_type = 2
@@ -1471,6 +1477,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}
@@ -1589,6 +1596,7 @@ async fn module_spreadsheet(
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}
@@ -1703,15 +1711,24 @@ async fn haku_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>)
 	cos_spreadsheet(base, module_db::Chara::Haku, state).await
 }
 
-async fn kaito_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+async fn kaito_cos_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> CosSpreadsheet {
 	cos_spreadsheet(base, module_db::Chara::Kaito, state).await
 }
 
-async fn meiko_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+async fn meiko_cos_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> CosSpreadsheet {
 	cos_spreadsheet(base, module_db::Chara::Meiko, state).await
 }
 
-async fn sakine_cos_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> CosSpreadsheet {
+async fn sakine_cos_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> CosSpreadsheet {
 	cos_spreadsheet(base, module_db::Chara::Sakine, state).await
 }
 
@@ -1729,44 +1746,42 @@ async fn cos_spreadsheet(
 
 	let mut costumes: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
 
-	let mut reservations: HashMap<i32, Reservation> = 
-		sqlx::query!(
-			"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
-			chara.clone() as i32 + 10,
-		)
-		.fetch_all(&state.db)
-		.await
-		.unwrap_or_default()
-		.iter()
-		.flat_map(|reservation| {
-			if !users.contains_key(&reservation.user_id) {
-				users.insert(
-					reservation.user_id,
-					User {
-						id: reservation.user_id,
-						name: reservation.name.clone(),
-						avatar: reservation.avatar.clone(),
-						display_name: reservation.display_name.clone(),
-						public_likes: reservation.public_likes,
-						theme: reservation.theme.into(),
-					},
-				);
-			}
-			(reservation.range_start..(reservation.range_start + reservation.length)).map(
-				move |i| {
-					(
-						i,
-						Reservation {
-							user: reservation.user_id,
-							reservation_type: reservation.reservation_type.into(),
-							time: reservation.time.assume_offset(time::UtcOffset::UTC),
-							label: None,
-						},
-					)
+	let mut reservations: HashMap<i32, Reservation> = sqlx::query!(
+		"SELECT * FROM reservations r LEFT JOIN users u ON r.user_id = u.id WHERE reservation_type = $1",
+		chara.clone() as i32 + 10,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		if !users.contains_key(&reservation.user_id) {
+			users.insert(
+				reservation.user_id,
+				User {
+					id: reservation.user_id,
+					name: reservation.name.clone(),
+					avatar: reservation.avatar.clone(),
+					display_name: reservation.display_name.clone(),
+					public_likes: reservation.public_likes,
+					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
+				},
+			);
+		}
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				Reservation {
+					user: reservation.user_id,
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_offset(time::UtcOffset::UTC),
+					label: None,
 				},
 			)
 		})
-		.collect::<HashMap<_, _>>();
+	})
+	.collect::<HashMap<_, _>>();
 
 	if let Ok(search) =
 		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("modules"))
@@ -1820,7 +1835,6 @@ async fn cos_spreadsheet(
 					};
 					reservation.label = Some(record.label.clone());
 				}
-			
 		}
 
 	CosSpreadsheet {
@@ -1868,6 +1882,7 @@ async fn cstm_item_spreadsheet(
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}

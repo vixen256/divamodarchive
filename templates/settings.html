@@ -13,6 +13,7 @@
 			'display_name': document.getElementById("name").value,
 			'public_likes': document.getElementById("public_likes").checked,
 			'theme': Number(document.getElementById("theme").value),
+			'show_explicit': document.getElementById("show_explicit").checked,
 		};
 
 		var options = {
@@ -44,6 +45,9 @@
 	<div class="form-check">
 		<label class="form-check-label" for="public_likes">Show liked mods publicly?</label>
 		<input class="form-check-input" type="checkbox" id="public_likes" autocomplete="off" {% if user.public_likes %}checked=""{% endif %}>
+		<br>
+		<label class="form-check-label" for="show_explicit">Show explicit mods without warning?</label>
+		<input class="form-check-input" type="checkbox" id="show_explicit" autocomplete="off" {% if user.show_explicit %}checked=""{% endif %}>
 	</div>
 
 	<button class="btn btn-info" onclick="update()" type="button">Update</button>

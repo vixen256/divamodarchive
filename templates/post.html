@@ -160,6 +160,43 @@
 {% endif %}
 {% endif %}
 
+{% if post.explicit && !base.show_explicit() %}
+<div class="modal show" id="explicitModal" style="display: block" data-bs-backdrop="static" data-bs-keyboard="false">
+	<div class="modal-dialog modal-fullscreen">
+		<div class="modal-content">
+			<div class="modal-body d-flex align-items-center">
+				<div class="container">
+					<div class="card" style="text-align: center">
+						<div class="card-body">
+							<div class="card-img-top bg-clear border-none clearfix mx-auto" style="max-width: 550px">
+								<div class="ratio ratio-16x9">
+								{% if let Some(image) = post.images.first() %}
+									<img src="{{ image }}" width="100%" loading="lazy" alt="Preview of {{ post.name }}">
+								{% endif %}
+								</div>
+							</div>
+							<h5 class="card-title mt-3">{{ post.name }} may contain content not appropriate for all ages, or may not be appropriate for viewing at work.</h5>
+							{% if let Some(explicit_reason) = post.explicit_reason %}
+							<p class="card-text">
+								The mod creators describe the explicit content as<br>
+								"{{ explicit_reason }}"
+							</p>
+							{% endif %}
+						</div>
+						<div class="card-footer">
+							<div class="row col-lg-6 offset-lg-3">
+								<button type="button" class="btn btn-secondary mx-auto" style="width: 40%" onclick="document.getElementById('explicitModal').remove()">View mod</button>
+								<a type="button" class="btn btn-primary mx-auto" style="width: 40%" href="/">Go back</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+</div>
+{% endif %}
+
 <div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-fullscreen">
 		<div class="modal-content" style="background: none">

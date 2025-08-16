@@ -2778,7 +2778,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 	let users = sqlx::query_as!(
 		User,
 		r#"
-		SELECT DISTINCT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+		SELECT DISTINCT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 		FROM reservations r
 		LEFT JOIN users u ON r.user_id = u.id
 		WHERE r.reservation_type = $1
@@ -3059,6 +3059,7 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}
@@ -3181,6 +3182,7 @@ pub async fn all_modules(
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}
@@ -3299,6 +3301,7 @@ pub async fn all_cstm_items(
 					display_name: reservation.display_name.clone(),
 					public_likes: reservation.public_likes,
 					theme: reservation.theme.into(),
+					show_explicit: reservation.show_explicit,
 				},
 			);
 		}

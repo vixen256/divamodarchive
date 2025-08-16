@@ -202,6 +202,8 @@ pub struct PostEditData {
 	pub text: String,
 	pub post_type: i32,
 	pub private: bool,
+	pub explicit: bool,
+	pub explicit_reason: String,
 }
 
 pub async fn edit_post(
@@ -220,13 +222,21 @@ pub async fn edit_post(
 		return Err(StatusCode::BAD_REQUEST);
 	}
 
+	let explicit_reason = if !data.explicit || data.explicit_reason.is_empty() {
+		None
+	} else {
+		Some(data.explicit_reason)
+	};
+
 	sqlx::query!(
-		"UPDATE posts SET name = $2, text = $3, type = $4, private = $5 WHERE id = $1",
+		"UPDATE posts SET name = $2, text = $3, type = $4, private = $5, explicit = $6, explicit_reason = $7 WHERE id = $1",
 		id,
 		data.name,
 		data.text,
 		data.post_type,
-		data.private
+		data.private,
+		data.explicit,
+		explicit_reason
 	)
 	.execute(&state.db)
 	.await
@@ -1255,6 +1265,7 @@ pub struct UserSettings {
 	display_name: String,
 	public_likes: bool,
 	theme: i32,
+	show_explicit: bool,
 }
 
 pub async fn user_settings(
@@ -1263,11 +1274,12 @@ pub async fn user_settings(
 	Json(settings): Json<UserSettings>,
 ) -> axum::http::HeaderMap {
 	_ = sqlx::query!(
-		"UPDATE users SET display_name = $1, public_likes = $2, theme = $3 WHERE id = $4",
+		"UPDATE users SET display_name = $2, public_likes = $3, theme = $4, show_explicit = $5 WHERE id = $1",
+		user.id,
 		settings.display_name,
 		settings.public_likes,
 		settings.theme,
-		user.id
+		settings.show_explicit
 	)
 	.execute(&state.db)
 	.await;

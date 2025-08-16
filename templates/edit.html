@@ -36,6 +36,8 @@
 				'text': document.getElementById('text').value,
 				'post_type': Number(document.getElementById('type_tag').value),
 				'private': document.getElementById('private').checked,
+				'explicit': document.getElementById('explicit').checked,
+				'explicit_reason': document.getElementById('explicit_reason').value,
 			}),
 		};
 
@@ -522,9 +524,10 @@
 		<div id="rules" class="p-1 collapse">
 			<p>The following content cannot be posted, however any content may be modified or deleted at the discretion of the admins</p>
 			<ul class="mb-0">
+				<li>Pornographic or erotic content in excess of what the games already contain</li>
+				<li>Mods containing significant mature content not fit for a PG-13 audience (e.g. upskirts, direct sexual references, gore) should be marked as explicit. Pornographic content is disallowed</li>
 				<li>Any kind of speech designed to cause hatred or conflict</li>
 				<li>A mod for a game other than Project DIVA Mega Mix+</li>
-				<li>Pornographic or erotic content in excess of what the games already contain</li>
 				<li>A mod with a plugin that does not contain or link the source code</li>
 				<li>Mods or references to mods that require payment to use, references to commissions are allowed are however</li>
 				<li>Modifications of other peoples content, including SEGAs, that does not mention the original content or how it was modified</li>
@@ -561,6 +564,10 @@
 		<div class="mb-1">
 			<input class="form-check-input" type="checkbox" id="private" {% if post.private %}checked="true"{% endif %}>
 			<label class="form-check-label ms-1" for="private">Private</label>
+			<br>
+			<input class="form-check-input" type="checkbox" id="explicit" {% if post.explicit %}checked="true"{% endif %} onclick="document.getElementById('explicit_reason').hidden = !document.getElementById('explicit').checked">
+			<label class="form-check-label ms-1" for="explicit">Explicit</label>
+			<input {% if !post.explicit %}hidden{% endif %}class="w-100" type="text" id="explicit_reason" placeholder="Explicit reason" autocomplete="off" value="{% if let Some(explicit_reason) = post.explicit_reason %}{{ explicit_reason }}{% endif %}">
 		</div>
 
 		<button class="btn btn-info" onclick="updateMetadata()" type="button">Update</button>

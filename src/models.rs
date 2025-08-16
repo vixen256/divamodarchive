@@ -22,6 +22,9 @@ pub struct User {
 	#[serde(skip)]
 	#[schema(ignore)]
 	pub theme: Theme,
+	#[serde(skip)]
+	#[schema(ignore)]
+	pub show_explicit: bool,
 }
 
 impl PartialEq for User {
@@ -117,6 +120,8 @@ pub struct Post {
 	#[serde(rename = "file_names")]
 	pub local_files: Vec<String>,
 	pub private: bool,
+	pub explicit: bool,
+	pub explicit_reason: Option<String>,
 }
 
 impl Clone for Post {
@@ -136,6 +141,8 @@ impl Clone for Post {
 			comments: None,
 			local_files: self.local_files.clone(),
 			private: self.private,
+			explicit: self.explicit,
+			explicit_reason: self.explicit_reason.clone(),
 		}
 	}
 }
@@ -223,7 +230,7 @@ impl Post {
 	pub async fn get_full(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, p.explicit, p.explicit_reason, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -238,7 +245,7 @@ impl Post {
 		let authors = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 			FROM post_authors pa
 			JOIN users u ON pa.user_id = u.id
 			WHERE pa.post_id = $1
@@ -251,7 +258,7 @@ impl Post {
 
 		let dependencies = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, COALESCE(like_count.count, 0) AS "like_count!"
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -269,7 +276,7 @@ impl Post {
 			let Ok(authors) = sqlx::query_as!(
 				User,
 				r#"
-				SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+				SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 				FROM post_authors pa
 				LEFT JOIN users u ON pa.user_id = u.id
 				WHERE pa.post_id = $1
@@ -297,12 +304,14 @@ impl Post {
 				comments: None,
 				local_files: dep.local_files,
 				private: false,
+				explicit: dep.explicit,
+				explicit_reason: dep.explicit_reason,
 			});
 		}
 
 		let comments = sqlx::query!(
 			r#"
-			SELECT c.id, c.text, c.parent, c.time, u.id as user_id, u.name as user_name, u.avatar as user_avatar, u.display_name, u.public_likes, u.theme
+			SELECT c.id, c.text, c.parent, c.time, u.id as user_id, u.name as user_name, u.avatar as user_avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 			FROM post_comments c
 			LEFT JOIN users u ON c.user_id = u.id
 			WHERE c.post_id = $1
@@ -324,6 +333,7 @@ impl Post {
 					display_name: String::new(),
 					public_likes: true,
 					theme: Theme::Light,
+					show_explicit: false,
 				},
 				text: String::new(),
 				time: time::OffsetDateTime::now_utc(),
@@ -346,6 +356,7 @@ impl Post {
 								display_name: comment.display_name.clone(),
 								public_likes: comment.public_likes,
 								theme: comment.theme.into(),
+								show_explicit: comment.show_explicit,
 							},
 							text: comment.text.clone(),
 							time: comment.time.assume_offset(time::UtcOffset::UTC),
@@ -365,6 +376,7 @@ impl Post {
 							display_name: comment.display_name.clone(),
 							public_likes: comment.public_likes,
 							theme: comment.theme.into(),
+							show_explicit: comment.show_explicit,
 						},
 						text: comment.text.clone(),
 						time: comment.time.assume_offset(time::UtcOffset::UTC),
@@ -391,13 +403,15 @@ impl Post {
 			comments: Some(comments),
 			local_files: post.local_files,
 			private: post.private,
+			explicit: post.explicit,
+			explicit_reason: post.explicit_reason,
 		})
 	}
 
 	pub async fn get_short(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, p.explicit, p.explicit_reason, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -412,7 +426,7 @@ impl Post {
 		let authors = sqlx::query_as!(
 			User,
 			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
 			FROM post_authors pa
 			LEFT JOIN users u ON pa.user_id = u.id
 			WHERE pa.post_id = $1
@@ -438,6 +452,8 @@ impl Post {
 			comments: None,
 			local_files: post.local_files,
 			private: post.private,
+			explicit: post.explicit,
+			explicit_reason: post.explicit_reason,
 		})
 	}
 }
