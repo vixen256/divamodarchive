@@ -120,6 +120,7 @@ pub struct BaseTemplate {
 	pub has_reservations: bool,
 	pub has_likes: bool,
 	pub pending_upload: Option<Post>,
+	pub uri: String,
 }
 
 impl<S> FromRequestParts<S> for BaseTemplate
@@ -209,6 +210,8 @@ where
 			None
 		};
 
+		let uri = parts.uri.path().to_string();
+
 		Ok(Self {
 			user,
 			config: state.config,
@@ -217,6 +220,7 @@ where
 			has_reservations,
 			has_likes,
 			pending_upload,
+			uri,
 		})
 	}
 }
@@ -1536,6 +1540,7 @@ async fn edit(
 		has_reservations: base.has_reservations,
 		has_likes: base.has_likes,
 		pending_upload: None,
+		uri: base.uri,
 	};
 
 	let Some(post) = Post::get_full(id, &state.db).await else {

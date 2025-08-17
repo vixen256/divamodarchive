@@ -524,6 +524,7 @@ where
 			has_reservations: false,
 			has_likes: false,
 			pending_upload: None,
+			uri: parts.uri.path().to_string(),
 		};
 
 		let cookies = parts.extract::<CookieJar>().await.unwrap();
@@ -573,6 +574,9 @@ pub async fn login(
 	cookies: CookieJar,
 ) -> Result<(CookieJar, HeaderMap, Redirect), StatusCode> {
 	let code = params.get("code").ok_or(StatusCode::UNAUTHORIZED)?;
+	let redir = params
+		.get("state")
+		.map_or(String::from("/"), |redir| redir.clone());
 
 	let mut params: HashMap<&str, &str> = std::collections::HashMap::new();
 	params.insert("grant_type", "authorization_code");
@@ -663,7 +667,7 @@ pub async fn login(
 			HeaderValue::from_str("\"cache\"").unwrap(),
 		);
 
-		Ok((cookies.add(cookie), headers, Redirect::to("/")))
+		Ok((cookies.add(cookie), headers, Redirect::to(&redir)))
 	} else {
 		Err(StatusCode::INTERNAL_SERVER_ERROR)
 	}

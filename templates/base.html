@@ -298,9 +298,13 @@
 					</div>
 					{% else %}
 					{% let discord_id = base.config.discord_id.clone() %}
+					{% let uri = base.uri.clone() %}
 					{% let discord_link =
-					format!("https://discord.com/api/oauth2/authorize?client_id={discord_id}&redirect_uri={}&response_type=code&scope=identify",
-					url::form_urlencoded::byte_serialize("https://divamodarchive.com/login".as_bytes()).collect::<String>()) %}
+					format!(
+						"https://discord.com/api/oauth2/authorize?client_id={discord_id}&redirect_uri={}&response_type=code&scope=identify&state={}",
+						url::form_urlencoded::byte_serialize("https://divamodarchive.com/login".as_bytes()).collect::<String>(),
+						url::form_urlencoded::byte_serialize(uri.as_bytes()).collect::<String>()
+					) %}
 						<div class="nav-item" style="padding: 0.5rem">
 						<a class="nav-link" href="{{ discord_link }}">Login</a>
 					</div>
