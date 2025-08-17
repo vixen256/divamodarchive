@@ -4301,8 +4301,6 @@ pub async fn post_detail(
 			.iter()
 			.filter_map(|difficulty| difficulty.clone())
 			.all(|difficulty| difficulty.arcade.is_none())
-	}) && !post.dependencies.as_ref().map_or(false, |dependencies| {
-		dependencies.iter().any(|post| post.id == 169)
 	});
 
 	Ok(Json(PostDetail {
