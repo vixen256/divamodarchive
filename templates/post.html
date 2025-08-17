@@ -252,11 +252,12 @@
 	{% endif %}
 
 	{% if
-		conflicting_pvs.pvs.len() > 0 ||
-		conflicting_modules.modules.len() > 0 ||
-		conflicting_cstm_items.cstm_items.len() > 0 ||
+		conflicting_pvs.len() > 0 ||
+		conflicting_modules.len() > 0 ||
+		conflicting_cstm_items.len() > 0 ||
 		conflicting_pv_reservations.len() > 0 ||
 		conflicting_module_reservations.len() > 0 ||
+		conflicting_costume_reservations.len() > 0 ||
 		conflicting_cstm_item_reservations.len() > 0
 	%}
 	<div class="alert alert-danger mb-0">
@@ -264,7 +265,7 @@
 			<h5 class="mb-0">This mod conflicts with the following:</h5>
 		</button>
 		<div id="reservationConflicts" class="p-1 pb-0 collapse">
-			{% if conflicting_pvs.pvs.len() > 0 %}
+			{% if conflicting_pvs.len() > 0 %}
 			<h6 class="mt-2">PVs:</h6>
 			<table class="table table-sm m-0">
 				<thead>
@@ -276,13 +277,15 @@
 					</tr>
 				</thead>
 				<tbody>
-					{% for pv in conflicting_pvs.pvs %}
+					{% for (id, conflicting_pvs) in conflicting_pvs %}
+					{% for pv in conflicting_pvs %}
 					<tr>
-						<td>{{ pv.id }}</td>
+						<td>{{ id }}</td>
 						<td>{% if let Some(pv) = pvs.find_pv(*pv.id) %}{{ pv.name_en }}{% endif %}</td>
 						<td>{{ pv.name_en }}</td>
-						<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ conflicting_pvs.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}">{{ conflict_posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
+					{% endfor %}
 					{% endfor %}
 				</tbody>
 			</table>
@@ -306,7 +309,7 @@
 						<td>{{ id }}</td>
 						<td>{% if let Some(pv) = pvs.find_pv(**id) %}{{ pv.name }}{% endif %}</td>
 						<td>{{ label | autolink }}</td>
-						<td>{{ user.display_name }}</td>
+						<td>{{ conflict_users[user].display_name }}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -314,7 +317,7 @@
 			</table>
 			{% endif %}
 
-			{% if conflicting_modules.modules.len() > 0 %}
+			{% if conflicting_modules.len() > 0 %}
 			<h6 class="mt-2">Modules:</h6>
 			<table class="table table-sm m-0">
 				<thead>
@@ -326,13 +329,15 @@
 					</tr>
 				</thead>
 				<tbody>
-					{% for module in conflicting_modules.modules %}
+					{% for (id, conflicting_modules) in conflicting_modules %}
+					{% for module in conflicting_modules %}
 					<tr>
-						<td>{{ module.id }}</td>
+						<td>{{ id }}</td>
 						<td>{% if let Some(module) = modules.find_module(*module.id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
 						<td>{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}</td>
-						<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}">{{ conflicting_modules.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}">{{ conflict_posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
+					{% endfor %}
 					{% endfor %}
 				</tbody>
 			</table>
@@ -356,7 +361,7 @@
 						<td>{{ id }}</td>
 						<td>{% if let Some(module) = modules.find_module(**id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
 						<td>{{ label | autolink }}</td>
-						<td>{{ user.display_name }}</td>
+						<td>{{ conflict_users[user].display_name }}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -364,7 +369,35 @@
 			</table>
 			{% endif %}
 
-			{% if conflicting_cstm_items.cstm_items.len() > 0 %}
+			{% if conflicting_costume_reservations.len() > 0 %}
+			{% for (chara, reservations) in conflicting_costume_reservations %}
+			<h6 class="mt-2">Reserved {{ chara.to_string() }} costumes:</h6>
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Label</th>
+						<th>User</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (user, ids) in reservations %}
+					{% for (id, label) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{% if let Some(module) = modules.find_cos(**id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
+						<td>{{ label | autolink }}</td>
+						<td>{{ conflict_users[user].display_name }}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endfor %}
+			{% endif %}
+
+			{% if conflicting_cstm_items.len() > 0 %}
 			<h6 class="mt-2">Customize Items:</h6>
 			<table class="table table-sm m-0">
 				<thead>
@@ -376,13 +409,15 @@
 					</tr>
 				</thead>
 				<tbody>
-					{% for cstm_item in conflicting_cstm_items.cstm_items %}
+					{% for (id, conflicting_cstm_items) in conflicting_cstm_items %}
+					{% for cstm_item in conflicting_cstm_items %}
 					<tr>
 						<td>{{ cstm_item.id }}</td>
 						<td>{% if let Some(cstm_item) = cstm_items.find_cstm_item(*cstm_item.id) %}{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
 						<td>{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}</td>
-						<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}">{{ conflicting_cstm_items.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}">{{ conflict_posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
+					{% endfor %}
 					{% endfor %}
 				</tbody>
 			</table>
@@ -406,7 +441,7 @@
 						<td>{{ id }}</td>
 						<td>{% if let Some(cstm_item) = cstm_items.find_cstm_item(**id) %}{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
 						<td>{{ label | autolink }}</td>
-						<td>{{ user.display_name }}</td>
+						<td>{{ conflict_users[user].display_name }}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -574,12 +609,12 @@
 				</thead>
 				<tbody>
 				{% for (post_id, ids) in conflicting_sprites %}
-					{% for (id, local_name, conflict_name) in ids %}
+					{% for (id, conflict_name) in ids %}
 					<tr>
 						<td>{{ id }}</td>
-						<td>{{ local_name }}</td>
+						<td>{{ sprites[id] }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -600,12 +635,12 @@
 				</thead>
 				<tbody>
 				{% for (post_id, ids) in conflicting_aets %}
-					{% for (id, local_name, conflict_name) in ids %}
+					{% for (id, conflict_name) in ids %}
 					<tr>
 						<td>{{ id }}</td>
-						<td>{{ local_name }}</td>
+						<td>{{ aets[id] }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -626,12 +661,12 @@
 				</thead>
 				<tbody>
 				{% for (post_id, ids) in conflicting_objsets %}
-					{% for (id, local_name, conflict_name) in ids %}
+					{% for (id, conflict_name) in ids %}
 					<tr>
 						<td>{{ id }}</td>
-						<td>{{ local_name }}</td>
+						<td>{{ objsets[id] }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}
@@ -652,12 +687,12 @@
 				</thead>
 				<tbody>
 				{% for (post_id, ids) in conflicting_textures %}
-					{% for (id, local_name, conflict_name) in ids %}
+					{% for (id, conflict_name) in ids %}
 					<tr>
 						<td>{{ id }}</td>
-						<td>{{ local_name }}</td>
+						<td>{{ textures[id] }}</td>
 						<td>{{ conflict_name }}</td>
-						<td>{% if *post_id != -1 && conflicting_db_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflicting_db_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
+						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
 					{% endfor %}
 				{% endfor %}

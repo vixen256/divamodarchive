@@ -12,13 +12,18 @@ pub mod posts;
 	search_posts,
 	count_posts,
 	get_post,
+	post_detail,
 	search_pvs,
 	search_modules,
 	search_cstm_items,
 	search_nc_songs,
 	all_pvs,
 	all_modules,
-	all_cstm_items
+	all_cstm_items,
+	all_sprites,
+	all_aets,
+	all_objsets,
+	all_textures
 ))]
 struct ApiDoc;
 
@@ -31,6 +36,7 @@ pub fn route(state: AppState) -> Router {
 			"/api/v1/posts/{id}",
 			get(get_post).delete(delete_post).patch(edit_post),
 		)
+		.route("/api/v1/posts/{id}/detail", get(post_detail))
 		.route("/api/v1/posts/posts", get(get_multiple_posts))
 		.route("/api/v1/posts/upload_image", get(upload_image))
 		.route("/api/v1/posts/start_upload", post(create_pending_upload))
@@ -68,6 +74,10 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/ids/all_pvs", get(all_pvs))
 		.route("/api/v1/ids/all_modules", get(all_modules))
 		.route("/api/v1/ids/all_cstm_items", get(all_cstm_items))
+		.route("/api/v1/ids/all_sprites", get(all_sprites))
+		.route("/api/v1/ids/all_aets", get(all_aets))
+		.route("/api/v1/ids/all_objsets", get(all_objsets))
+		.route("/api/v1/ids/all_textures", get(all_textures))
 		.route("/api/v1/reserve/check", get(web_check_reserve_range))
 		.route("/api/v1/reserve/find", get(web_find_reserve_range))
 		.route(

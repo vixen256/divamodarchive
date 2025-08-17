@@ -626,22 +626,29 @@ struct PostTemplate {
 	modules: ModuleSearch,
 	cstm_items: CstmItemSearch,
 	nc_songs: NcSongSearch,
+	sprites: BTreeMap<u32, String>,
+	aets: BTreeMap<u32, String>,
+	objsets: BTreeMap<u32, String>,
+	textures: BTreeMap<u32, String>,
 	pv_easy_count: usize,
 	pv_normal_count: usize,
 	pv_hard_count: usize,
 	pv_extreme_count: usize,
 	pv_exextreme_count: usize,
-	conflicting_pvs: PvSearch,
-	conflicting_modules: ModuleSearch,
-	conflicting_cstm_items: CstmItemSearch,
-	conflicting_pv_reservations: BTreeMap<User, Vec<(i32, String)>>,
-	conflicting_module_reservations: BTreeMap<User, Vec<(i32, String)>>,
-	conflicting_cstm_item_reservations: BTreeMap<User, Vec<(i32, String)>>,
-	conflicting_sprites: BTreeMap<i32, Vec<(u32, String, String)>>,
-	conflicting_aets: BTreeMap<i32, Vec<(u32, String, String)>>,
-	conflicting_objsets: BTreeMap<i32, Vec<(u32, String, String)>>,
-	conflicting_textures: BTreeMap<i32, Vec<(u32, String, String)>>,
-	conflicting_db_posts: BTreeMap<i32, Post>,
+	conflicting_pvs: BTreeMap<i32, Vec<Pv>>,
+	conflicting_modules: BTreeMap<i32, Vec<Module>>,
+	conflicting_cstm_items: BTreeMap<i32, Vec<CstmItem>>,
+	conflicting_pv_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	conflicting_module_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	conflicting_costume_reservations:
+		BTreeMap<module_db::Chara, BTreeMap<i64, BTreeMap<i32, String>>>,
+	conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>>,
+	conflicting_aets: BTreeMap<i32, BTreeMap<u32, String>>,
+	conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>>,
+	conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>>,
+	conflict_posts: BTreeMap<i32, Post>,
+	conflict_users: BTreeMap<i64, User>,
 	requires_expatch: bool,
 	requires_nc: bool,
 	body_markdown: String,
@@ -656,28 +663,17 @@ async fn post_detail(
 	State(state): State<AppState>,
 	base: BaseTemplate,
 ) -> Result<PostTemplate, ErrorTemplate> {
-	let Some(post) = Post::get_full(id, &state.db).await else {
-		return Err(ErrorTemplate {
-			base,
-			status: StatusCode::NOT_FOUND,
-		});
-	};
-
-	if post.private {
-		if !base.user.as_ref().map_or(false, |user| {
-			post.authors.contains(user) || user.is_admin(&state.config)
-		}) {
-			return Err(ErrorTemplate {
-				base,
-				status: StatusCode::UNAUTHORIZED,
-			});
-		}
-	}
+	let Json(post) = crate::api::ids::post_detail(Path(id), State(state.clone()))
+		.await
+		.map_err(|(status, _)| ErrorTemplate {
+			base: base.clone(),
+			status,
+		})?;
 
 	let has_liked = if let Some(user) = &base.user {
 		let Ok(has_liked) = sqlx::query!(
 			"SELECT COUNT(*) FROM liked_posts WHERE post_id = $1 AND user_id = $2",
-			post.id,
+			post.post.id,
 			user.id
 		)
 		.fetch_one(&state.db)
@@ -695,532 +691,10 @@ async fn post_detail(
 	};
 
 	let is_author = if let Some(user) = &base.user {
-		post.authors.contains(user)
+		post.post.authors.contains(user)
 	} else {
 		false
 	};
-
-	let Json(pvs) = search_pvs(
-		Query(SearchParams {
-			query: None,
-			filter: Some(format!("post={}", post.id)),
-			limit: Some(u32::MAX as usize),
-			offset: Some(0),
-		}),
-		State(state.clone()),
-	)
-	.await
-	.unwrap_or_default();
-
-	let Json(modules) = search_modules(
-		Query(SearchParams {
-			query: None,
-			filter: Some(format!("post_id={}", post.id)),
-			limit: Some(u32::MAX as usize),
-			offset: Some(0),
-		}),
-		State(state.clone()),
-	)
-	.await
-	.unwrap_or_default();
-
-	let Json(cstm_items) = search_cstm_items(
-		Query(SearchParams {
-			query: None,
-			filter: Some(format!("post_id={}", post.id)),
-			limit: Some(u32::MAX as usize),
-			offset: Some(0),
-		}),
-		State(state.clone()),
-	)
-	.await
-	.unwrap_or_default();
-
-	let Json(nc_songs) = search_nc_songs(
-		Query(SearchParams {
-			query: None,
-			filter: Some(format!("post_id={}", post.id)),
-			limit: Some(u32::MAX as usize),
-			offset: Some(0),
-		}),
-		State(state.clone()),
-	)
-	.await
-	.unwrap_or_default();
-
-	let pv_easy_count = pvs.pvs.iter().filter(|pv| pv.levels[0].is_some()).count();
-	let pv_normal_count = pvs.pvs.iter().filter(|pv| pv.levels[1].is_some()).count();
-	let pv_hard_count = pvs.pvs.iter().filter(|pv| pv.levels[2].is_some()).count();
-	let pv_extreme_count = pvs.pvs.iter().filter(|pv| pv.levels[3].is_some()).count();
-	let pv_exextreme_count = pvs.pvs.iter().filter(|pv| pv.levels[4].is_some()).count();
-
-	let conflicting_pvs = if pvs.pvs.len() > 0 {
-		let filter = pvs
-			.pvs
-			.iter()
-			.map(|pv| format!("(pv_id={} AND post!={})", pv.id, pv.post.unwrap_or(-1)))
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		let Json(conflicting_pvs) = search_pvs(
-			Query(SearchParams {
-				query: None,
-				filter: Some(filter),
-				limit: Some(u32::MAX as usize),
-				offset: Some(0),
-			}),
-			State(state.clone()),
-		)
-		.await
-		.unwrap_or_default();
-
-		conflicting_pvs
-	} else {
-		PvSearch::default()
-	};
-
-	let conflicting_modules = if modules.modules.len() > 0 {
-		let filter = modules
-			.modules
-			.iter()
-			.map(|module| {
-				format!(
-					"module_id={} OR (chara={} AND cos.id={})",
-					module.id,
-					serde_json::to_string(&module.module.chara)
-						.unwrap()
-						.trim_matches('\"'),
-					module.module.cos.id,
-				)
-			})
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		let Json(conflicting_modules) = search_modules(
-			Query(SearchParams {
-				query: None,
-				filter: Some(format!("({}) AND post_id!={}", filter, post.id)),
-				limit: Some(u32::MAX as usize),
-				offset: Some(0),
-			}),
-			State(state.clone()),
-		)
-		.await
-		.unwrap_or_default();
-
-		conflicting_modules
-	} else {
-		ModuleSearch::default()
-	};
-
-	let conflicting_cstm_items = if cstm_items.cstm_items.len() > 0 {
-		let filter = cstm_items
-			.cstm_items
-			.iter()
-			.map(|cstm_item| {
-				format!(
-					"(customize_item_id={} AND post_id!={})",
-					cstm_item.id,
-					cstm_item.post.unwrap_or(-1)
-				)
-			})
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		let Json(conflicting_cstm_items) = search_cstm_items(
-			Query(SearchParams {
-				query: None,
-				filter: Some(filter),
-				limit: Some(u32::MAX as usize),
-				offset: Some(0),
-			}),
-			State(state.clone()),
-		)
-		.await
-		.unwrap_or_default();
-
-		conflicting_cstm_items
-	} else {
-		CstmItemSearch::default()
-	};
-
-	let mut conflicting_pv_reservations: BTreeMap<User, Vec<(i32, String)>> = BTreeMap::new();
-	let mut conflicting_module_reservations: BTreeMap<User, Vec<(i32, String)>> = BTreeMap::new();
-	let mut conflicting_cstm_item_reservations: BTreeMap<User, Vec<(i32, String)>> =
-		BTreeMap::new();
-
-	for pv in &pvs.pvs {
-		let users = sqlx::query_as!(
-			User,
-			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
-			FROM reservations r
-			LEFT JOIN users u ON r.user_id = u.id
-			WHERE r.reservation_type = 0
-			AND (
-				r.range_start >= $1
-				OR r.range_start + r.length > $1
-			)
-			AND r.range_start <= $1
-			"#,
-			pv.id,
-		)
-		.fetch_all(&state.db)
-		.await
-		.unwrap_or_default();
-		for user in users {
-			if post.authors.contains(&user) {
-				continue;
-			}
-
-			let label = if let Ok(label) = sqlx::query!(
-				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
-				ReservationType::Song as i32,
-				pv.id,
-				user.id
-			)
-			.fetch_one(&state.db)
-			.await
-			{
-				label.label
-			} else {
-				String::new()
-			};
-
-			if let Some(conflict) = conflicting_pv_reservations.get_mut(&user) {
-				conflict.push((pv.id, label));
-			} else {
-				conflicting_pv_reservations.insert(user, vec![(pv.id, label)]);
-			}
-		}
-	}
-
-	for module in &modules.modules {
-		let users = sqlx::query_as!(
-			User,
-			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
-			FROM reservations r
-			LEFT JOIN users u ON r.user_id = u.id
-			WHERE r.reservation_type = 1
-			AND (
-				r.range_start >= $1
-				OR r.range_start + r.length > $1
-			)
-			AND r.range_start <= $1
-			"#,
-			module.id,
-		)
-		.fetch_all(&state.db)
-		.await
-		.unwrap_or_default();
-		for user in users {
-			if post.authors.contains(&user) {
-				continue;
-			}
-
-			let label = if let Ok(label) = sqlx::query!(
-				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
-				ReservationType::Module as i32,
-				module.id,
-				user.id
-			)
-			.fetch_one(&state.db)
-			.await
-			{
-				label.label
-			} else {
-				String::new()
-			};
-
-			if let Some(conflict) = conflicting_module_reservations.get_mut(&user) {
-				conflict.push((module.id, label));
-			} else {
-				conflicting_module_reservations.insert(user, vec![(module.id, label)]);
-			}
-		}
-	}
-
-	for cstm_item in &cstm_items.cstm_items {
-		let users = sqlx::query_as!(
-			User,
-			r#"
-			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
-			FROM reservations r
-			LEFT JOIN users u ON r.user_id = u.id
-			WHERE r.reservation_type = 2
-			AND (
-				r.range_start >= $1
-				OR r.range_start + r.length > $1
-			)
-			AND r.range_start <= $1
-			"#,
-			cstm_item.id,
-		)
-		.fetch_all(&state.db)
-		.await
-		.unwrap_or_default();
-		for user in users {
-			if post.authors.contains(&user) {
-				continue;
-			}
-
-			let label = if let Ok(label) = sqlx::query!(
-				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
-				ReservationType::CstmItem as i32,
-				cstm_item.id,
-				user.id
-			)
-			.fetch_one(&state.db)
-			.await
-			{
-				label.label
-			} else {
-				String::new()
-			};
-
-			if let Some(conflict) = conflicting_cstm_item_reservations.get_mut(&user) {
-				conflict.push((cstm_item.id, label));
-			} else {
-				conflicting_cstm_item_reservations.insert(user, vec![(cstm_item.id, label)]);
-			}
-		}
-	}
-
-	let mut conflicting_sprites: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
-	let mut conflicting_aets: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
-	let mut conflicting_objsets: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
-	let mut conflicting_textures: BTreeMap<i32, Vec<(u32, String, String)>> = BTreeMap::new();
-	let mut conflicting_db_posts = BTreeMap::new();
-
-	if let Ok(entries) =
-		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
-			.with_limit(u32::MAX as usize)
-			.with_filter(&format!("post_id={}", post.id))
-			.execute::<MeilisearchDbEntry>()
-			.await
-			.map(|entries| {
-				entries
-					.results
-					.into_iter()
-					.map(|entry| (entry.id, entry))
-					.collect::<BTreeMap<_, _>>()
-			}) {
-		let search = entries
-			.iter()
-			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		if let Ok(conflicts) =
-			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
-				.with_limit(u32::MAX as usize)
-				.with_filter(&format!("({search}) AND post_id!={}", post.id))
-				.execute::<MeilisearchDbEntry>()
-				.await
-		{
-			for conflict in conflicts.results {
-				if let Some(existing) = conflicting_sprites.get_mut(&conflict.post_id) {
-					existing.push((
-						conflict.id,
-						entries[&conflict.id].name.clone(),
-						conflict.name,
-					));
-				} else {
-					conflicting_sprites.insert(
-						conflict.post_id,
-						vec![(
-							conflict.id,
-							entries[&conflict.id].name.clone(),
-							conflict.name,
-						)],
-					);
-				}
-
-				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
-					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
-						conflicting_db_posts.insert(post.id, post);
-					}
-				}
-			}
-		}
-	}
-
-	if let Ok(entries) =
-		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
-			.with_limit(u32::MAX as usize)
-			.with_filter(&format!("post_id={}", post.id))
-			.execute::<MeilisearchDbEntry>()
-			.await
-			.map(|entries| {
-				entries
-					.results
-					.into_iter()
-					.map(|entry| (entry.id, entry))
-					.collect::<BTreeMap<_, _>>()
-			}) {
-		let search = entries
-			.iter()
-			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		if let Ok(conflicts) =
-			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
-				.with_limit(u32::MAX as usize)
-				.with_filter(&format!("({search}) AND post_id!={}", post.id))
-				.execute::<MeilisearchDbEntry>()
-				.await
-		{
-			for conflict in conflicts.results {
-				if let Some(existing) = conflicting_aets.get_mut(&conflict.post_id) {
-					existing.push((
-						conflict.id,
-						entries[&conflict.id].name.clone(),
-						conflict.name,
-					));
-				} else {
-					conflicting_aets.insert(
-						conflict.post_id,
-						vec![(
-							conflict.id,
-							entries[&conflict.id].name.clone(),
-							conflict.name,
-						)],
-					);
-				}
-
-				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
-					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
-						conflicting_db_posts.insert(post.id, post);
-					}
-				}
-			}
-		}
-	}
-
-	if let Ok(entries) =
-		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
-			.with_limit(u32::MAX as usize)
-			.with_filter(&format!("post_id={}", post.id))
-			.execute::<MeilisearchDbEntry>()
-			.await
-			.map(|entries| {
-				entries
-					.results
-					.into_iter()
-					.map(|entry| (entry.id, entry))
-					.collect::<BTreeMap<_, _>>()
-			}) {
-		let search = entries
-			.iter()
-			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		if let Ok(conflicts) =
-			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
-				.with_limit(u32::MAX as usize)
-				.with_filter(&format!("({search}) AND post_id!={}", post.id))
-				.execute::<MeilisearchDbEntry>()
-				.await
-		{
-			for conflict in conflicts.results {
-				if let Some(existing) = conflicting_objsets.get_mut(&conflict.post_id) {
-					existing.push((
-						conflict.id,
-						entries[&conflict.id].name.clone(),
-						conflict.name,
-					));
-				} else {
-					conflicting_objsets.insert(
-						conflict.post_id,
-						vec![(
-							conflict.id,
-							entries[&conflict.id].name.clone(),
-							conflict.name,
-						)],
-					);
-				}
-
-				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
-					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
-						conflicting_db_posts.insert(post.id, post);
-					}
-				}
-			}
-		}
-	}
-
-	if let Ok(entries) =
-		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
-			.with_limit(u32::MAX as usize)
-			.with_filter(&format!("post_id={}", post.id))
-			.execute::<MeilisearchDbEntry>()
-			.await
-			.map(|entries| {
-				entries
-					.results
-					.into_iter()
-					.map(|entry| (entry.id, entry))
-					.collect::<BTreeMap<_, _>>()
-			}) {
-		let search = entries
-			.iter()
-			.map(|(id, entry)| format!("(id={} AND name!={})", id, entry.name))
-			.intersperse(String::from(" OR "))
-			.collect::<String>();
-
-		if let Ok(conflicts) =
-			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
-				.with_limit(u32::MAX as usize)
-				.with_filter(&format!("({search}) AND post_id!={}", post.id))
-				.execute::<MeilisearchDbEntry>()
-				.await
-		{
-			for conflict in conflicts.results {
-				if let Some(existing) = conflicting_textures.get_mut(&conflict.post_id) {
-					existing.push((
-						conflict.id,
-						entries[&conflict.id].name.clone(),
-						conflict.name,
-					));
-				} else {
-					conflicting_textures.insert(
-						conflict.post_id,
-						vec![(
-							conflict.id,
-							entries[&conflict.id].name.clone(),
-							conflict.name,
-						)],
-					);
-				}
-
-				if conflict.post_id != -1 && !conflicting_db_posts.contains_key(&conflict.post_id) {
-					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
-						conflicting_db_posts.insert(post.id, post);
-					}
-				}
-			}
-		}
-	}
-
-	let requires_expatch = pvs
-		.pvs
-		.iter()
-		.any(|pv| (pv.levels[3].is_some() || pv.levels[4].is_some()) && pv.levels[2].is_none());
-
-	let requires_nc = nc_songs.nc_songs.iter().any(|nc_song| {
-		nc_songs.pvs.get(&nc_song.pv_id).map_or(false, |pvs| {
-			pvs.iter().all(|pv| pv.post.unwrap_or(-1) != post.id)
-		}) || nc_song
-			.difficulties
-			.iter()
-			.filter_map(|difficulty| difficulty.clone())
-			.all(|difficulty| difficulty.arcade.is_none())
-	}) && !post.dependencies.as_ref().map_or(false, |dependencies| {
-		dependencies.iter().any(|post| post.id == 169)
-	});
 
 	let options = comrak::Options {
 		extension: comrak::ExtensionOptions::builder()
@@ -1240,7 +714,7 @@ async fn post_detail(
 		render: comrak::RenderOptions::builder().escape(true).build(),
 	};
 
-	let body_markdown = comrak::markdown_to_html(&post.text, &options)
+	let body_markdown = comrak::markdown_to_html(&post.post.text, &options)
 		.replace("<img src", "<img style=\"width: 100%\" src");
 
 	Ok(PostTemplate {
@@ -1249,30 +723,36 @@ async fn post_detail(
 		has_liked,
 		is_author,
 		base,
-		post,
+		post: post.post,
 		config: state.config,
-		pvs,
-		modules,
-		cstm_items,
-		nc_songs,
-		pv_easy_count,
-		pv_normal_count,
-		pv_hard_count,
-		pv_extreme_count,
-		pv_exextreme_count,
-		conflicting_pvs,
-		conflicting_modules,
-		conflicting_cstm_items,
-		conflicting_pv_reservations,
-		conflicting_module_reservations,
-		conflicting_cstm_item_reservations,
-		conflicting_sprites,
-		conflicting_aets,
-		conflicting_objsets,
-		conflicting_textures,
-		conflicting_db_posts,
-		requires_expatch,
-		requires_nc,
+		pvs: post.pvs,
+		modules: post.modules,
+		cstm_items: post.cstm_items,
+		nc_songs: post.nc_songs,
+		sprites: post.sprites,
+		aets: post.aets,
+		objsets: post.objsets,
+		textures: post.textures,
+		pv_easy_count: post.pv_easy_count,
+		pv_normal_count: post.pv_normal_count,
+		pv_hard_count: post.pv_hard_count,
+		pv_extreme_count: post.pv_extreme_count,
+		pv_exextreme_count: post.pv_exextreme_count,
+		conflicting_pvs: post.conflicting_pvs,
+		conflicting_modules: post.conflicting_modules,
+		conflicting_cstm_items: post.conflicting_cstm_items,
+		conflicting_pv_reservations: post.conflicting_pv_reservations,
+		conflicting_module_reservations: post.conflicting_module_reservations,
+		conflicting_costume_reservations: post.conflicting_costume_reservations,
+		conflicting_cstm_item_reservations: post.conflicting_cstm_item_reservations,
+		conflicting_sprites: post.conflicting_sprites,
+		conflicting_aets: post.conflicting_aets,
+		conflicting_objsets: post.conflicting_objsets,
+		conflicting_textures: post.conflicting_textures,
+		conflict_posts: post.conflict_posts,
+		conflict_users: post.conflict_users,
+		requires_expatch: post.requires_expatch,
+		requires_nc: post.requires_nc,
 		body_markdown,
 	})
 }
