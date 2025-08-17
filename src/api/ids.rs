@@ -2167,8 +2167,7 @@ pub async fn delete_reservation(
 	if let Ok(mut transaction) = state.db.begin().await {
 		_ = sqlx::query!(
 			r#"
-			UPDATE reservations r
-			SET time = '2000-01-01'
+			DELETE FROM reservations r
 			WHERE r.reservation_type = $1
 			AND r.user_id = $2
 			AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
@@ -2193,22 +2192,6 @@ pub async fn delete_reservation(
 			.execute(&mut *transaction)
 			.await;
 		}
-
-		_ = sqlx::query!(
-			r#"
-			DELETE FROM reservations r
-			WHERE time = '2000-01-01'
-			AND r.reservation_type = $1
-			AND r.user_id = $2
-			AND (r.range_start = $3 OR r.range_start + r.length > $3) AND r.range_start < $4
-			"#,
-			query.reservation_type as i32,
-			user.id,
-			query.start,
-			(query.start + query.length)
-		)
-		.execute(&mut *transaction)
-		.await;
 
 		_ = transaction.commit().await;
 	}
@@ -2981,8 +2964,7 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 		if let Ok(mut transaction) = state.db.begin().await {
 			_ = sqlx::query!(
 				r#"
-				UPDATE reservations r
-				SET time = '2000-01-01'
+				DELETE FROM reservations r
 				WHERE r.reservation_type = $1
 				AND r.user_id = $2
 				"#,
@@ -3004,19 +2986,6 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 			.execute(&mut *transaction)
 			.await;
 			}
-
-			_ = sqlx::query!(
-				r#"
-				DELETE FROM reservations r
-				WHERE time = '2000-01-01'
-				AND r.reservation_type = $1
-				AND r.user_id = $2
-				"#,
-				reservation_type as i32,
-				user.id,
-			)
-			.execute(&mut *transaction)
-			.await;
 
 			_ = transaction.commit().await;
 		}
