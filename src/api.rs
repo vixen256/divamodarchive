@@ -49,7 +49,10 @@ pub fn route(state: AppState) -> Router {
 			"/api/v1/posts/{id}/image",
 			post(append_image).patch(swap_images),
 		)
-		.route("/api/v1/posts/{id}/download/{variant}", get(download))
+		.route(
+			"/api/v1/posts/{id}/download/{variant}",
+			get(download).head(download_head),
+		)
 		.route("/api/v1/posts/{id}/like", post(like))
 		.route("/api/v1/posts/{id}/comment", post(comment))
 		.route(

@@ -733,6 +733,21 @@ pub async fn download(
 	Ok(Redirect::to(file))
 }
 
+pub async fn download_head(
+	Path((id, variant)): Path<(i32, i32)>,
+	State(state): State<AppState>,
+) -> Result<Redirect, StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	let Some(file) = post.files.get(variant as usize) else {
+		return Err(StatusCode::BAD_REQUEST);
+	};
+
+	Ok(Redirect::to(file))
+}
+
 pub async fn like(Path(id): Path<i32>, user: User, State(state): State<AppState>) -> StatusCode {
 	let Some(post) = Post::get_short(id, &state.db).await else {
 		return StatusCode::NOT_FOUND;
