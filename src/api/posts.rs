@@ -687,6 +687,23 @@ pub async fn create_post(
 		}
 	}
 
+	if sqlx::query!(
+		"SELECT p.id
+		FROM post_authors pa
+		LEFT JOIN posts p ON pa.post_id = p.id
+		WHERE pa.user_id = $1
+		AND p.files = '{}'
+		LIMIT 1",
+		user.id
+	)
+	.fetch_optional(&state.db)
+	.await
+	.unwrap_or_default()
+	.is_some()
+	{
+		return Err(StatusCode::CONFLICT);
+	}
+
 	let Ok(id) = sqlx::query!(
 		"
 		INSERT INTO posts (name, text, images, type, time, files, local_files, private)
