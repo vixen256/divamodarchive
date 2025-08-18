@@ -4146,7 +4146,7 @@ pub async fn post_detail(
 
 	let search = sprites
 		.iter()
-		.map(|(id, entry)| format!("(id={} AND name!={})", id, entry))
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
@@ -4174,9 +4174,39 @@ pub async fn post_detail(
 		}
 	}
 
+	let search = aets
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_aets.contains_key(&conflict.post_id) {
+				conflicting_aets.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_aets.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
 	let search = objsets
 		.iter()
-		.map(|(id, entry)| format!("(id={} AND name!={})", id, entry))
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
@@ -4206,7 +4236,7 @@ pub async fn post_detail(
 
 	let search = textures
 		.iter()
-		.map(|(id, entry)| format!("(id={} AND name!={})", id, entry))
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
@@ -4216,6 +4246,7 @@ pub async fn post_detail(
 			.with_filter(&format!("({search}) AND post_id!={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
+			.map_err(|e| dbg!(e))
 	{
 		for conflict in conflicts.results {
 			if !conflicting_textures.contains_key(&conflict.post_id) {
@@ -4228,36 +4259,6 @@ pub async fn post_detail(
 				}
 			}
 			let Some(existing) = conflicting_textures.get_mut(&conflict.post_id) else {
-				continue;
-			};
-			existing.insert(conflict.id, conflict.name);
-		}
-	}
-
-	let search = aets
-		.iter()
-		.map(|(id, entry)| format!("(id={} AND name!={})", id, entry))
-		.intersperse(String::from(" OR "))
-		.collect::<String>();
-
-	if let Ok(conflicts) =
-		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
-			.with_limit(u32::MAX as usize)
-			.with_filter(&format!("({search}) AND post_id!={}", post.id))
-			.execute::<MeilisearchDbEntry>()
-			.await
-	{
-		for conflict in conflicts.results {
-			if !conflicting_aets.contains_key(&conflict.post_id) {
-				conflicting_aets.insert(conflict.post_id, BTreeMap::new());
-
-				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
-					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
-						conflict_posts.insert(post.id, post);
-					}
-				}
-			}
-			let Some(existing) = conflicting_aets.get_mut(&conflict.post_id) else {
 				continue;
 			};
 			existing.insert(conflict.id, conflict.name);
