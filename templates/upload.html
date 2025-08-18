@@ -348,7 +348,6 @@
 					'explicit': document.getElementById('explicit').checked,
 					'explicit_reason': document.getElementById('explicit_reason').value,
 				}));
-				socket.close();
 			} else if (message.file != undefined && message.offset != undefined) {
 				let filepicker = document.getElementById('filePicker').files;
 				for (var i = 0; i < filepicker.length; i++) {
