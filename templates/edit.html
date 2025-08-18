@@ -495,6 +495,14 @@
 				socket.close();
 			} else if (message.success != undefined) {
 				success = true;
+				socket.send(JSON.stringify({
+					'name': document.getElementById('title').value,
+					'text': document.getElementById('text').value,
+					'post_type': Number(document.getElementById('type_tag').value),
+					'private': document.getElementById('private').checked,
+					'explicit': document.getElementById('explicit').checked,
+					'explicit_reason': document.getElementById('explicit_reason').value,
+				}));
 				socket.close();
 			} else if (message.file != undefined && message.offset != undefined) {
 				let filepicker = document.getElementById('filePicker').files;
