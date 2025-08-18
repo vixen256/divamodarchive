@@ -368,16 +368,18 @@
 <div class="card shadow" style="height: 100%">
 	<div class="card-img-top bg-clear border-none clearfix">
 		<div class="ratio ratio-16x9">
-			<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image w-100" loading="lazy">
-		</div>
-		`;
+			<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image w-100" loading="lazy" `;
 
 			if (post.explicit) {
 				html += `
+			style="filter: blur(0.2rem)">
+		</div>
 		<div class="card-img-overlay p-1">
 			<span class="float-end badge rounded-pill bg-danger" style="font-size: 1rem">Explicit</span>
 		</div>
 				`;
+			} else {
+				html += `></div>`;
 			}
 
 			html += `
@@ -399,7 +401,7 @@
 
 			html += `
 	</div>
-	<button class="btnbtn-success" onclick="addDependency(${post.id})" type="button">Add</button>
+	<button class="btn btn-success" onclick="addDependency(${post.id})" type="button">Add</button>
 </div>
 			`;
 
