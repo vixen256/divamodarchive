@@ -225,7 +225,7 @@ pub async fn edit_post(
 	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
 		return Err(StatusCode::BAD_REQUEST);
 	}
-	if data.private && post.files.is_empty() {
+	if !data.private && post.files.is_empty() {
 		return Err(StatusCode::BAD_REQUEST);
 	}
 
