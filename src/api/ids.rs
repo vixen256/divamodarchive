@@ -3604,7 +3604,7 @@ pub async fn post_detail(
 
 	if post.private {
 		if let Ok(user) = user {
-			if !post.authors.contains(&user) && state.config.admins.contains(&user.id) {
+			if !post.authors.contains(&user) && !state.config.admins.contains(&user.id) {
 				return Err((StatusCode::UNAUTHORIZED, String::from("Private post")));
 			}
 		} else {
