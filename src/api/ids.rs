@@ -4246,7 +4246,6 @@ pub async fn post_detail(
 			.with_filter(&format!("({search}) AND post_id!={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
-			.map_err(|e| dbg!(e))
 	{
 		for conflict in conflicts.results {
 			if !conflicting_textures.contains_key(&conflict.post_id) {
