@@ -610,15 +610,51 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		}
 	}
 
+	_ = socket
+		.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+			"{\"success\": \"\"}",
+		)))
+		.await;
+
+	let Some(Ok(ws::Message::Text(data))) = socket.recv().await else {
+		_ = socket
+			.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+				"{\"error\": \"Failed to recv message\"}",
+			)))
+			.await;
+		return;
+	};
+
+	let Ok(data) = serde_json::from_str::<PostEditData>(data.as_str()) else {
+		_ = socket
+			.send(ws::Message::Text(ws::Utf8Bytes::from_static(
+				"{\"error\": \"Failed to parse message\"}",
+			)))
+			.await;
+		return;
+	};
+
+	let explicit_reason = if !data.explicit || data.explicit_reason.is_empty() {
+		None
+	} else {
+		Some(data.explicit_reason)
+	};
+
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	_ = sqlx::query!(
-		"UPDATE posts SET files = $1, local_files = $2, time = $3 WHERE id = $4",
+	_ =sqlx::query!(
+		"UPDATE posts SET files = $2, local_files = $3, time = $4, name = $5, text = $6, type = $7, private = $8, explicit = $9, explicit_reason = $10 WHERE id = $1",
+		post.id,
 		&downloads,
 		&files,
 		time,
-		post.id,
+		data.name,
+		data.text,
+		data.post_type,
+		data.private,
+		data.explicit,
+		explicit_reason
 	)
 	.execute(&state.db)
 	.await;
@@ -628,12 +664,6 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		.await;
 
 	tokio::spawn(crate::api::ids::extract_post_data(post.id, state.clone()));
-
-	_ = socket
-		.send(ws::Message::Text(ws::Utf8Bytes::from_static(
-			"{\"success\": \"\"}",
-		)))
-		.await;
 }
 
 #[derive(Serialize, Deserialize)]

@@ -340,6 +340,14 @@
 				socket.close();
 			} else if (message.success != undefined) {
 				success = true;
+				socket.send(JSON.stringify({
+					'name': document.getElementById('title').value,
+					'text': document.getElementById('text').value,
+					'post_type': Number(document.getElementById('type_tag').value),
+					'private': document.getElementById('private').checked,
+					'explicit': document.getElementById('explicit').checked,
+					'explicit_reason': document.getElementById('explicit_reason').value,
+				}));
 				socket.close();
 			} else if (message.file != undefined && message.offset != undefined) {
 				let filepicker = document.getElementById('filePicker').files;
@@ -410,6 +418,12 @@
 			<br>
 			<textarea class="form-control" id="text" rows="10" placeholder="Description"></textarea>
 			<div class="text" hidden="" id="descriptionPreview"></div>
+			<input class="form-check-input" type="checkbox" id="private" checked="true">
+			<label class="form-check-label ms-1" for="private">Private</label>
+			<br>
+			<input class="form-check-input" type="checkbox" id="explicit" onclick="document.getElementById('explicit_reason').hidden = !document.getElementById('explicit').checked">
+			<label class="form-check-label ms-1" for="explicit">Explicit</label>
+			<input hidden="true" class="w-100" type="text" id="explicit_reason" placeholder="Explicit reason" autocomplete="off">
 		</div>
 
 		<select class="form-select list-text mb-1" id="type_tag">
