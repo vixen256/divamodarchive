@@ -667,12 +667,22 @@ async fn post_detail(
 	State(state): State<AppState>,
 	base: BaseTemplate,
 ) -> Result<PostTemplate, ErrorTemplate> {
-	let Json(post) = crate::api::ids::post_detail(Path(id), State(state.clone()))
-		.await
-		.map_err(|(status, _)| ErrorTemplate {
-			base: base.clone(),
-			status,
-		})?;
+	let Json(post) = crate::api::ids::post_detail(
+		Path(id),
+		base.user.clone().map_or(
+			Err(ErrorTemplate {
+				base: base.clone(),
+				status: StatusCode::IM_A_TEAPOT,
+			}),
+			|user| Ok(user),
+		),
+		State(state.clone()),
+	)
+	.await
+	.map_err(|(status, _)| ErrorTemplate {
+		base: base.clone(),
+		status,
+	})?;
 
 	let has_liked = if let Some(user) = &base.user {
 		let Ok(has_liked) = sqlx::query!(

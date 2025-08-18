@@ -3595,6 +3595,7 @@ pub struct PostDetail {
 )]
 pub async fn post_detail(
 	axum::extract::Path(id): axum::extract::Path<i32>,
+	user: Result<User, ErrorTemplate>,
 	State(state): State<AppState>,
 ) -> Result<Json<PostDetail>, (StatusCode, String)> {
 	let Some(mut post) = Post::get_full(id, &state.db).await else {
@@ -3602,7 +3603,13 @@ pub async fn post_detail(
 	};
 
 	if post.private {
-		return Err((StatusCode::UNAUTHORIZED, String::from("Private post")));
+		if let Ok(user) = user {
+			if !post.authors.contains(&user) && state.config.admins.contains(&user.id) {
+				return Err((StatusCode::UNAUTHORIZED, String::from("Private post")));
+			}
+		} else {
+			return Err((StatusCode::UNAUTHORIZED, String::from("Private post")));
+		}
 	}
 
 	for i in 0..post.files.len() {
