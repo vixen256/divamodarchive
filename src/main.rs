@@ -96,7 +96,7 @@ async fn main() {
 		.await
 		.unwrap();
 	meilisearch_posts
-		.set_filterable_attributes(&["post_type", "id", "private"])
+		.set_filterable_attributes(&["post_type", "id", "private", "time"])
 		.await
 		.unwrap();
 	meilisearch_posts
