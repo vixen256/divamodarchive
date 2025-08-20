@@ -87,7 +87,8 @@ async fn main() {
 	let meilisearch_customize = client.index("cstm_items");
 	let meilisearch_nc = client.index("nc_songs");
 	let meilisearch_sprites = client.index("sprites");
-	let meilisearch_aets = client.index("aets");
+	let meilisearch_aet_sets = client.index("aet_sets");
+	let meilisearch_aet_scenes = client.index("aet_scenes");
 	let meilisearch_objsets = client.index("objsets");
 	let meilisearch_textures = client.index("textures");
 
@@ -198,15 +199,28 @@ async fn main() {
 		.await
 		.unwrap();
 
-	meilisearch_aets
+	meilisearch_aet_sets
 		.set_filterable_attributes(&["id", "post_id", "name"])
 		.await
 		.unwrap();
-	meilisearch_aets
+	meilisearch_aet_sets
 		.set_sortable_attributes(&["id", "post_id"])
 		.await
 		.unwrap();
-	meilisearch_aets
+	meilisearch_aet_sets
+		.set_searchable_attributes(&["name"])
+		.await
+		.unwrap();
+
+	meilisearch_aet_scenes
+		.set_filterable_attributes(&["id", "post_id", "name"])
+		.await
+		.unwrap();
+	meilisearch_aet_scenes
+		.set_sortable_attributes(&["id", "post_id"])
+		.await
+		.unwrap();
+	meilisearch_aet_scenes
 		.set_searchable_attributes(&["name"])
 		.await
 		.unwrap();

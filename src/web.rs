@@ -45,7 +45,8 @@ pub fn route(state: AppState) -> Router {
 		.route("/cos_spreadsheet/teto", get(teto_cos_spreadsheet))
 		.route("/cstm_item_spreadsheet", get(cstm_item_spreadsheet))
 		.route("/sprite_spreadsheet", get(sprite_spreadsheet))
-		.route("/aet_spreadsheet", get(aet_spreadsheet))
+		.route("/aet_set_spreadsheet", get(aet_set_spreadsheet))
+		.route("/aet_scene_spreadsheet", get(aet_scene_spreadsheet))
 		.route("/objset_spreadsheet", get(objset_spreadsheet))
 		.route("/texture_spreadsheet", get(texture_spreadsheet))
 		.route("/reserve", get(reserve))
@@ -631,7 +632,8 @@ struct PostTemplate {
 	cstm_items: CstmItemSearch,
 	nc_songs: NcSongSearch,
 	sprites: BTreeMap<u32, String>,
-	aets: BTreeMap<u32, String>,
+	aet_sets: BTreeMap<u32, String>,
+	aet_scenes: BTreeMap<u32, String>,
 	objsets: BTreeMap<u32, String>,
 	textures: BTreeMap<u32, String>,
 	pv_easy_count: usize,
@@ -648,7 +650,8 @@ struct PostTemplate {
 		BTreeMap<module_db::Chara, BTreeMap<i64, BTreeMap<i32, String>>>,
 	conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
 	conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>>,
-	conflicting_aets: BTreeMap<i32, BTreeMap<u32, String>>,
+	conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>>,
+	conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>>,
 	conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>>,
 	conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>>,
 	conflict_posts: BTreeMap<i32, Post>,
@@ -753,7 +756,8 @@ async fn post_detail(
 		cstm_items: post.cstm_items,
 		nc_songs: post.nc_songs,
 		sprites: post.sprites,
-		aets: post.aets,
+		aet_sets: post.aet_sets,
+		aet_scenes: post.aet_scenes,
 		objsets: post.objsets,
 		textures: post.textures,
 		pv_easy_count: post.pv_easy_count,
@@ -769,7 +773,8 @@ async fn post_detail(
 		conflicting_costume_reservations: post.conflicting_costume_reservations,
 		conflicting_cstm_item_reservations: post.conflicting_cstm_item_reservations,
 		conflicting_sprites: post.conflicting_sprites,
-		conflicting_aets: post.conflicting_aets,
+		conflicting_aet_sets: post.conflicting_aet_sets,
+		conflicting_aet_scenes: post.conflicting_aet_scenes,
 		conflicting_objsets: post.conflicting_objsets,
 		conflicting_textures: post.conflicting_textures,
 		conflict_posts: post.conflict_posts,
@@ -1673,11 +1678,30 @@ async fn sprite_spreadsheet(
 	db_spreadsheet(String::from("Sprite"), String::from("sprites"), base, state).await
 }
 
-async fn aet_spreadsheet(
+async fn aet_set_spreadsheet(
 	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
-	db_spreadsheet(String::from("Aet"), String::from("aets"), base, state).await
+	db_spreadsheet(
+		String::from("Aet Set"),
+		String::from("aet_sets"),
+		base,
+		state,
+	)
+	.await
+}
+
+async fn aet_scene_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	db_spreadsheet(
+		String::from("Aet Scene"),
+		String::from("aet_scenes"),
+		base,
+		state,
+	)
+	.await
 }
 
 async fn objset_spreadsheet(

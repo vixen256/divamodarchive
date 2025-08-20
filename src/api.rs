@@ -21,7 +21,8 @@ pub mod posts;
 	all_modules,
 	all_cstm_items,
 	all_sprites,
-	all_aets,
+	all_aet_sets,
+	all_aet_scenes,
 	all_objsets,
 	all_textures
 ))]
@@ -78,7 +79,8 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/ids/all_modules", get(all_modules))
 		.route("/api/v1/ids/all_cstm_items", get(all_cstm_items))
 		.route("/api/v1/ids/all_sprites", get(all_sprites))
-		.route("/api/v1/ids/all_aets", get(all_aets))
+		.route("/api/v1/ids/all_aet_sets", get(all_aet_sets))
+		.route("/api/v1/ids/all_aet_scenes", get(all_aet_scenes))
 		.route("/api/v1/ids/all_objsets", get(all_objsets))
 		.route("/api/v1/ids/all_textures", get(all_textures))
 		.route("/api/v1/reserve/check", get(web_check_reserve_range))

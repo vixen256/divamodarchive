@@ -378,9 +378,10 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let aet_db = diva_db::AetDb::from_file(path).ok()?;
 
-	let mut entries = Vec::new();
+	let mut set_entries = Vec::new();
+	let mut scene_entries = Vec::new();
 	for (id, set) in aet_db.sets {
-		entries.push(MeilisearchDbEntry {
+		set_entries.push(MeilisearchDbEntry {
 			uid: (post_id as u64) << 32 | (id as u64),
 			post_id,
 			id,
@@ -388,7 +389,7 @@ async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -
 		});
 
 		for (id, scene) in set.scenes {
-			entries.push(MeilisearchDbEntry {
+			scene_entries.push(MeilisearchDbEntry {
 				uid: (post_id as u64) << 32 | (id as u64),
 				post_id,
 				id,
@@ -397,17 +398,18 @@ async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -
 		}
 	}
 
-	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
-		.with_filter("post_id=-1")
-		.with_limit(u32::MAX as usize)
-		.execute::<MeilisearchDbEntry>()
-		.await
-		.ok()?;
+	let base_sets =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_sets"))
+			.with_filter("post_id=-1")
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.ok()?;
 
-	let entries = entries
+	let set_entries = set_entries
 		.into_iter()
 		.filter(|entry| {
-			!base
+			!base_sets
 				.results
 				.iter()
 				.any(|base| base.id == entry.id && base.name == entry.name)
@@ -416,8 +418,33 @@ async fn parse_aet_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -
 
 	state
 		.meilisearch
-		.index("aets")
-		.add_or_update(&entries, Some("uid"))
+		.index("aet_sets")
+		.add_or_update(&set_entries, Some("uid"))
+		.await
+		.ok()?;
+
+	let base_scenes =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_scenes"))
+			.with_filter("post_id=-1")
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.ok()?;
+
+	let scene_entries = scene_entries
+		.into_iter()
+		.filter(|entry| {
+			!base_scenes
+				.results
+				.iter()
+				.any(|base| base.id == entry.id && base.name == entry.name)
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("aet_scenes")
+		.add_or_update(&scene_entries, Some("uid"))
 		.await
 		.ok()?;
 
@@ -3478,16 +3505,30 @@ pub async fn all_sprites(
 
 #[utoipa::path(
 	get,
-	path = "/api/v1/ids/all_aets",
+	path = "/api/v1/ids/all_aet_sets",
 	responses(
 		(status = 200, body = AllDbEntries, content_type = "application/json"),
 		(status = 500, body = String)
 	)
 )]
-pub async fn all_aets(
+pub async fn all_aet_sets(
 	State(state): State<AppState>,
 ) -> Result<Json<AllDbEntries>, (StatusCode, String)> {
-	all_db_entries(String::from("aets"), state).await
+	all_db_entries(String::from("aet_sets"), state).await
+}
+
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/all_aet_scenes",
+	responses(
+		(status = 200, body = AllDbEntries, content_type = "application/json"),
+		(status = 500, body = String)
+	)
+)]
+pub async fn all_aet_scenes(
+	State(state): State<AppState>,
+) -> Result<Json<AllDbEntries>, (StatusCode, String)> {
+	all_db_entries(String::from("aet_scenes"), state).await
 }
 
 #[utoipa::path(
@@ -3554,7 +3595,8 @@ pub struct PostDetail {
 	pub cstm_items: CstmItemSearch,
 	pub nc_songs: NcSongSearch,
 	pub sprites: BTreeMap<u32, String>,
-	pub aets: BTreeMap<u32, String>,
+	pub aet_sets: BTreeMap<u32, String>,
+	pub aet_scenes: BTreeMap<u32, String>,
 	pub objsets: BTreeMap<u32, String>,
 	pub textures: BTreeMap<u32, String>,
 	pub pv_easy_count: usize,
@@ -3571,7 +3613,8 @@ pub struct PostDetail {
 		BTreeMap<module_db::Chara, BTreeMap<i64, BTreeMap<i32, String>>>,
 	pub conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
 	pub conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>>,
-	pub conflicting_aets: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>>,
 	pub conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>>,
 	pub conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>>,
 	pub conflict_posts: BTreeMap<i32, Post>,
@@ -4095,19 +4138,35 @@ pub async fn post_detail(
 			})
 			.unwrap_or_default();
 
-	let aets = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
-		.with_limit(u32::MAX as usize)
-		.with_filter(&format!("post_id={}", post.id))
-		.execute::<MeilisearchDbEntry>()
-		.await
-		.map(|entries| {
-			entries
-				.results
-				.into_iter()
-				.map(|entry| (entry.id, entry.name))
-				.collect::<BTreeMap<_, _>>()
-		})
-		.unwrap_or_default();
+	let aet_sets =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let aet_scenes =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_scenes"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
 
 	let objsets =
 		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
@@ -4140,7 +4199,8 @@ pub async fn post_detail(
 			.unwrap_or_default();
 
 	let mut conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
-	let mut conflicting_aets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 
@@ -4174,22 +4234,22 @@ pub async fn post_detail(
 		}
 	}
 
-	let search = aets
+	let search = aet_sets
 		.iter()
 		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
 		.intersperse(String::from(" OR "))
 		.collect::<String>();
 
 	if let Ok(conflicts) =
-		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aets"))
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_sets"))
 			.with_limit(u32::MAX as usize)
 			.with_filter(&format!("({search}) AND post_id!={}", post.id))
 			.execute::<MeilisearchDbEntry>()
 			.await
 	{
 		for conflict in conflicts.results {
-			if !conflicting_aets.contains_key(&conflict.post_id) {
-				conflicting_aets.insert(conflict.post_id, BTreeMap::new());
+			if !conflicting_aet_sets.contains_key(&conflict.post_id) {
+				conflicting_aet_sets.insert(conflict.post_id, BTreeMap::new());
 
 				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
 					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
@@ -4197,7 +4257,37 @@ pub async fn post_detail(
 					}
 				}
 			}
-			let Some(existing) = conflicting_aets.get_mut(&conflict.post_id) else {
+			let Some(existing) = conflicting_aet_sets.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let search = aet_scenes
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_scenes"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_aet_scenes.contains_key(&conflict.post_id) {
+				conflicting_aet_scenes.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_aet_scenes.get_mut(&conflict.post_id) else {
 				continue;
 			};
 			existing.insert(conflict.id, conflict.name);
@@ -4286,7 +4376,8 @@ pub async fn post_detail(
 		cstm_items,
 		nc_songs,
 		sprites,
-		aets,
+		aet_sets,
+		aet_scenes,
 		objsets,
 		textures,
 		pv_easy_count,
@@ -4302,7 +4393,8 @@ pub async fn post_detail(
 		conflicting_costume_reservations,
 		conflicting_cstm_item_reservations,
 		conflicting_sprites,
-		conflicting_aets,
+		conflicting_aet_sets,
+		conflicting_aet_scenes,
 		conflicting_objsets,
 		conflicting_textures,
 		conflict_posts,

@@ -587,7 +587,8 @@
 
 	{% if
 		conflicting_sprites.len() > 0 ||
-		conflicting_aets.len() > 0 ||
+		conflicting_aet_sets.len() > 0 ||
+		conflicting_aet_scenes.len() > 0 ||
 		conflicting_objsets.len() > 0 ||
 		conflicting_textures.len() > 0
 	%}
@@ -622,8 +623,8 @@
 			</table>
 			{% endif %}
 
-			{% if conflicting_aets.len() > 0 %}
-			<h6 class="mt-2">Aet IDs:</h6>
+			{% if conflicting_aet_sets.len() > 0 %}
+			<h6 class="mt-2">Aet Set IDs:</h6>
 			<table class="table table-sm m-0">
 				<thead>
 					<tr>
@@ -634,11 +635,37 @@
 					</tr>
 				</thead>
 				<tbody>
-				{% for (post_id, ids) in conflicting_aets %}
+				{% for (post_id, ids) in conflicting_aet_sets %}
 					{% for (id, conflict_name) in ids %}
 					<tr>
 						<td>{{ id }}</td>
-						<td>{{ aets[id] }}</td>
+						<td>{{ aet_sets[id] }}</td>
+						<td>{{ conflict_name }}</td>
+						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endif %}
+
+			{% if conflicting_aet_scenes.len() > 0 %}
+			<h6 class="mt-2">Aet Scene IDs:</h6>
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Conflicting Name</th>
+						<th>Conflict Source</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (post_id, ids) in conflicting_aet_scenes %}
+					{% for (id, conflict_name) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{{ aet_scenes[id] }}</td>
 						<td>{{ conflict_name }}</td>
 						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
 					</tr>
