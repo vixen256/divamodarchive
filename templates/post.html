@@ -759,29 +759,45 @@
 
 	{% if pvs.pvs.len() > 0 %}
 	<div class="card card-body">
-		<h4>This mod adds the following songs: </h4>
-		{% call pv_helpers::draw_pv_list(pvs, false) %}
+		<button class="accordion accordion-button p-0" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#pvList">
+			<h4 class="mb-0">This mod adds the following Songs:</h4>
+		</button>
+		<div id="pvList" class="p-0 collapse show m-0 mt-2">
+			{% call pv_helpers::draw_pv_list(pvs, false) %}
+		</div>
 	</div>
 	{% endif %}
 
 	{% if modules.modules.len() > 0 %}
 	<div class="card card-body">
-		<h4>This mod adds the following modules: </h4>
-		{% call module_helpers::draw_module_list(modules, false) %}
+		<button class="accordion accordion-button p-0" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#moduleList">
+			<h4 class="mb-0">This mod adds the following Modules:</h4>
+		</button>
+		<div id="moduleList" class="p-0 collapse show m-0 mt-2">
+			{% call module_helpers::draw_module_list(modules, false) %}
+		</div>
 	</div>
 	{% endif %}
 
 	{% if cstm_items.cstm_items.len() > 0 %}
 	<div class="card card-body">
-		<h4>This mod adds the following customize items: </h4>
-		{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}
+		<button class="accordion accordion-button p-0" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#cstmItemList">
+			<h4 class="mb-0">This mod adds the following Customize Items:</h4>
+		</button>
+		<div id="cstmItemList" class="p-0 collapse show m-0 mt-2">
+			{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}
+		</div>
 	</div>
 	{% endif %}
 
 	{% if nc_songs.nc_songs.len() > 0 && nc_songs.contains_other_posts_songs(post) %}
 	<div class="card card-body">
-		<h4>This mod adds the following New Classics Songs: </h4>
-		{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
+		<button class="accordion accordion-button p-0" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#ncSongList">
+			<h4 class="mb-0">This mod adds the following New Classics Songs:</h4>
+		</button>
+		<div id="ncSongList" class="p-0 collapse show m-0 mt-2">
+			{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
+		</div>
 	</div>
 	{% endif %}
 
@@ -790,8 +806,8 @@
 		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#spriteSetList">
 			<h4 class="mb-0">This mod adds the following Sprite Sets:</h4>
 		</button>
-		<div id="spriteSetList" class="p-0 collapse">
-			<table class="table table-sm m-0 mt-2">
+		<div id="spriteSetList" class="p-0 collapse m-0 mt-2">
+			<table class="table table-sm">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -816,8 +832,8 @@
 		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#spriteList">
 			<h4 class="mb-0">This mod adds the following Sprites:</h4>
 		</button>
-		<div id="spriteList" class="p-0 collapse">
-			<table class="table table-sm m-0 mt-2">
+		<div id="spriteList" class="p-0 collapse m-0 mt-2">
+			<table class="table table-sm">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -842,8 +858,8 @@
 		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#aetSetList">
 			<h4 class="mb-0">This mod adds the following Aet Sets:</h4>
 		</button>
-		<div id="aetSetList" class="p-0 collapse">
-			<table class="table table-sm m-0 mt-2">
+		<div id="aetSetList" class="p-0 collapse m-0 mt-2">
+			<table class="table table-sm">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -868,8 +884,8 @@
 		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#aetSceneList">
 			<h4 class="mb-0">This mod adds the following Aet Scenes:</h4>
 		</button>
-		<div id="aetSceneList" class="p-0 collapse">
-			<table class="table table-sm m-0 mt-2">
+		<div id="aetSceneList" class="p-0 collapse m-0 mt-2">
+			<table class="table table-sm">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -894,8 +910,8 @@
 		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#objsetList">
 			<h4 class="mb-0">This mod adds the following Objsets:</h4>
 		</button>
-		<div id="objsetList" class="p-0 collapse">
-			<table class="table table-sm m-0 mt-2">
+		<div id="objsetList" class="p-0 collapse m-0 mt-2">
+			<table class="table table-sm">
 				<thead>
 					<tr>
 						<th>ID</th>
@@ -920,8 +936,8 @@
 		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#textureList">
 			<h4 class="mb-0">This mod adds the following Textures:</h4>
 		</button>
-		<div id="textureList" class="p-0 collapse">
-			<table class="table table-sm m-0 mt-2">
+		<div id="textureList" class="p-0 collapse m-0 mt-2">
+			<table class="table table-sm ">
 				<thead>
 					<tr>
 						<th>ID</th>
