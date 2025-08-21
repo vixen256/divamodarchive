@@ -785,6 +785,162 @@
 	</div>
 	{% endif %}
 
+	{% if sprite_sets.len() > 0 %}
+	<div class="card card-body">
+		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#spriteSetList">
+			<h4 class="mb-0">This mod adds the following Sprite Sets:</h4>
+		</button>
+		<div id="spriteSetList" class="p-0 collapse">
+			<table class="table table-sm m-0 mt-2">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (i, (id, name)) in sprite_sets.iter().enumerate() %}
+					<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}">
+						<td>{{ id }}</td>
+						<td>{{ name }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	{% endif %}
+
+	{% if sprites.len() > 0 %}
+	<div class="card card-body">
+		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#spriteList">
+			<h4 class="mb-0">This mod adds the following Sprites:</h4>
+		</button>
+		<div id="spriteList" class="p-0 collapse">
+			<table class="table table-sm m-0 mt-2">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (i, (id, name)) in sprites.iter().enumerate() %}
+					<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}">
+						<td>{{ id }}</td>
+						<td>{{ name }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	{% endif %}
+
+	{% if aet_sets.len() > 0 %}
+	<div class="card card-body">
+		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#aetSetList">
+			<h4 class="mb-0">This mod adds the following Aet Sets:</h4>
+		</button>
+		<div id="aetSetList" class="p-0 collapse">
+			<table class="table table-sm m-0 mt-2">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (i, (id, name)) in aet_sets.iter().enumerate() %}
+					<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}">
+						<td>{{ id }}</td>
+						<td>{{ name }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	{% endif %}
+
+	{% if aet_scenes.len() > 0 %}
+	<div class="card card-body">
+		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#aetSceneList">
+			<h4 class="mb-0">This mod adds the following Aet Scenes:</h4>
+		</button>
+		<div id="aetSceneList" class="p-0 collapse">
+			<table class="table table-sm m-0 mt-2">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (i, (id, name)) in aet_scenes.iter().enumerate() %}
+					<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}">
+						<td>{{ id }}</td>
+						<td>{{ name }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	{% endif %}
+
+	{% if objsets.len() > 0 %}
+	<div class="card card-body">
+		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#objsetList">
+			<h4 class="mb-0">This mod adds the following Objsets:</h4>
+		</button>
+		<div id="objsetList" class="p-0 collapse">
+			<table class="table table-sm m-0 mt-2">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (i, (id, name)) in objsets.iter().enumerate() %}
+					<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}">
+						<td>{{ id }}</td>
+						<td>{{ name }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	{% endif %}
+
+	{% if textures.len() > 0 %}
+	<div class="card card-body">
+		<button class="accordion accordion-button p-0 collapsed" style="color: unset; background-color: unset; box-shadow: unset" type="button" data-bs-toggle="collapse" data-bs-target="#textureList">
+			<h4 class="mb-0">This mod adds the following Textures:</h4>
+		</button>
+		<div id="textureList" class="p-0 collapse">
+			<table class="table table-sm m-0 mt-2">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (i, (id, name)) in textures.iter().enumerate() %}
+					<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}">
+						<td>{{ id }}</td>
+						<td>{{ name }}</td>
+					</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+	{% endif %}
+
 	{% if let Some(user) = user %}
 	<button class="btn btn-sm btn-primary" style="width: 100%" type="button" data-bs-toggle="collapse" data-bs-target="#commentInput-1"
 		aria-expanded="false" aria-controls="commentInput-1" id="startCommentButton-1">Comment</button>

@@ -317,7 +317,7 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	Some(())
 }
 
-pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
+async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let spr_db = diva_db::SprDb::from_file(path).ok()?;
 
 	let mut sets = Vec::new();
@@ -766,7 +766,7 @@ struct NcDbDifficulty {
 	level: Option<pv_db::Level>,
 }
 
-pub async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
+async fn parse_nc_db(data: &str, post_id: i32, state: AppState) -> Option<()> {
 	let nc_db: NcDb = toml::from_str(data).ok()?;
 
 	let songs = nc_db
