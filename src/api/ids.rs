@@ -320,9 +320,10 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppState) -> Option<()> {
 	let spr_db = diva_db::SprDb::from_file(path).ok()?;
 
-	let mut entries = Vec::new();
+	let mut sets = Vec::new();
+	let mut sprites = Vec::new();
 	for (id, set) in spr_db.sets {
-		entries.push(MeilisearchDbEntry {
+		sets.push(MeilisearchDbEntry {
 			uid: (post_id as u64) << 32 | (id as u64),
 			post_id,
 			id,
@@ -330,7 +331,7 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		});
 
 		for (id, sprite) in set.sprites {
-			entries.push(MeilisearchDbEntry {
+			sprites.push(MeilisearchDbEntry {
 				uid: (post_id as u64) << 32 | (id as u64),
 				post_id,
 				id,
@@ -339,7 +340,7 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		}
 
 		for (id, texture) in set.textures {
-			entries.push(MeilisearchDbEntry {
+			sprites.push(MeilisearchDbEntry {
 				uid: (post_id as u64) << 32 | (id as u64),
 				post_id,
 				id,
@@ -348,6 +349,31 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		}
 	}
 
+	let base =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprite_sets"))
+			.with_filter("post_id=-1")
+			.with_limit(u32::MAX as usize)
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.ok()?;
+
+	let sets = sets
+		.into_iter()
+		.filter(|entry| {
+			!base
+				.results
+				.iter()
+				.any(|base| base.id == entry.id && base.name == entry.name)
+		})
+		.collect::<Vec<_>>();
+
+	state
+		.meilisearch
+		.index("sprite_sets")
+		.add_or_update(&sets, Some("uid"))
+		.await
+		.ok()?;
+
 	let base = meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
 		.with_filter("post_id=-1")
 		.with_limit(u32::MAX as usize)
@@ -355,7 +381,7 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 		.await
 		.ok()?;
 
-	let entries = entries
+	let sprites = sprites
 		.into_iter()
 		.filter(|entry| {
 			!base
@@ -368,7 +394,7 @@ pub async fn parse_spr_db<P: AsRef<Path>>(path: P, post_id: i32, state: &AppStat
 	state
 		.meilisearch
 		.index("sprites")
-		.add_or_update(&entries, Some("uid"))
+		.add_or_update(&sprites, Some("uid"))
 		.await
 		.ok()?;
 
@@ -3491,6 +3517,20 @@ pub struct AllDbEntries {
 
 #[utoipa::path(
 	get,
+	path = "/api/v1/ids/all_sprite_sets",
+	responses(
+		(status = 200, body = AllDbEntries, content_type = "application/json"),
+		(status = 500, body = String)
+	)
+)]
+pub async fn all_sprite_sets(
+	State(state): State<AppState>,
+) -> Result<Json<AllDbEntries>, (StatusCode, String)> {
+	all_db_entries(String::from("sprite_sets"), state).await
+}
+
+#[utoipa::path(
+	get,
 	path = "/api/v1/ids/all_sprites",
 	responses(
 		(status = 200, body = AllDbEntries, content_type = "application/json"),
@@ -3594,6 +3634,7 @@ pub struct PostDetail {
 	pub modules: ModuleSearch,
 	pub cstm_items: CstmItemSearch,
 	pub nc_songs: NcSongSearch,
+	pub sprite_sets: BTreeMap<u32, String>,
 	pub sprites: BTreeMap<u32, String>,
 	pub aet_sets: BTreeMap<u32, String>,
 	pub aet_scenes: BTreeMap<u32, String>,
@@ -3612,6 +3653,7 @@ pub struct PostDetail {
 	pub conflicting_costume_reservations:
 		BTreeMap<module_db::Chara, BTreeMap<i64, BTreeMap<i32, String>>>,
 	pub conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	pub conflicting_sprite_sets: BTreeMap<i32, BTreeMap<u32, String>>,
 	pub conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>>,
 	pub conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>>,
 	pub conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>>,
@@ -4123,6 +4165,21 @@ pub async fn post_detail(
 		}
 	}
 
+	let sprite_sets =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprite_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
 	let sprites =
 		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
 			.with_limit(u32::MAX as usize)
@@ -4198,11 +4255,42 @@ pub async fn post_detail(
 			})
 			.unwrap_or_default();
 
+	let mut conflicting_sprite_sets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
 	let mut conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+
+	let search = sprite_sets
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprite_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_sprite_sets.contains_key(&conflict.post_id) {
+				conflicting_sprite_sets.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_sprite_sets.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
 
 	let search = sprites
 		.iter()
@@ -4375,6 +4463,7 @@ pub async fn post_detail(
 		modules,
 		cstm_items,
 		nc_songs,
+		sprite_sets,
 		sprites,
 		aet_sets,
 		aet_scenes,
@@ -4392,6 +4481,7 @@ pub async fn post_detail(
 		conflicting_module_reservations,
 		conflicting_costume_reservations,
 		conflicting_cstm_item_reservations,
+		conflicting_sprite_sets,
 		conflicting_sprites,
 		conflicting_aet_sets,
 		conflicting_aet_scenes,

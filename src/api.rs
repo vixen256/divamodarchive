@@ -20,6 +20,7 @@ pub mod posts;
 	all_pvs,
 	all_modules,
 	all_cstm_items,
+	all_sprite_sets,
 	all_sprites,
 	all_aet_sets,
 	all_aet_scenes,
@@ -78,6 +79,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/api/v1/ids/all_pvs", get(all_pvs))
 		.route("/api/v1/ids/all_modules", get(all_modules))
 		.route("/api/v1/ids/all_cstm_items", get(all_cstm_items))
+		.route("/api/v1/ids/all_sprite_sets", get(all_sprite_sets))
 		.route("/api/v1/ids/all_sprites", get(all_sprites))
 		.route("/api/v1/ids/all_aet_sets", get(all_aet_sets))
 		.route("/api/v1/ids/all_aet_scenes", get(all_aet_scenes))

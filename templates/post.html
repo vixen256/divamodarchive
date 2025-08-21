@@ -586,6 +586,7 @@
 	{% endif %}
 
 	{% if
+		conflicting_sprite_sets.len() > 0 ||
 		conflicting_sprites.len() > 0 ||
 		conflicting_aet_sets.len() > 0 ||
 		conflicting_aet_scenes.len() > 0 ||
@@ -597,6 +598,32 @@
 			<h5 class="mb-0">This mod may conflict with the following:</h5>
 		</button>
 		<div id="dbConflicts" class="p-1 pb-0 collapse">
+			{% if conflicting_sprite_sets.len() > 0 %}
+			<h6 class="mt-2">Sprite Set IDs:</h6>
+			<table class="table table-sm m-0">
+				<thead>
+					<tr>
+						<th>ID</th>
+						<th>Name</th>
+						<th>Conflicting Name</th>
+						<th>Conflict Source</th>
+					</tr>
+				</thead>
+				<tbody>
+				{% for (post_id, ids) in conflicting_sprite_sets %}
+					{% for (id, conflict_name) in ids %}
+					<tr>
+						<td>{{ id }}</td>
+						<td>{{ sprite_sets[id] }}</td>
+						<td>{{ conflict_name }}</td>
+						<td>{% if *post_id != -1 && conflict_posts.contains_key(post_id) %}<a href="/post/{{ post_id }}">{{ conflict_posts[post_id].name }}</a>{% else %}MM+{% endif %}</td>
+					</tr>
+					{% endfor %}
+				{% endfor %}
+				</tbody>
+			</table>
+			{% endif %}
+
 			{% if conflicting_sprites.len() > 0 %}
 			<h6 class="mt-2">Sprite IDs:</h6>
 			<table class="table table-sm m-0">

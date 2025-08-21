@@ -44,6 +44,7 @@ pub fn route(state: AppState) -> Router {
 		.route("/cos_spreadsheet/sakine", get(sakine_cos_spreadsheet))
 		.route("/cos_spreadsheet/teto", get(teto_cos_spreadsheet))
 		.route("/cstm_item_spreadsheet", get(cstm_item_spreadsheet))
+		.route("/sprite_set_spreadsheet", get(sprite_set_spreadsheet))
 		.route("/sprite_spreadsheet", get(sprite_spreadsheet))
 		.route("/aet_set_spreadsheet", get(aet_set_spreadsheet))
 		.route("/aet_scene_spreadsheet", get(aet_scene_spreadsheet))
@@ -631,6 +632,7 @@ struct PostTemplate {
 	modules: ModuleSearch,
 	cstm_items: CstmItemSearch,
 	nc_songs: NcSongSearch,
+	sprite_sets: BTreeMap<u32, String>,
 	sprites: BTreeMap<u32, String>,
 	aet_sets: BTreeMap<u32, String>,
 	aet_scenes: BTreeMap<u32, String>,
@@ -649,6 +651,7 @@ struct PostTemplate {
 	conflicting_costume_reservations:
 		BTreeMap<module_db::Chara, BTreeMap<i64, BTreeMap<i32, String>>>,
 	conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	conflicting_sprite_sets: BTreeMap<i32, BTreeMap<u32, String>>,
 	conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>>,
 	conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>>,
 	conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>>,
@@ -755,6 +758,7 @@ async fn post_detail(
 		modules: post.modules,
 		cstm_items: post.cstm_items,
 		nc_songs: post.nc_songs,
+		sprite_sets: post.sprite_sets,
 		sprites: post.sprites,
 		aet_sets: post.aet_sets,
 		aet_scenes: post.aet_scenes,
@@ -772,6 +776,7 @@ async fn post_detail(
 		conflicting_module_reservations: post.conflicting_module_reservations,
 		conflicting_costume_reservations: post.conflicting_costume_reservations,
 		conflicting_cstm_item_reservations: post.conflicting_cstm_item_reservations,
+		conflicting_sprite_sets: post.conflicting_sprite_sets,
 		conflicting_sprites: post.conflicting_sprites,
 		conflicting_aet_sets: post.conflicting_aet_sets,
 		conflicting_aet_scenes: post.conflicting_aet_scenes,
@@ -1669,6 +1674,19 @@ struct DbSpreadsheetTemplate {
 	human_name: String,
 	entries: Vec<MeilisearchDbEntry>,
 	posts: BTreeMap<i32, Post>,
+}
+
+async fn sprite_set_spreadsheet(
+	base: BaseTemplate,
+	State(state): State<AppState>,
+) -> Result<DbSpreadsheetTemplate, ErrorTemplate> {
+	db_spreadsheet(
+		String::from("Sprite Set"),
+		String::from("sprite_sets"),
+		base,
+		state,
+	)
+	.await
 }
 
 async fn sprite_spreadsheet(
