@@ -1074,23 +1074,67 @@ pub async fn delete_post(
 		.delete_document(post.id)
 		.await;
 
-	let pvs = state.meilisearch.index("pvs");
-	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("pvs"))
 		.with_filter(&format!("post={}", post.id))
 		.execute::<crate::api::ids::MeilisearchPv>()
 		.await;
 
-	let modules = state.meilisearch.index("modules");
-	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&modules)
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("modules"))
 		.with_filter(&format!("post_id={}", post.id))
 		.execute::<crate::api::ids::MeilisearchModule>()
 		.await;
 
-	let cstm_items = state.meilisearch.index("cstm_items");
-	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&cstm_items)
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("cstm_items"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchCstmItem>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("nc_songs"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchNcSong>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("sprite_sets"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("sprites"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchCstmItem>()
+		.execute::<crate::api::ids::MeilisearchDbEntry>()
 		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("aet_sets"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("aet_scenes"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("objsets"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("textures"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.await;
 
 	Ok(())
 }
