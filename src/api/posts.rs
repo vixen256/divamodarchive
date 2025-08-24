@@ -663,6 +663,14 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		.execute(&state.db)
 		.await;
 
+	if let Some(post) = Post::get_short(id, &state.db).await {
+		_ = state
+			.meilisearch
+			.index("posts")
+			.add_or_update(&[post], None)
+			.await;
+	};
+
 	tokio::spawn(crate::api::ids::extract_post_data(post.id, state.clone()));
 }
 
