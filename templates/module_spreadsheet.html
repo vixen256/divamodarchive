@@ -93,7 +93,7 @@
 		<tr>
 				<td>{{ next }}</td>
 				{% endif %}
-				<td>{{ module.module.name_en.as_ref().unwrap_or(String::new() | ref) }}</td>
+				<td>{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}</td>
 				<td>{{ module.module.name_jp.as_ref().unwrap_or(String::new() | ref) }}</td>
 				<td>{% if let Some(post) = module.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 			{% endfor %}

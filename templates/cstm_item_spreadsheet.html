@@ -93,7 +93,7 @@
 		<tr>
 				<td>{{ next }}</td>
 				{% endif %}
-				<td>{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(String::new() | ref) }}</td>
+				<td>{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}</td>
 				<td>{{ cstm_item.cstm_item.name_jp.as_ref().unwrap_or(String::new() | ref) }}</td>
 				<td>{% if let Some(post) = cstm_item.post %}<a href="/post/{{ post }}">{{ posts[post].name }}</a>{% else %}MM+{% endif %}</td>
 			{% endfor %}
