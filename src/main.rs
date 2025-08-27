@@ -289,6 +289,16 @@ async fn main() {
 	api::ids::optimise_reservations(api::ids::ReservationType::Song, &state).await;
 	api::ids::optimise_reservations(api::ids::ReservationType::Module, &state).await;
 	api::ids::optimise_reservations(api::ids::ReservationType::CstmItem, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosMiku, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosRin, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosLen, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosLuka, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosNeru, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosHaku, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosKaito, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosMeiko, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosSakine, &state).await;
+	api::ids::optimise_reservations(api::ids::ReservationType::CosTeto, &state).await;
 
 	tokio::spawn(update_users(state.clone()));
 

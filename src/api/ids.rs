@@ -313,6 +313,16 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	optimise_reservations(ReservationType::Song, &state).await;
 	optimise_reservations(ReservationType::Module, &state).await;
 	optimise_reservations(ReservationType::CstmItem, &state).await;
+	optimise_reservations(ReservationType::CosMiku, &state).await;
+	optimise_reservations(ReservationType::CosRin, &state).await;
+	optimise_reservations(ReservationType::CosLen, &state).await;
+	optimise_reservations(ReservationType::CosLuka, &state).await;
+	optimise_reservations(ReservationType::CosNeru, &state).await;
+	optimise_reservations(ReservationType::CosHaku, &state).await;
+	optimise_reservations(ReservationType::CosKaito, &state).await;
+	optimise_reservations(ReservationType::CosMeiko, &state).await;
+	optimise_reservations(ReservationType::CosSakine, &state).await;
+	optimise_reservations(ReservationType::CosTeto, &state).await;
 
 	Some(())
 }
