@@ -1674,7 +1674,7 @@ struct DbSpreadsheetTemplate {
 	base: BaseTemplate,
 	human_name: String,
 	entries: Vec<MeilisearchDbEntry>,
-	posts: BTreeMap<i32, Post>,
+	posts: HashMap<i32, Post>,
 }
 
 async fn sprite_set_spreadsheet(
@@ -1788,7 +1788,7 @@ async fn db_spreadsheet(
 	let posts = posts
 		.into_iter()
 		.map(|post| (post.id, post))
-		.collect::<BTreeMap<_, _>>();
+		.collect::<HashMap<_, _>>();
 
 	let mut entries = entries.results;
 	entries.sort_by(|a, b| a.id.cmp(&b.id));
