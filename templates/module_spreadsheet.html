@@ -28,6 +28,32 @@
 	<tbody>
 
 	{% if let Some((i, modules)) = modules.first_key_value() %}
+		{% for i in 0..(**i) %}
+		{% if let Some(reservation) = reservations.get(i) %}
+		<tr>
+			<td>{{ i }}</td>
+			{% if let Some(user) = users.get(reservation.user) %}
+			<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+			{% else %}
+			<td class="red-background">Reserved</td>
+			{% endif %}
+			{% if let Some(label) = reservation.label %}
+			<td class="red-background">{{ label | autolink }}</td>
+			{% else %}
+			<td class="red-background"/>
+			{% endif %}
+			<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		{% else if i <= 10000 %}
+		<tr>
+			<td>{{ i }}</td>
+			<td />
+			<td />
+			<td>Unused</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+
 		<tr>
 			<td>{{ i }}</td>
 		{% for module in modules %}

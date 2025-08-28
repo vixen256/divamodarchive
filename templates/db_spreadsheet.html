@@ -18,6 +18,16 @@
 	<tbody>
 
 	{% if let Some(entry) = entries.first() %}
+		{% for i in 0..entry.id %}
+		{% if i <= 10000 %}
+		<tr>
+			<td>{{ i }}</td>
+			<td />
+			<td>Unused</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+
 		<tr>
 			<td>{{ entry.id }}</td>
 			<td>{{ entry.name }}</td>
