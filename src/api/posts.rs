@@ -1622,11 +1622,7 @@ pub async fn post_detail(
 							.cos
 							.items
 							.iter()
-							.map(|item| format!(
-								"cos.items.id={} AND (post_id!=-1 OR cos.items.objset!='{}')",
-								item.id,
-								item.objset.first().unwrap_or(&String::new())
-							))
+							.map(|item| format!("cos.items.id={}", item.id,))
 							.intersperse(String::from(" OR "))
 							.collect::<String>()
 					)

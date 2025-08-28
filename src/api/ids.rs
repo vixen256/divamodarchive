@@ -618,20 +618,11 @@ async fn parse_module_db<P: AsRef<Path>>(
 		.collect::<Vec<_>>();
 
 	for module in &mut modules {
-		for item in &mut module.module.cos.items {
-			if item.objset.is_empty() {
-				for base_module in &base.results {
-					if base_module.module.chara != module.module.chara {
-						continue;
-					}
-					for base_item in &base_module.module.cos.items {
-						if base_item.id == item.id {
-							*item = base_item.clone();
-						}
-					}
-				}
-			}
-		}
+		module
+			.module
+			.cos
+			.items
+			.retain(|item| !item.objset.is_empty());
 	}
 
 	state
