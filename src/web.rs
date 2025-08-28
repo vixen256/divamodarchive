@@ -99,17 +99,18 @@ mod filters {
 		_: &dyn askama::Values,
 	) -> askama::Result<Safe<String>> {
 		let escaped = format!("{}", escape(s, Html)?);
-		let re = regex::Regex::new(
-			"https?:\\/\\/[-a-zA-Z0-9@:%._\\+~#=]{1,256}\\.[a-zA-Z]{1,6}\\b(?:[-a-zA-Z0-9()@:%_\\+.~#?&\\/=]*)",
-		).unwrap();
+		if let Some(start) = escaped.find("https://") {
+			let (before, url) = escaped.split_at(start);
 
-		let mut output = escaped.clone();
-		for m in re.find_iter(&escaped) {
-			let m = m.as_str();
-			output = output.replace(m, &format!("<a href=\"{m}\">{m}</a>"));
+			if let Some((end, _)) = url.chars().enumerate().skip(start).find(|(_, c)| *c == ' ') {
+				let (url, after) = url.split_at(end);
+				return Ok(Safe(format!("{before}<a href=\"{url}\">{url}</a>{after}")));
+			} else {
+				return Ok(Safe(format!("{before}<a href=\"{url}\">{url}</a>")));
+			}
 		}
 
-		Ok(Safe(output))
+		Ok(Safe(escaped))
 	}
 }
 

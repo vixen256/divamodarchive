@@ -20,7 +20,6 @@ meilisearch-sdk = "0.28"
 module_db = { git = "https://github.com/vixen256/module_db", features = ["utoipa"] }
 pv_db = { git = "https://github.com/vixen256/pv_db", features = ["utoipa"] }
 quick-xml = { version = "0.37", features = ["serialize"] }
-regex = "1.11"
 reqwest = { version = "0.12", features = ["json"] }
 serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
