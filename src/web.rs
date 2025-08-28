@@ -981,7 +981,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 	.unwrap_or_default()
 	.iter()
 	.flat_map(|reservation| {
-		if !users.contains_key(&reservation.user_id) {
+		if reservation.user_id != -1 && !users.contains_key(&reservation.user_id) {
 			users.insert(
 				reservation.user_id,
 				User {
@@ -1100,7 +1100,7 @@ async fn module_spreadsheet(
 	.unwrap_or_default()
 	.iter()
 	.flat_map(|reservation| {
-		if !users.contains_key(&reservation.user_id) {
+		if reservation.user_id != -1 && !users.contains_key(&reservation.user_id) {
 			users.insert(
 				reservation.user_id,
 				User {
@@ -1269,7 +1269,7 @@ async fn cos_spreadsheet(
 	.unwrap_or_default()
 	.iter()
 	.flat_map(|reservation| {
-		if !users.contains_key(&reservation.user_id) {
+		if reservation.user_id != -1 && !users.contains_key(&reservation.user_id) {
 			users.insert(
 				reservation.user_id,
 				User {
@@ -1386,7 +1386,7 @@ async fn cstm_item_spreadsheet(
 	.unwrap_or_default()
 	.iter()
 	.flat_map(|reservation| {
-		if !users.contains_key(&reservation.user_id) {
+		if reservation.user_id != -1 && !users.contains_key(&reservation.user_id) {
 			users.insert(
 				reservation.user_id,
 				User {
