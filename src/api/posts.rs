@@ -1611,13 +1611,36 @@ pub async fn post_detail(
 			.modules
 			.iter()
 			.map(|module| {
+				let item_filter = if module.module.cos.items.len() > 0 {
+					format!(
+						"OR (chara={} AND ({}))",
+						serde_json::to_string(&module.module.chara)
+							.unwrap()
+							.trim_matches('\"'),
+						module
+							.module
+							.cos
+							.items
+							.iter()
+							.map(|item| format!(
+								"cos.items.id={} AND (post_id!=-1 OR cos.items.objset!='{}')",
+								item.id,
+								item.objset.first().unwrap_or(&String::new())
+							))
+							.intersperse(String::from(" OR "))
+							.collect::<String>()
+					)
+				} else {
+					String::new()
+				};
 				format!(
-					"module_id={} OR (chara={} AND cos.id={})",
+					"module_id={} OR (chara={} AND cos.id={}) {}",
 					module.id,
 					serde_json::to_string(&module.module.chara)
 						.unwrap()
 						.trim_matches('\"'),
 					module.module.cos.id,
+					item_filter,
 				)
 			})
 			.intersperse(String::from(" OR "))
