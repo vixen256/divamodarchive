@@ -673,7 +673,7 @@ async fn post_detail(
 	State(state): State<AppState>,
 	base: BaseTemplate,
 ) -> Result<PostTemplate, ErrorTemplate> {
-	let Json(post) = crate::api::ids::post_detail(
+	let Json(post) = crate::api::posts::post_detail(
 		Path(id),
 		base.user.clone().map_or(
 			Err(ErrorTemplate {

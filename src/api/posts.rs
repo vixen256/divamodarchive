@@ -1,13 +1,17 @@
 use crate::AppState;
+use crate::api::ids::*;
 use crate::models::*;
 use axum::{
 	extract::*,
 	http::{StatusCode, header},
 	response::*,
 };
+use base64::prelude::*;
+use itertools::*;
 use serde::{Deserialize, Serialize};
+use std::collections::*;
 use tokio::io::{AsyncSeekExt, AsyncWriteExt};
-use utoipa::IntoParams;
+use utoipa::{IntoParams, ToSchema};
 
 #[derive(Serialize, Deserialize)]
 struct CloudflareDirectUploadResult {
@@ -511,48 +515,48 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("pvs"))
 		.with_filter(&format!("post={}", post.id))
-		.execute::<crate::api::ids::MeilisearchPv>()
+		.execute::<MeilisearchPv>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("modules"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchModule>()
+		.execute::<MeilisearchModule>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("cstm_items"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchCstmItem>()
+	.execute::<MeilisearchCstmItem>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("nc_songs"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchNcSong>()
+	.execute::<MeilisearchNcSong>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("sprites"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.execute::<MeilisearchDbEntry>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("aets"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.execute::<MeilisearchDbEntry>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("objsets"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.execute::<MeilisearchDbEntry>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("textures"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.execute::<MeilisearchDbEntry>()
 	.await;
 
 	let mut pending_exists = false;
@@ -671,7 +675,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 			.await;
 	};
 
-	tokio::spawn(crate::api::ids::extract_post_data(post.id, state.clone()));
+	tokio::spawn(extract_post_data(post.id, state.clone()));
 }
 
 #[derive(Serialize, Deserialize)]
@@ -753,7 +757,7 @@ pub async fn extract_post(
 		return StatusCode::UNAUTHORIZED;
 	}
 
-	tokio::spawn(crate::api::ids::extract_post_data(id, state.clone()));
+	tokio::spawn(extract_post_data(id, state.clone()));
 
 	StatusCode::OK
 }
@@ -1084,64 +1088,64 @@ pub async fn delete_post(
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("pvs"))
 		.with_filter(&format!("post={}", post.id))
-		.execute::<crate::api::ids::MeilisearchPv>()
+		.execute::<MeilisearchPv>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("modules"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchModule>()
+		.execute::<MeilisearchModule>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("cstm_items"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchCstmItem>()
+	.execute::<MeilisearchCstmItem>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("nc_songs"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchNcSong>()
+	.execute::<MeilisearchNcSong>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("sprite_sets"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.execute::<MeilisearchDbEntry>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("sprites"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.execute::<MeilisearchDbEntry>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("aet_sets"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.execute::<MeilisearchDbEntry>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("aet_scenes"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.execute::<MeilisearchDbEntry>()
 	.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("objsets"))
 		.with_filter(&format!("post_id={}", post.id))
-		.execute::<crate::api::ids::MeilisearchDbEntry>()
+		.execute::<MeilisearchDbEntry>()
 		.await;
 
 	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
 		&state.meilisearch.index("textures"),
 	)
 	.with_filter(&format!("post_id={}", post.id))
-	.execute::<crate::api::ids::MeilisearchDbEntry>()
+	.execute::<MeilisearchDbEntry>()
 	.await;
 
 	Ok(())
@@ -1412,4 +1416,871 @@ pub async fn user_settings(
 	);
 
 	headers
+}
+
+#[derive(Serialize, Deserialize, ToSchema)]
+pub struct PostDetail {
+	pub post: Post,
+	pub pvs: PvSearch,
+	pub modules: ModuleSearch,
+	pub cstm_items: CstmItemSearch,
+	pub nc_songs: NcSongSearch,
+	pub sprite_sets: BTreeMap<u32, String>,
+	pub sprites: BTreeMap<u32, String>,
+	pub aet_sets: BTreeMap<u32, String>,
+	pub aet_scenes: BTreeMap<u32, String>,
+	pub objsets: BTreeMap<u32, String>,
+	pub textures: BTreeMap<u32, String>,
+	pub pv_easy_count: usize,
+	pub pv_normal_count: usize,
+	pub pv_hard_count: usize,
+	pub pv_extreme_count: usize,
+	pub pv_exextreme_count: usize,
+	pub conflicting_pvs: BTreeMap<i32, Vec<Pv>>,
+	pub conflicting_modules: BTreeMap<i32, Vec<Module>>,
+	pub conflicting_cstm_items: BTreeMap<i32, Vec<CstmItem>>,
+	pub conflicting_pv_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	pub conflicting_module_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	pub conflicting_costume_reservations:
+		BTreeMap<module_db::Chara, BTreeMap<i64, BTreeMap<i32, String>>>,
+	pub conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>>,
+	pub conflicting_sprite_sets: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>>,
+	pub conflict_posts: BTreeMap<i32, Post>,
+	pub conflict_users: BTreeMap<i64, User>,
+	pub requires_expatch: bool,
+	pub requires_nc: bool,
+}
+
+#[utoipa::path(
+	get,
+	path = "/api/v1/posts/{id}/detail",
+	params(
+		("id" = i32, Path)
+	),
+	responses(
+		(status = 200, body = PostDetail, content_type = "application/json"),
+		(status = 401, body = String),
+		(status = 404, body = String),
+		(status = 500, body = String)
+	)
+)]
+pub async fn post_detail(
+	axum::extract::Path(id): axum::extract::Path<i32>,
+	user: Result<User, ErrorTemplate>,
+	State(state): State<AppState>,
+) -> Result<Json<PostDetail>, (StatusCode, String)> {
+	let Some(mut post) = Post::get_full(id, &state.db).await else {
+		return Err((StatusCode::NOT_FOUND, String::from("Does not exist")));
+	};
+
+	if post.private {
+		if let Ok(user) = user {
+			if !post.authors.contains(&user) && !state.config.admins.contains(&user.id) {
+				return Err((StatusCode::UNAUTHORIZED, String::from("Private post")));
+			}
+		} else {
+			return Err((StatusCode::UNAUTHORIZED, String::from("Private post")));
+		}
+	}
+
+	for i in 0..post.files.len() {
+		post.files[i] = format!(
+			"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+			post.id
+		);
+		post.local_files[i] = post.local_files[i]
+			.split("/")
+			.last()
+			.map(|s| String::from(s))
+			.unwrap_or(String::new());
+	}
+
+	let Json(pvs) = search_pvs(
+		Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post={}", post.id)),
+			limit: Some(u32::MAX as usize),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let Json(modules) = search_modules(
+		Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post_id={}", post.id)),
+			limit: Some(u32::MAX as usize),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let Json(cstm_items) = search_cstm_items(
+		Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post_id={}", post.id)),
+			limit: Some(u32::MAX as usize),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let Json(nc_songs) = search_nc_songs(
+		Query(crate::api::ids::SearchParams {
+			query: None,
+			filter: Some(format!("post_id={}", post.id)),
+			limit: Some(u32::MAX as usize),
+			offset: Some(0),
+		}),
+		State(state.clone()),
+	)
+	.await
+	.unwrap_or_default();
+
+	let pv_easy_count = pvs.pvs.iter().filter(|pv| pv.levels[0].is_some()).count();
+	let pv_normal_count = pvs.pvs.iter().filter(|pv| pv.levels[1].is_some()).count();
+	let pv_hard_count = pvs.pvs.iter().filter(|pv| pv.levels[2].is_some()).count();
+	let pv_extreme_count = pvs.pvs.iter().filter(|pv| pv.levels[3].is_some()).count();
+	let pv_exextreme_count = pvs.pvs.iter().filter(|pv| pv.levels[4].is_some()).count();
+
+	let mut conflicting_pvs: BTreeMap<i32, Vec<Pv>> = BTreeMap::new();
+	let mut conflicting_modules: BTreeMap<i32, Vec<Module>> = BTreeMap::new();
+	let mut conflicting_cstm_items: BTreeMap<i32, Vec<CstmItem>> = BTreeMap::new();
+	let mut conflict_posts: BTreeMap<i32, Post> = BTreeMap::new();
+
+	if pvs.pvs.len() > 0 {
+		let filter = pvs
+			.pvs
+			.iter()
+			.map(|pv| format!("(pv_id={} AND post!={})", pv.id, pv.post.unwrap_or(-1)))
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(search) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("pvs"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&filter)
+				.execute::<MeilisearchPv>()
+				.await
+		{
+			for pv in search.results {
+				let post = if pv.post == -1 {
+					None
+				} else if let Some(post) = conflict_posts.get(&pv.post) {
+					Some(post.id)
+				} else if let Some(post) = Post::get_full(pv.post, &state.db).await {
+					conflict_posts.insert(post.id, post.clone());
+					Some(post.id)
+				} else {
+					None
+				};
+
+				let pv = Pv {
+					uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+					id: pv.pv_id,
+					name: pv.song_name,
+					name_en: pv.song_name_en,
+					song_info: pv.song_info,
+					song_info_en: pv.song_info_en,
+					levels: pv.levels,
+					post,
+				};
+
+				if let Some(conflict) = conflicting_pvs.get_mut(&pv.id) {
+					conflict.push(pv);
+				} else {
+					conflicting_pvs.insert(pv.id, vec![pv]);
+				}
+			}
+		};
+	}
+
+	if modules.modules.len() > 0 {
+		let filter = modules
+			.modules
+			.iter()
+			.map(|module| {
+				format!(
+					"module_id={} OR (chara={} AND cos.id={})",
+					module.id,
+					serde_json::to_string(&module.module.chara)
+						.unwrap()
+						.trim_matches('\"'),
+					module.module.cos.id,
+				)
+			})
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(search) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("modules"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&format!("({filter}) AND post_id!={}", post.id))
+				.execute::<MeilisearchModule>()
+				.await
+		{
+			for module in search.results {
+				let post = if module.post_id == -1 {
+					None
+				} else if let Some(post) = conflict_posts.get(&module.post_id) {
+					Some(post.id)
+				} else if let Some(post) = Post::get_full(module.post_id, &state.db).await {
+					conflict_posts.insert(post.id, post.clone());
+					Some(post.id)
+				} else {
+					None
+				};
+
+				let module = Module {
+					uid: BASE64_STANDARD.encode(module.uid.to_ne_bytes()),
+					post,
+					id: module.module_id,
+					module: module.module,
+				};
+
+				if let Some(conflict) = conflicting_modules.get_mut(&module.id) {
+					conflict.push(module);
+				} else {
+					conflicting_modules.insert(module.id, vec![module]);
+				}
+			}
+		};
+	}
+
+	if cstm_items.cstm_items.len() > 0 {
+		let filter = cstm_items
+			.cstm_items
+			.iter()
+			.map(|cstm_item| {
+				format!(
+					"(customize_item_id={} AND post_id!={})",
+					cstm_item.id,
+					cstm_item.post.unwrap_or(-1)
+				)
+			})
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		if let Ok(search) =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("cstm_items"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&filter)
+				.execute::<MeilisearchCstmItem>()
+				.await
+		{
+			for cstm_item in search.results {
+				let post = if cstm_item.post_id == -1 {
+					None
+				} else if let Some(post) = conflict_posts.get(&cstm_item.post_id) {
+					Some(post.id)
+				} else if let Some(post) = Post::get_full(cstm_item.post_id, &state.db).await {
+					conflict_posts.insert(post.id, post.clone());
+					Some(post.id)
+				} else {
+					None
+				};
+
+				let customize_item = if cstm_item.customize_item.bind_module == Some(-1) {
+					module_db::CustomizeItem {
+						bind_module: None,
+						chara: cstm_item.customize_item.chara,
+						part: cstm_item.customize_item.part,
+						obj_id: cstm_item.customize_item.obj_id,
+						name: cstm_item.customize_item.name,
+						name_jp: cstm_item.customize_item.name_jp,
+						name_en: cstm_item.customize_item.name_en,
+						name_cn: cstm_item.customize_item.name_cn,
+						name_fr: cstm_item.customize_item.name_fr,
+						name_ge: cstm_item.customize_item.name_ge,
+						name_it: cstm_item.customize_item.name_it,
+						name_kr: cstm_item.customize_item.name_kr,
+						name_sp: cstm_item.customize_item.name_sp,
+						name_tw: cstm_item.customize_item.name_tw,
+					}
+				} else {
+					cstm_item.customize_item
+				};
+
+				let cstm_item = CstmItem {
+					uid: BASE64_STANDARD.encode(cstm_item.uid.to_ne_bytes()),
+					post,
+					id: cstm_item.customize_item_id,
+					cstm_item: customize_item,
+				};
+
+				if let Some(conflict) = conflicting_cstm_items.get_mut(&cstm_item.id) {
+					conflict.push(cstm_item);
+				} else {
+					conflicting_cstm_items.insert(cstm_item.id, vec![cstm_item]);
+				}
+			}
+		};
+	}
+
+	let mut conflicting_pv_reservations: BTreeMap<i64, BTreeMap<i32, String>> = BTreeMap::new();
+	let mut conflicting_module_reservations: BTreeMap<i64, BTreeMap<i32, String>> = BTreeMap::new();
+	let mut conflicting_costume_reservations: BTreeMap<
+		module_db::Chara,
+		BTreeMap<i64, BTreeMap<i32, String>>,
+	> = BTreeMap::new();
+	let mut conflicting_cstm_item_reservations: BTreeMap<i64, BTreeMap<i32, String>> =
+		BTreeMap::new();
+	let mut conflict_users: BTreeMap<i64, User> = BTreeMap::new();
+
+	for pv in &pvs.pvs {
+		let users = sqlx::query_as!(
+			User,
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE r.reservation_type = 0
+			AND (
+				r.range_start >= $1
+				OR r.range_start + r.length > $1
+			)
+			AND r.range_start <= $1
+			"#,
+			pv.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for user in users {
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				ReservationType::Song as i32,
+				pv.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
+			} else {
+				String::new()
+			};
+
+			if !conflicting_pv_reservations.contains_key(&user.id) {
+				conflicting_pv_reservations.insert(user.id, BTreeMap::new());
+			}
+			let Some(conflict) = conflicting_pv_reservations.get_mut(&user.id) else {
+				continue;
+			};
+			conflict.insert(pv.id, label);
+
+			if !conflict_users.contains_key(&user.id) {
+				conflict_users.insert(user.id, user);
+			}
+		}
+	}
+
+	for module in &modules.modules {
+		let users = sqlx::query_as!(
+			User,
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE
+			r.reservation_type = 1
+			AND (
+				r.range_start >= $1
+				OR r.range_start + r.length > $1
+			)
+			AND r.range_start <= $1
+			"#,
+			module.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for user in users {
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				ReservationType::Module as i32,
+				module.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
+			} else {
+				String::new()
+			};
+
+			if !conflicting_module_reservations.contains_key(&user.id) {
+				conflicting_module_reservations.insert(user.id, BTreeMap::new());
+			}
+			let Some(conflict) = conflicting_module_reservations.get_mut(&user.id) else {
+				continue;
+			};
+			conflict.insert(module.id, label);
+
+			if !conflict_users.contains_key(&user.id) {
+				conflict_users.insert(user.id, user);
+			}
+		}
+
+		let users = sqlx::query_as!(
+			User,
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE
+			r.reservation_type = $1
+			AND (
+				r.range_start >= $2
+				OR r.range_start + r.length > $2
+			)
+			AND r.range_start <= $2
+			"#,
+			module.module.chara.clone() as i32 + 10,
+			module.module.cos.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for user in users {
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				module.module.chara.clone() as i32 + 10,
+				module.module.cos.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
+			} else {
+				String::new()
+			};
+
+			if !conflicting_costume_reservations.contains_key(&module.module.chara) {
+				conflicting_costume_reservations
+					.insert(module.module.chara.clone(), BTreeMap::new());
+			}
+			let Some(reservations) = conflicting_costume_reservations.get_mut(&module.module.chara)
+			else {
+				continue;
+			};
+
+			if !reservations.contains_key(&user.id) {
+				reservations.insert(user.id, BTreeMap::new());
+			}
+			let Some(conflict) = reservations.get_mut(&user.id) else {
+				continue;
+			};
+			conflict.insert(module.module.cos.id, label);
+
+			if !conflict_users.contains_key(&user.id) {
+				conflict_users.insert(user.id, user);
+			}
+		}
+	}
+
+	for cstm_item in &cstm_items.cstm_items {
+		let users = sqlx::query_as!(
+			User,
+			r#"
+			SELECT u.id, u.name, u.avatar, u.display_name, u.public_likes, u.theme, u.show_explicit
+			FROM reservations r
+			LEFT JOIN users u ON r.user_id = u.id
+			WHERE r.reservation_type = 2
+			AND (
+				r.range_start >= $1
+				OR r.range_start + r.length > $1
+			)
+			AND r.range_start <= $1
+			"#,
+			cstm_item.id,
+		)
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default();
+		for user in users {
+			if post.authors.contains(&user) {
+				continue;
+			}
+
+			let label = if let Ok(label) = sqlx::query!(
+				"SELECT label FROM reservation_labels WHERE reservation_type = $1 AND id = $2 AND user_id = $3",
+				ReservationType::CstmItem as i32,
+				cstm_item.id,
+				user.id
+			)
+			.fetch_one(&state.db)
+			.await
+			{
+				label.label
+			} else {
+				String::new()
+			};
+
+			if !conflicting_cstm_item_reservations.contains_key(&user.id) {
+				conflicting_cstm_item_reservations.insert(user.id, BTreeMap::new());
+			}
+			let Some(conflict) = conflicting_cstm_item_reservations.get_mut(&user.id) else {
+				continue;
+			};
+			conflict.insert(cstm_item.id, label);
+
+			if !conflict_users.contains_key(&user.id) {
+				conflict_users.insert(user.id, user);
+			}
+		}
+	}
+
+	let sprite_sets =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprite_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let sprites =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let aet_sets =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let aet_scenes =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_scenes"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let objsets =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let textures =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("post_id={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+			.map(|entries| {
+				entries
+					.results
+					.into_iter()
+					.map(|entry| (entry.id, entry.name))
+					.collect::<BTreeMap<_, _>>()
+			})
+			.unwrap_or_default();
+
+	let mut conflicting_sprite_sets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_sprites: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_aet_sets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_aet_scenes: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_objsets: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+	let mut conflicting_textures: BTreeMap<i32, BTreeMap<u32, String>> = BTreeMap::new();
+
+	let search = sprite_sets
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprite_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_sprite_sets.contains_key(&conflict.post_id) {
+				conflicting_sprite_sets.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_sprite_sets.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let search = sprites
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("sprites"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_sprites.contains_key(&conflict.post_id) {
+				conflicting_sprites.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_sprites.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let search = aet_sets
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_sets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_aet_sets.contains_key(&conflict.post_id) {
+				conflicting_aet_sets.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_aet_sets.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let search = aet_scenes
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("aet_scenes"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_aet_scenes.contains_key(&conflict.post_id) {
+				conflicting_aet_scenes.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_aet_scenes.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let search = objsets
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("objsets"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_objsets.contains_key(&conflict.post_id) {
+				conflicting_objsets.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_objsets.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let search = textures
+		.iter()
+		.map(|(id, entry)| format!("(id={} AND name!='{}')", id, entry))
+		.intersperse(String::from(" OR "))
+		.collect::<String>();
+
+	if let Ok(conflicts) =
+		meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("textures"))
+			.with_limit(u32::MAX as usize)
+			.with_filter(&format!("({search}) AND post_id!={}", post.id))
+			.execute::<MeilisearchDbEntry>()
+			.await
+	{
+		for conflict in conflicts.results {
+			if !conflicting_textures.contains_key(&conflict.post_id) {
+				conflicting_textures.insert(conflict.post_id, BTreeMap::new());
+
+				if conflict.post_id != -1 && !conflict_posts.contains_key(&conflict.post_id) {
+					if let Some(post) = Post::get_short(conflict.post_id, &state.db).await {
+						conflict_posts.insert(post.id, post);
+					}
+				}
+			}
+			let Some(existing) = conflicting_textures.get_mut(&conflict.post_id) else {
+				continue;
+			};
+			existing.insert(conflict.id, conflict.name);
+		}
+	}
+
+	let requires_expatch = pvs
+		.pvs
+		.iter()
+		.any(|pv| (pv.levels[3].is_some() || pv.levels[4].is_some()) && pv.levels[2].is_none());
+
+	let requires_nc = nc_songs.nc_songs.iter().any(|nc_song| {
+		nc_songs.pvs.get(&nc_song.pv_id).map_or(false, |pvs| {
+			pvs.iter().all(|pv| pv.post.unwrap_or(-1) != post.id)
+		}) || nc_song
+			.difficulties
+			.iter()
+			.filter_map(|difficulty| difficulty.clone())
+			.all(|difficulty| difficulty.arcade.is_none())
+	});
+
+	Ok(Json(PostDetail {
+		post,
+		pvs,
+		modules,
+		cstm_items,
+		nc_songs,
+		sprite_sets,
+		sprites,
+		aet_sets,
+		aet_scenes,
+		objsets,
+		textures,
+		pv_easy_count,
+		pv_normal_count,
+		pv_hard_count,
+		pv_extreme_count,
+		pv_exextreme_count,
+		conflicting_pvs,
+		conflicting_modules,
+		conflicting_cstm_items,
+		conflicting_pv_reservations,
+		conflicting_module_reservations,
+		conflicting_costume_reservations,
+		conflicting_cstm_item_reservations,
+		conflicting_sprite_sets,
+		conflicting_sprites,
+		conflicting_aet_sets,
+		conflicting_aet_scenes,
+		conflicting_objsets,
+		conflicting_textures,
+		conflict_posts,
+		conflict_users,
+		requires_expatch,
+		requires_nc,
+	}))
 }
