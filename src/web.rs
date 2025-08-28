@@ -964,6 +964,7 @@ async fn cstm_items(base: BaseTemplate, State(state): State<AppState>) -> CstmIt
 struct PvSpreadsheet {
 	base: BaseTemplate,
 	reservations: HashMap<i32, Reservation>,
+	reservations_after: BTreeSet<i32>,
 	users: HashMap<i64, User>,
 	pvs: BTreeMap<i32, Vec<Pv>>,
 	posts: BTreeMap<i32, Post>,
@@ -1066,9 +1067,16 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 		}
 	}
 
+	let reservations_after = reservations
+		.iter()
+		.map(|(id, _)| *id)
+		.filter(|id| *id > pvs.last_key_value().map_or(0, |(id, _)| *id))
+		.collect::<BTreeSet<_>>();
+
 	PvSpreadsheet {
 		base,
 		reservations,
+		reservations_after,
 		users,
 		pvs,
 		posts,
@@ -1080,6 +1088,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 struct ModuleSpreadsheet {
 	base: BaseTemplate,
 	reservations: HashMap<i32, Reservation>,
+	reservations_after: BTreeSet<i32>,
 	users: HashMap<i64, User>,
 	modules: BTreeMap<i32, Vec<Module>>,
 	posts: BTreeMap<i32, Post>,
@@ -1181,9 +1190,16 @@ async fn module_spreadsheet(
 		}
 	}
 
+	let reservations_after = reservations
+		.iter()
+		.map(|(id, _)| *id)
+		.filter(|id| *id > modules.last_key_value().map_or(0, |(id, _)| *id))
+		.collect::<BTreeSet<_>>();
+
 	ModuleSpreadsheet {
 		base,
 		reservations,
+		reservations_after,
 		users,
 		modules,
 		posts,
@@ -1196,6 +1212,7 @@ struct CosSpreadsheet {
 	base: BaseTemplate,
 	chara: module_db::Chara,
 	reservations: HashMap<i32, Reservation>,
+	reservations_after: BTreeSet<i32>,
 	users: HashMap<i64, User>,
 	costumes: BTreeMap<i32, Vec<Module>>,
 	posts: BTreeMap<i32, Post>,
@@ -1351,10 +1368,17 @@ async fn cos_spreadsheet(
 				}
 		}
 
+	let reservations_after = reservations
+		.iter()
+		.map(|(id, _)| *id)
+		.filter(|id| *id > costumes.last_key_value().map_or(0, |(id, _)| *id))
+		.collect::<BTreeSet<_>>();
+
 	CosSpreadsheet {
 		base,
 		chara,
 		reservations,
+		reservations_after,
 		users,
 		costumes,
 		posts,
@@ -1366,6 +1390,7 @@ async fn cos_spreadsheet(
 struct CstmItemSpreadsheet {
 	base: BaseTemplate,
 	reservations: HashMap<i32, Reservation>,
+	reservations_after: BTreeSet<i32>,
 	users: HashMap<i64, User>,
 	cstm_items: BTreeMap<i32, Vec<CstmItem>>,
 	posts: BTreeMap<i32, Post>,
@@ -1467,9 +1492,16 @@ async fn cstm_item_spreadsheet(
 		}
 	}
 
+	let reservations_after = reservations
+		.iter()
+		.map(|(id, _)| *id)
+		.filter(|id| *id > cstm_items.last_key_value().map_or(0, |(id, _)| *id))
+		.collect::<BTreeSet<_>>();
+
 	CstmItemSpreadsheet {
 		base,
 		reservations,
+		reservations_after,
 		users,
 		cstm_items,
 		posts,

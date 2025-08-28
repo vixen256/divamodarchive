@@ -127,6 +127,68 @@
 			{% endfor %}
 		</tr>
 	{% endfor %}
+
+	{% if let Some(next) = reservations_after.last() %}
+	{% if let Some((last, _)) = modules.last_key_value() %}
+		{% for i in (*last + 1)..(**next) %}
+		{% if i <= 10000 %}
+		<tr>
+			<td>{{ i }}</td>
+			<td />
+			<td />
+			<td>Unused</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+
+		{% if let Some(reservation) = reservations.get(next) %}
+		<tr>
+			<td>{{ next }}</td>
+			{% if let Some(user) = users.get(reservation.user) %}
+			<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+			{% else %}
+			<td class="red-background">Reserved</td>
+			{% endif %}
+			{% if let Some(label) = reservation.label %}
+			<td class="red-background">{{ label | autolink }}</td>
+			{% else %}
+			<td class="red-background"/>
+			{% endif %}
+			<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		{% endif %}
+	{% endif %}
+	{% endif %}
+
+	{% for (last, next) in reservations_after.iter().zip(reservations_after.iter().skip(1)) %}
+		{% for i in (*last + 1)..(*next) %}
+		{% if i <= 10000 %}
+		<tr>
+			<td>{{ i }}</td>
+			<td />
+			<td />
+			<td>Unused</td>
+		</tr>
+		{% endif %}
+		{% endfor %}
+
+		{% if let Some(reservation) = reservations.get(next) %}
+		<tr>
+			<td>{{ next }}</td>
+			{% if let Some(user) = users.get(reservation.user) %}
+			<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+			{% else %}
+			<td class="red-background">Reserved</td>
+			{% endif %}
+			{% if let Some(label) = reservation.label %}
+			<td class="red-background">{{ label | autolink }}</td>
+			{% else %}
+			<td class="red-background"/>
+			{% endif %}
+			<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		{% endif %}
+	{% endfor %}
 	</tbody>
 </table>
 {% endblock content %}
