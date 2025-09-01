@@ -154,6 +154,68 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 		return None;
 	}
 
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("pvs"))
+		.with_filter(&format!("post={}", post.id))
+		.execute::<MeilisearchPv>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("modules"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<MeilisearchModule>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("cstm_items"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<MeilisearchCstmItem>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("nc_songs"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<MeilisearchNcSong>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("sprite_sets"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<MeilisearchDbEntry>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("sprites"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<MeilisearchDbEntry>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("aet_sets"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<MeilisearchDbEntry>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("aet_scenes"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<MeilisearchDbEntry>()
+	.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&state.meilisearch.index("objsets"))
+		.with_filter(&format!("post_id={}", post.id))
+		.execute::<MeilisearchDbEntry>()
+		.await;
+
+	_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(
+		&state.meilisearch.index("textures"),
+	)
+	.with_filter(&format!("post_id={}", post.id))
+	.execute::<MeilisearchDbEntry>()
+	.await;
+
 	for file in &post.local_files {
 		let file = format!("/pixeldrain/{file}");
 		let file = Path::new(&file);
