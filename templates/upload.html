@@ -5,6 +5,7 @@
 {% if let Some(jwt) = base.jwt %}
 {% call base::draw_embed("Upload", "") %}
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
+<script src="https://cdn.jsdelivr.net/npm/escape-html@1.0.3/index.min.js" async></script>
 
 <script>
 	function descriptionUpdate() {
@@ -14,7 +15,7 @@
 		} else {
 			document.getElementById('text').hidden = true;
 			document.getElementById('descriptionPreview').hidden = false;
-			document.getElementById('descriptionPreview').innerHTML = marked.parse(document.getElementById('text').value);
+			document.getElementById('descriptionPreview').innerHTML = marked.parse(escapeHtml(document.getElementById('text').value));
 		}
 	}
 
