@@ -6,6 +6,7 @@
 {% endblock head %}
 
 {% block content %}
+<script src="https://cdn.jsdelivr.net/npm/escape-html@1.0.3/index.min.js" async></script>
 <script>
 	function levelToString(level) {
 		switch (level) {
@@ -477,15 +478,32 @@
 		} else if (entry.Reservation != null) {
 			var reservation = entry.Reservation;
 			var tr = document.createElement('tr');
-			var nameHtml;
+			var nameHtml = "Reserved";
+			var labelHtml = "";
 			if (users[reservation.user] != null) {
-				nameHtml = `Reserved by <a href="/user/${users[reservation.user].id}">${users[reservation.user].display_name}</a>`;
-			} else {
-				nameHtml = `Reserved`;
+				nameHtml = `Reserved by <a href="/user/${users[reservation.user].id}">${escapeHtml(users[reservation.user].display_name)}</a>`;
 			}
+			if (reservation.label != null) {
+				var label = escapeHtml(reservation.label);
+				labelHtml = label;
+				var beginSplit = label.split("https://");
+				if (beginSplit.length == 2) {
+					var begin = beginSplit[0];
+					var url = "https://" + beginSplit[1];
+					var endSplit = url.split(" ");
+					if (endSplit.length == 2) {
+						var realUrl = endSplit[0];
+						var end = endSplit[1];
+						labelHtml = `${begin}<a href="${url}">${url}</a> ${end}`;
+					} else {
+						labelHtml = `${begin}<a href="${url}">${url}</a>`;
+					}
+				}
+			}
+
 			tr.innerHTML = `
 				<td class="red-background">${nameHtml}</td>
-				<td class="red-background">${reservation.label == null ? "" : reservation.label}</td>
+				<td class="red-background">${labelHtml}</td>
 				<td class="red-background">${reservation.id}</td>
 				<td class="red-background">${reservation.time.split("T")[0]}</td>
 			`;
