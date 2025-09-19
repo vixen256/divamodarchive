@@ -1,6 +1,5 @@
 {% extends "base.html" %}
 {% import "base.html" as base %}
-{% import "pv_helpers.html" as pv_helpers %}
 
 {% block head %}
 {% call base::draw_embed("PVs", "") %}
@@ -111,368 +110,392 @@
 
 	let difficulty_colours = ["--diva-easy",  "--diva-normal",  "--diva-hard",  "--diva-extreme",  "--diva-exex"]
 
-	function getPvHtml(pv, nc_songs, posts) {
-		var tr = document.createElement('tr');
-		tr.classList = [document.getElementById("pvs").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
-		tr.innerHTML = `
+	function getPvHtml(entry, nc_songs, posts, users) {
+		if (entry.Entry != null) {
+			var pv = entry.Entry;
+			var tr = document.createElement('tr');
+			tr.classList = [document.getElementById("pvs").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
+			tr.innerHTML = `
+				<td>${pv.name_en}</td>
+				<td>${pv.name}</td>
+				<td>${pv.id}</td>
+				<td>${pv.post == null ? 'MM+' : posts[pv.post].name}</td>
+			`;
+			tr.role = "button";
+			tr.setAttribute("data-bs-toggle", "collapse");
+			tr.setAttribute("data-bs-target", `#pvCollapse${pv.uid}`);
+
+			document.getElementById("pvs").append(tr);
+
+			var showMusic = (pv.song_info_en != null && pv.song_info_en.music != null && pv.song_info_en.music != '') || (pv.song_info != null && pv.song_info.music != null && pv.song_info.music != '');
+			var showLyrics = (pv.song_info_en != null && pv.song_info_en.lyrics != null && pv.song_info_en.lyrics != '') || (pv.song_info != null && pv.song_info.lyrics != null && pv.song_info.lyrics != '');
+			var showArranger = (pv.song_info_en != null && pv.song_info_en.arranger != null && pv.song_info_en.arranger != '') || (pv.song_info != null && pv.song_info.arranger != null && pv.song_info.arranger != '');
+			var showManipulator = (pv.song_info_en != null && pv.song_info_en.manipulator != null && pv.song_info_en.manipulator != '') || (pv.song_info != null && pv.song_info.manipulator != null && pv.song_info.manipulator != '');
+			var showEditor = (pv.song_info_en != null && pv.song_info_en.pv_editor != null && pv.song_info_en.pv_editor != '') || (pv.song_info != null && pv.song_info.pv_editor != null && pv.song_info.pv_editor != '');
+			var showGuitar = (pv.song_info_en != null && pv.song_info_en.guitar_player != null && pv.song_info_en.guitar_player != '') || (pv.song_info != null && pv.song_info.guitar_player != null && pv.song_info.guitar_player != '');
+
+			var maxLen = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar;
+			if (maxLen < 5) maxLen = 5;
+
+			let collapsingTr = document.createElement('tr');
+			let collapsingTd = document.createElement('td');
+			collapsingTd.colSpan = 4;
+			collapsingTd.classList = 'p-0'
+			collapsingTd.style.border = 'none';
+
+			let collapsing = document.createElement('div');
+			collapsing.classList = 'collapse';
+			collapsing.id = `pvCollapse${pv.uid}`;
+
+			let card = document.createElement('div');
+			card.classList = 'card card-body';
+			card.style.borderRadius = 0;
+
+			let table = document.createElement('table');
+			table.classList = 'table table-sm m-0';
+
+			let html = `
+	<thead>
+		<tr>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>ID</th>
+			<th>Source</th>
+			`;
+
+			for (var i = 4; i < maxLen; i++) {
+				html += '<th />';
+			}
+
+			html += `
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="table-dark">
+			`;
+			html += `
 			<td>${pv.name_en}</td>
 			<td>${pv.name}</td>
+			`;
+
+			html += `
 			<td>${pv.id}</td>
-			<td>${pv.post == null ? 'MM+' : posts[pv.post].name}</td>
-		`;
-		tr.role = "button";
-		tr.setAttribute("data-bs-toggle", "collapse");
-		tr.setAttribute("data-bs-target", `#pvCollapse${pv.uid}`);
-
-		document.getElementById("pvs").append(tr);
-
-		var showMusic = (pv.song_info_en != null && pv.song_info_en.music != null && pv.song_info_en.music != '') || (pv.song_info != null && pv.song_info.music != null && pv.song_info.music != '');
-		var showLyrics = (pv.song_info_en != null && pv.song_info_en.lyrics != null && pv.song_info_en.lyrics != '') || (pv.song_info != null && pv.song_info.lyrics != null && pv.song_info.lyrics != '');
-		var showArranger = (pv.song_info_en != null && pv.song_info_en.arranger != null && pv.song_info_en.arranger != '') || (pv.song_info != null && pv.song_info.arranger != null && pv.song_info.arranger != '');
-		var showManipulator = (pv.song_info_en != null && pv.song_info_en.manipulator != null && pv.song_info_en.manipulator != '') || (pv.song_info != null && pv.song_info.manipulator != null && pv.song_info.manipulator != '');
-		var showEditor = (pv.song_info_en != null && pv.song_info_en.pv_editor != null && pv.song_info_en.pv_editor != '') || (pv.song_info != null && pv.song_info.pv_editor != null && pv.song_info.pv_editor != '');
-		var showGuitar = (pv.song_info_en != null && pv.song_info_en.guitar_player != null && pv.song_info_en.guitar_player != '') || (pv.song_info != null && pv.song_info.guitar_player != null && pv.song_info.guitar_player != '');
-
-		var maxLen = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar;
-		if (maxLen < 5) maxLen = 5;
-
-		let collapsingTr = document.createElement('tr');
-		let collapsingTd = document.createElement('td');
-		collapsingTd.colSpan = 4;
-		collapsingTd.classList = 'p-0'
-		collapsingTd.style.border = 'none';
-
-		let collapsing = document.createElement('div');
-		collapsing.classList = 'collapse';
-		collapsing.id = `pvCollapse${pv.uid}`;
-
-		let card = document.createElement('div');
-		card.classList = 'card card-body';
-		card.style.borderRadius = 0;
-
-		let table = document.createElement('table');
-		table.classList = 'table table-sm m-0';
-
-		let html = `
-<thead>
-	<tr>
-		<th>Name (EN)</th>
-		<th>Name (JP)</th>
-		<th>ID</th>
-		<th>Source</th>
-		`;
-
-		for (var i = 4; i < maxLen; i++) {
-			html += '<th />';
-		}
-
-		html += `
-	</tr>
-</thead>
-<tbody>
-	<tr class="table-dark">
-		`;
-		html += `
-		<td>${pv.name_en}</td>
-		<td>${pv.name}</td>
-		`;
-
-		html += `
-		<td>${pv.id}</td>
-		<td>
-		`;
-
-		if (pv.post != null) {
-			html += `<a href="/post/${pv.post}" class="nav-link">${posts[pv.post].name}</a>`;
-		} else {
-			html += 'MM+';
-		}
-
-		html += '</td>';
-
-		for (var i = 4; i < maxLen; i++) {
-			html += '<td />';
-		}
-
-		html += `
-	</tr>
-</tbody>
-		`;
-
-		if (showMusic || showLyrics || showArranger || showManipulator || showEditor || showGuitar) {
-			html += '<thead><tr>';
-
-			if (showMusic) html += '<th>Music</th>';
-			if (showLyrics) html += '<th>Lyrics</th>';
-			if (showArranger) html += '<th>Arranger</th>';
-			if (showManipulator) html += '<th>Manipulator</th>';
-			if (showEditor) html += '<th>PV Editor</th>';
-			if (showGuitar) html += '<th>Guitar</th>';
-
-			for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
-				html += '<th />';
-			}
-
-			html += '</tr></thead><tbody>';
-
-			if (pv.song_info_en != null) {
-				html += '<tr class="table-dark">';
-
-				if (showMusic) html += `<td>${someOrNA(pv.song_info_en.music)}</td>`;
-				if (showLyrics) html += `<td>${someOrNA(pv.song_info_en.lyrics)}</td>`;
-				if (showArranger) html += `<td>${someOrNA(pv.song_info_en.arranger)}</td>`;
-				if (showManipulator) html += `<td>${someOrNA(pv.song_info_en.manipulator)}</td>`;
-				if (showEditor) html += `<td>${someOrNA(pv.song_info_en.pv_editor)}</td>`;
-				if (showGuitar) html += `<td>${someOrNA(pv.song_info_en.guitar_player)}</td>`;
-
-				for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
-					html += '<td />';
-				}
-
-				html += '</tr>';
-			}
-
-			if (pv.song_info != null) {
-				html += '<tr class="table-dark">';
-
-				if (showMusic) html += `<td>${someOrNA(pv.song_info.music)}</td>`;
-				if (showLyrics) html += `<td>${someOrNA(pv.song_info.lyrics)}</td>`;
-				if (showArranger) html += `<td>${someOrNA(pv.song_info.arranger)}</td>`;
-				if (showManipulator) html += `<td>${someOrNA(pv.song_info.manipulator)}</td>`;
-				if (showEditor) html += `<td>${someOrNA(pv.song_info.pv_editor)}</td>`;
-				if (showGuitar) html += `<td>${someOrNA(pv.song_info.guitar_player)}</td>`;
-
-				for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
-					html += '<td />';
-				}
-				html += '<tr />';
-			}
-
-			html += '</tbody>';
-		}
-
-		let owns_nc = false;
-		if (nc_songs[pv.id] != undefined && pv.post != null && pv.post != -1) {
-			for (var nc_song of nc_songs[pv.id]) {
-				if (nc_song.post == pv.post) {
-					owns_nc = true;
-				}
-			}
-		}
-
-		if (!owns_nc) {
-			html += `
-<thead>
-	<tr>
-		<th>Easy</th>
-		<th>Normal</th>
-		<th>Hard</th>
-		<th>Extreme</th>
-		<th>Extra Extreme</th>
+			<td>
 			`;
 
-			for (var i = 5; i < maxLen; i++) {
-				html += '<th />';
+			if (pv.post != null) {
+				html += `<a href="/post/${pv.post}" class="nav-link">${posts[pv.post].name}</a>`;
+			} else {
+				html += 'MM+';
 			}
 
-			html += `
-	</tr>
-</thead>
-<tbody>
-	<tr class="table-dark">
-		<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}"><b>${levelToString(pv.levels[0])}</b>${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-		<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}"><b>${levelToString(pv.levels[1])}</b>${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-		<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}"><b>${levelToString(pv.levels[2])}</b>${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-		<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}"><b>${levelToString(pv.levels[3])}</b>${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-		<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}"><b>${levelToString(pv.levels[4])}</b>${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
-			`;
+			html += '</td>';
 
-			for (var i = 5; i < maxLen; i++) {
+			for (var i = 4; i < maxLen; i++) {
 				html += '<td />';
 			}
 
-			html += `</tr></tbody>`;
-		}
-
-		if (nc_songs[pv.id] != undefined) {
-			for (var nc_song of nc_songs[pv.id]) {
-				html += `
-<thead>
-	<tr>
-		<th>New Classics Post</th>
-		<th>Has Arcade</th>
-		<th>Has Console</th>
-		<th>Has Mixed</th>
-				`;
-
-				for (var i = 4; i < maxLen; i++) {
-					html += '<td />';
-				}
-
 			html += `
-	</tr>
-</thead>
-<tbody>
-	<tr class="table-dark">
-		<td><a href="/post/${nc_song.post}" class="nav-link">${posts[nc_song.post].name}</a></td>
-		<td><span class="material-symbols-outlined fs-5">${has_arcade(nc_song, pv) ? 'check' : 'close'}</span></td>
-		<td><span class="material-symbols-outlined fs-5">${has_console(nc_song, pv) ? 'check' : 'close'}</span></td>
-		<td><span class="material-symbols-outlined fs-5">${has_mixed(nc_song, pv) ? 'check' : 'close'}</span></td>
-				`;
+		</tr>
+	</tbody>
+			`;
 
-				for (var i = 4; i < maxLen; i++) {
-					html += '<td />';
+			if (showMusic || showLyrics || showArranger || showManipulator || showEditor || showGuitar) {
+				html += '<thead><tr>';
+
+				if (showMusic) html += '<th>Music</th>';
+				if (showLyrics) html += '<th>Lyrics</th>';
+				if (showArranger) html += '<th>Arranger</th>';
+				if (showManipulator) html += '<th>Manipulator</th>';
+				if (showEditor) html += '<th>PV Editor</th>';
+				if (showGuitar) html += '<th>Guitar</th>';
+
+				for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
+					html += '<th />';
 				}
 
-			html += `
-	</tr>
-</tbody>
-				`;
+				html += '</tr></thead><tbody>';
 
-				if (nc_song.post == pv.post && has_arcade(nc_song, pv)) {
-					html += `
-<thead>
-	<tr>
-		<th>Arcade Easy</th>
-		<th>Arcade Normal</th>
-		<th>Arcade Hard</th>
-		<th>Arcade Extreme</th>
-		<th>Arcade Extra Extreme</th>
-					`;
+				if (pv.song_info_en != null) {
+					html += '<tr class="table-dark">';
 
-					for (var i = 5; i < maxLen; i++) {
+					if (showMusic) html += `<td>${someOrNA(pv.song_info_en.music)}</td>`;
+					if (showLyrics) html += `<td>${someOrNA(pv.song_info_en.lyrics)}</td>`;
+					if (showArranger) html += `<td>${someOrNA(pv.song_info_en.arranger)}</td>`;
+					if (showManipulator) html += `<td>${someOrNA(pv.song_info_en.manipulator)}</td>`;
+					if (showEditor) html += `<td>${someOrNA(pv.song_info_en.pv_editor)}</td>`;
+					if (showGuitar) html += `<td>${someOrNA(pv.song_info_en.guitar_player)}</td>`;
+
+					for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
 						html += '<td />';
 					}
 
-					html += `
-	</tr>
-</thead>
-<tbody>
-	<tr class="table-dark">
-					`;
-					for (var i = 0; i < 5; i++) {
-						let level = get_arcade_level(nc_song, pv, i);
-						if (level == null) {
-							html += '<td />';
-						} else {
-							html += `
-		<td style="background-color: var(${difficulty_colours[i]})">
-			<b>${level}</b>
-			<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
-		</td>
-							`;
-						}
-					}
-
-					for (var i = 5; i < maxLen; i++) {
-						html += '<td />';
-					}
-
-					html += `
-	</tr>
-</tbody>
-					`;
+					html += '</tr>';
 				}
 
-				if (has_console(nc_song, pv)) {
-					html += `
-<thead>
-	<tr>
-		<th>Console Easy</th>
-		<th>Console Normal</th>
-		<th>Console Hard</th>
-		<th>Console Extreme</th>
-		<th>Console Extra Extreme</th>
-					`;
+				if (pv.song_info != null) {
+					html += '<tr class="table-dark">';
 
-					for (var i = 5; i < maxLen; i++) {
+					if (showMusic) html += `<td>${someOrNA(pv.song_info.music)}</td>`;
+					if (showLyrics) html += `<td>${someOrNA(pv.song_info.lyrics)}</td>`;
+					if (showArranger) html += `<td>${someOrNA(pv.song_info.arranger)}</td>`;
+					if (showManipulator) html += `<td>${someOrNA(pv.song_info.manipulator)}</td>`;
+					if (showEditor) html += `<td>${someOrNA(pv.song_info.pv_editor)}</td>`;
+					if (showGuitar) html += `<td>${someOrNA(pv.song_info.guitar_player)}</td>`;
+
+					for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
 						html += '<td />';
 					}
-
-					html += `
-	</tr>
-</thead>
-<tbody>
-	<tr class="table-dark">
-					`;
-					for (var i = 0; i < 5; i++) {
-						let level = get_console_level(nc_song, pv, i);
-						if (level == null) {
-							html += '<td />';
-						} else {
-							html += `
-		<td style="background-color: var(${difficulty_colours[i]})">
-			<b>${level}</b>
-			<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
-		</td>
-							`;
-						}
-					}
-
-					for (var i = 5; i < maxLen; i++) {
-						html += '<td />';
-					}
-
-					html += `
-	</tr>
-</tbody>
-					`;
+					html += '<tr />';
 				}
 
-				if (has_mixed(nc_song, pv)) {
-					html += `
-<thead>
-	<tr>
-		<th>Mixed Easy</th>
-		<th>Mixed Normal</th>
-		<th>Mixed Hard</th>
-		<th>Mixed Extreme</th>
-		<th>Mixed Extra Extreme</th>
-					`;
+				html += '</tbody>';
+			}
 
-					for (var i = 5; i < maxLen; i++) {
-						html += '<td />';
+			let owns_nc = false;
+			if (nc_songs[pv.id] != undefined && pv.post != null && pv.post != -1) {
+				for (var nc_song of nc_songs[pv.id]) {
+					if (nc_song.post == pv.post) {
+						owns_nc = true;
 					}
-
-					html += `
-	</tr>
-</thead>
-<tbody>
-	<tr class="table-dark">
-					`;
-					for (var i = 0; i < 5; i++) {
-						let level = get_mixed_level(nc_song, pv, i);
-						if (level == null) {
-							html += '<td />';
-						} else {
-							html += `
-		<td style="background-color: var(${difficulty_colours[i]})">
-			<b>${level}</b>
-			<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
-		</td>
-							`;
-						}
-					}
-
-					for (var i = 5; i < maxLen; i++) {
-						html += '<td />';
-					}
-
-					html += `
-	</tr>
-</tbody>
-					`;
 				}
 			}
+
+			if (!owns_nc) {
+				html += `
+	<thead>
+		<tr>
+			<th>Easy</th>
+			<th>Normal</th>
+			<th>Hard</th>
+			<th>Extreme</th>
+			<th>Extra Extreme</th>
+				`;
+
+				for (var i = 5; i < maxLen; i++) {
+					html += '<th />';
+				}
+
+				html += `
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="table-dark">
+			<td style="${pv.levels[0] != null ? 'background-color: var(--diva-easy)' : ''}"><b>${levelToString(pv.levels[0])}</b>${pv.levels[0] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+			<td style="${pv.levels[1] != null ? 'background-color: var(--diva-normal)' : ''}"><b>${levelToString(pv.levels[1])}</b>${pv.levels[1] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+			<td style="${pv.levels[2] != null ? 'background-color: var(--diva-hard)' : ''}"><b>${levelToString(pv.levels[2])}</b>${pv.levels[2] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+			<td style="${pv.levels[3] != null ? 'background-color: var(--diva-extreme)' : ''}"><b>${levelToString(pv.levels[3])}</b>${pv.levels[3] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+			<td style="${pv.levels[4] != null ? 'background-color: var(--diva-exex)' : ''}"><b>${levelToString(pv.levels[4])}</b>${pv.levels[4] != null ? '<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>' : ''}</td>
+				`;
+
+				for (var i = 5; i < maxLen; i++) {
+					html += '<td />';
+				}
+
+				html += `</tr></tbody>`;
+			}
+
+			if (nc_songs[pv.id] != undefined) {
+				for (var nc_song of nc_songs[pv.id]) {
+					html += `
+	<thead>
+		<tr>
+			<th>New Classics Post</th>
+			<th>Has Arcade</th>
+			<th>Has Console</th>
+			<th>Has Mixed</th>
+					`;
+
+					for (var i = 4; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+				html += `
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="table-dark">
+			<td><a href="/post/${nc_song.post}" class="nav-link">${posts[nc_song.post].name}</a></td>
+			<td><span class="material-symbols-outlined fs-5">${has_arcade(nc_song, pv) ? 'check' : 'close'}</span></td>
+			<td><span class="material-symbols-outlined fs-5">${has_console(nc_song, pv) ? 'check' : 'close'}</span></td>
+			<td><span class="material-symbols-outlined fs-5">${has_mixed(nc_song, pv) ? 'check' : 'close'}</span></td>
+					`;
+
+					for (var i = 4; i < maxLen; i++) {
+						html += '<td />';
+					}
+
+				html += `
+		</tr>
+	</tbody>
+					`;
+
+					if (nc_song.post == pv.post && has_arcade(nc_song, pv)) {
+						html += `
+	<thead>
+		<tr>
+			<th>Arcade Easy</th>
+			<th>Arcade Normal</th>
+			<th>Arcade Hard</th>
+			<th>Arcade Extreme</th>
+			<th>Arcade Extra Extreme</th>
+						`;
+
+						for (var i = 5; i < maxLen; i++) {
+							html += '<td />';
+						}
+
+						html += `
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="table-dark">
+						`;
+						for (var i = 0; i < 5; i++) {
+							let level = get_arcade_level(nc_song, pv, i);
+							if (level == null) {
+								html += '<td />';
+							} else {
+								html += `
+			<td style="background-color: var(${difficulty_colours[i]})">
+				<b>${level}</b>
+				<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+			</td>
+								`;
+							}
+						}
+
+						for (var i = 5; i < maxLen; i++) {
+							html += '<td />';
+						}
+
+						html += `
+		</tr>
+	</tbody>
+						`;
+					}
+
+					if (has_console(nc_song, pv)) {
+						html += `
+	<thead>
+		<tr>
+			<th>Console Easy</th>
+			<th>Console Normal</th>
+			<th>Console Hard</th>
+			<th>Console Extreme</th>
+			<th>Console Extra Extreme</th>
+						`;
+
+						for (var i = 5; i < maxLen; i++) {
+							html += '<td />';
+						}
+
+						html += `
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="table-dark">
+						`;
+						for (var i = 0; i < 5; i++) {
+							let level = get_console_level(nc_song, pv, i);
+							if (level == null) {
+								html += '<td />';
+							} else {
+								html += `
+			<td style="background-color: var(${difficulty_colours[i]})">
+				<b>${level}</b>
+				<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+			</td>
+								`;
+							}
+						}
+
+						for (var i = 5; i < maxLen; i++) {
+							html += '<td />';
+						}
+
+						html += `
+		</tr>
+	</tbody>
+						`;
+					}
+
+					if (has_mixed(nc_song, pv)) {
+						html += `
+	<thead>
+		<tr>
+			<th>Mixed Easy</th>
+			<th>Mixed Normal</th>
+			<th>Mixed Hard</th>
+			<th>Mixed Extreme</th>
+			<th>Mixed Extra Extreme</th>
+						`;
+
+						for (var i = 5; i < maxLen; i++) {
+							html += '<td />';
+						}
+
+						html += `
+		</tr>
+	</thead>
+	<tbody>
+		<tr class="table-dark">
+						`;
+						for (var i = 0; i < 5; i++) {
+							let level = get_mixed_level(nc_song, pv, i);
+							if (level == null) {
+								html += '<td />';
+							} else {
+								html += `
+			<td style="background-color: var(${difficulty_colours[i]})">
+				<b>${level}</b>
+				<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+			</td>
+								`;
+							}
+						}
+
+						for (var i = 5; i < maxLen; i++) {
+							html += '<td />';
+						}
+
+						html += `
+		</tr>
+	</tbody>
+						`;
+					}
+				}
+			}
+
+			table.innerHTML = html;
+			card.appendChild(table);
+			collapsing.appendChild(card);
+			collapsingTd.appendChild(collapsing);
+			collapsingTr.appendChild(collapsingTd);
+
+			document.getElementById("pvs").append(collapsingTr);
+		} else if (entry.Reservation != null) {
+			var reservation = entry.Reservation;
+			var tr = document.createElement('tr');
+			var nameHtml;
+			if (users[reservation.user] != null) {
+				nameHtml = `Reserved by <a href="/user/${users[reservation.user].id}">${users[reservation.user].display_name}</a>`;
+			} else {
+				nameHtml = `Reserved`;
+			}
+			tr.innerHTML = `
+				<td class="red-background">${nameHtml}</td>
+				<td class="red-background">${reservation.label}</td>
+				<td class="red-background">${reservation.id}</td>
+				<td class="red-background">${reservation.time.split("T")[0]}</td>
+			`;
+
+			document.getElementById("pvs").append(tr);
+
+			var hidden = document.createElement('tr');
+			hidden.hidden = true;
+			document.getElementById("pvs").append(hidden);
 		}
-
-		table.innerHTML = html;
-		card.appendChild(table);
-		collapsing.appendChild(card);
-		collapsingTd.appendChild(collapsing);
-		collapsingTr.appendChild(collapsingTd);
-
-		document.getElementById("pvs").append(collapsingTr);
 	}
 
 	async function search(query, offset) {
@@ -484,7 +507,8 @@
 			method: 'GET',
 		}
 
-		return await fetch("/api/v1/ids/pvs?" + params.toString(), options).then(res => res.json());
+		var data = await fetch("/api/v1/ids/pvs_and_reservations?" + params.toString(), options).then(res => res.text());
+		return json_parse()(data);
 	}
 
 	async function loadMore(clear) {
@@ -495,7 +519,7 @@
 			document.getElementById("pvs").innerHTML = "";
 		}
 		for (var pv of pvs.pvs) {
-			getPvHtml(pv, pvs.nc_songs, pvs.posts);
+			getPvHtml(pv, pvs.nc_songs, pvs.posts, pvs.users);
 		}
 
 		if (pvs.pvs.length == 100) {
@@ -515,7 +539,360 @@
 	</div>
 </div>
 <br>
-{% call pv_helpers::draw_pv_list(pvs, true) %}
+<table class="table sm-table table-hover">
+	<thead>
+		<tr>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>ID</th>
+			<th>Source</th>
+		</tr>
+	</thead>
+	<tbody id="pvs">
+		{% for (i, pv) in pvs.pvs.iter().enumerate() %}
+		{% match pv %}
+		{% when EntryOrReservation::Entry(pv) %}
+		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#pvCollapse{{ pv.uid }}">
+			<td>{{ pv.name_en }}</td>
+			<td>{{ pv.name }}</td>
+			<td>{{ pv.id }}</td>
+			<td>{% if let Some(post) = pv.post %}{{ pvs.posts[post].name }}{% else %}MM+{% endif %}</td>
+		</tr>
+
+		{% let cols -%}
+		{% if pv.song_info_count() == 6 -%}
+		{% let cols = 6 -%}
+		{% else -%}
+		{% let cols = 5 -%}
+		{% endif -%}
+
+		<tr>
+			<td colspan="4" class="p-0" style="border: none">
+				<div class="collapse" id="pvCollapse{{ pv.uid }}">
+					<div class="card card-body" style="border-radius: 0">
+						<table class="table table-sm m-0">
+							<thead>
+								<tr>
+									<th>Name (EN)</th>
+									<th>Name (JP)</th>
+									<th>ID</th>
+									<th>Source</th>
+									{% for _ in 4..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td>{{ pv.name_en }}</td>
+									<td>{{ pv.name }}</td>
+									<td>{{ pv.id }}</td>
+									<td>{% if let Some(post) = pv.post %}<a href="/post/{{ post }}" class="nav-link">{{ pvs.posts[post].name }}</a>{% else %}MM+{% endif %}</td>
+									{% for _ in 4..cols %}
+									<td />
+									{% endfor %}
+								</tr>
+							</tbody>
+
+							{% if pv.song_info_count() != 0 %}
+							<thead>
+								<tr>
+									{% if pv.has_music() %}
+									<th>Music</th>
+									{% endif %}
+									{% if pv.has_lyrics() %}
+									<th>Lyrics</th>
+									{% endif %}
+									{% if pv.has_arranger() %}
+									<th>Arranger</th>
+									{% endif %}
+									{% if pv.has_manipulator() %}
+									<th>Manipulator</th>
+									{% endif %}
+									{% if pv.has_editor() %}
+									<th>Editor</th>
+									{% endif %}
+									{% if pv.has_guitar() %}
+									<th>Guitar</th>
+									{% endif %}
+									{% for _ in pv.song_info_count()..cols %}
+									<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								{% if let Some(song_info) = pv.song_info_en %}
+								<tr class="table-dark">
+									{% if pv.has_music() %}
+									<td>{% if let Some(music) = song_info.music %}{{ music }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_lyrics() %}
+									<td>{% if let Some(lyrics) = song_info.lyrics %}{{ lyrics }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_arranger() %}
+									<td>{% if let Some(arranger) = song_info.arranger %}{{ arranger }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_manipulator() %}
+									<td>{% if let Some(manipulator) = song_info.manipulator %}{{ manipulator }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_editor() %}
+									<td>{% if let Some(pv_editor) = song_info.pv_editor %}{{ pv_editor }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_guitar() %}
+									<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
+									{% endif %}
+									{% for _ in pv.song_info_count()..cols %}
+									<td />
+									{% endfor %}
+								</tr>
+								{% endif %}
+
+								{% if let Some(song_info) = pv.song_info %}
+								<tr class="table-dark">
+									{% if pv.has_music() %}
+									<td>{% if let Some(music) = song_info.music %}{{ music }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_lyrics() %}
+									<td>{% if let Some(lyrics) = song_info.lyrics %}{{ lyrics }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_arranger() %}
+									<td>{% if let Some(arranger) = song_info.arranger %}{{ arranger }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_manipulator() %}
+									<td>{% if let Some(manipulator) = song_info.manipulator %}{{ manipulator }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_editor() %}
+									<td>{% if let Some(pv_editor) = song_info.pv_editor %}{{ pv_editor }}{% endif %}</td>
+									{% endif %}
+									{% if pv.has_guitar() %}
+									<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
+									{% endif %}
+									{% for _ in pv.song_info_count()..cols %}
+									<td />
+									{% endfor %}
+								</tr>
+								{% endif %}
+							</tbody>
+							{% endif %}
+
+							{% let owns_nc -%}
+							{% if let Some(nc_songs) = pvs.nc_songs.get(pv.id) -%}
+								{% let owns_nc = pv.owns_nc(nc_songs) -%}
+							{% else -%}
+								{% let owns_nc = false -%}
+							{% endif -%}
+
+							{% if !owns_nc %}
+							<thead>
+								<tr>
+									<th>Easy</th>
+									<th>Normal</th>
+									<th>Hard</th>
+									<th>Extreme</th>
+									<th>Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(level) = pv.levels[i] %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})"><b>{{ level.to_string() }}</b><span class="material-symbols-outlined" style="font-size: 0.8rem">star</span></td>
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if let Some(nc_songs) = pvs.nc_songs.get(pv.id) %}
+							<tbody>
+							{% for song in nc_songs %}
+							<tr>
+							<td colspan="5" class="p-0" style="border: none">
+							<div class="card card-body" style="border-radius: 0">
+							<table class="table table-sm m-0">
+							<thead>
+								<tr>
+									<th>New Classics Post</th>
+									<th>Has Arcade</th>
+									<th>Has Console</th>
+									<th>Has Mixed</th>
+									{% for _ in 4..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+									<td><a href="/post/{{ song.post }}" class="nav-link">{{ pvs.posts[song.post | ref].name }}</a></td>
+									<td>
+										<span class="material-symbols-outlined fs-5">
+										{% if song.has_arcade(pv) %}
+											check
+										{% else %}
+											close
+										{% endif %}
+										</span>
+									</td>
+									<td>
+										<span class="material-symbols-outlined fs-5">
+										{% if song.has_console() %}
+											check
+										{% else %}
+											close
+										{% endif %}
+										</span>
+									</td>
+									<td>
+										<span class="material-symbols-outlined fs-5">
+										{% if song.has_mixed() %}
+											check
+										{% else %}
+											close
+										{% endif %}
+										</span>
+									</td>
+									{% for _ in 4..cols %}
+										<td />
+									{% endfor %}
+								</tr>
+							</tbody>
+
+							{% if song.post == pv.post.unwrap_or(0) && song.has_arcade(pv) %}
+							<thead>
+								<tr>
+									<th>Arcade Easy</th>
+									<th>Arcade Normal</th>
+									<th>Arcade Hard</th>
+									<th>Arcade Extreme</th>
+									<th>Arcade Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(level) = song.get_arcade_level(pv, *i) %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>{{ level.to_string() }}</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if song.has_console() %}
+							<thead>
+								<tr>
+									<th>Console Easy</th>
+									<th>Console Normal</th>
+									<th>Console Hard</th>
+									<th>Console Extreme</th>
+									<th>Console Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(level) = song.get_console_level(pv, *i) %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>{{ level.to_string() }}</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+
+							{% if song.has_mixed() %}
+							<thead>
+								<tr>
+									<th>Mixed Easy</th>
+									<th>Mixed Normal</th>
+									<th>Mixed Hard</th>
+									<th>Mixed Extreme</th>
+									<th>Mixed Extra Extreme</th>
+									{% for _ in 5..cols %}
+										<th />
+									{% endfor %}
+								</tr>
+							</thead>
+							<tbody>
+								<tr class="table-dark">
+								{% for i in 0..5 %}
+									{% if let Some(level) = song.get_arcade_level(pv, *i) %}
+									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
+										<b>{{ level.to_string() }}</b>
+										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
+									</td>
+									{% else %}
+									<td />
+									{% endif %}
+								{% endfor %}
+								{% for _ in 5..cols %}
+									<td />
+								{% endfor %}
+								</tr>
+							</tbody>
+							{% endif %}
+							</table>
+							</div>
+							</td>
+							</tr>
+							{% endfor %}
+							</tbody>
+							{% endif %}
+						</table>
+					</div>
+				</div>
+			</td>
+		</tr>
+		{% endwhen %}
+		{% when EntryOrReservation::Reservation(reservation) %}
+		<tr>
+			{% if let Some(user) = pvs.users.get(reservation.user) %}
+			<td class="red-background">Reserved by <a href="/user/{{ user.id }}">{{ user.display_name }}</a></td>
+			{% else %}
+			<td class="red-background">Reserved</td>
+			{% endif %}
+			{% if let Some(label) = reservation.label %}
+			<td class="red-background">{{ label | autolink }}</td>
+			{% else %}
+			<td class="red-background" />
+			{% endif %}
+			<td class="red-background">{{ reservation.id }}</td>
+			<td class="red-background">{{ reservation.time.date() }}</td>
+		</tr>
+		{% endwhen %}
+		{% endmatch %}
+		{% endfor %}
+	</tbody>
+</table>
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if pvs.pvs.len() < 100 %}hidden{% endif %}>Load more</button>
 <br>

@@ -16,7 +16,7 @@ dotenvy = "0.15"
 env_logger = "0.11"
 itertools = "0.14"
 jsonwebtoken = "9.3"
-meilisearch-sdk = "0.28"
+meilisearch-sdk = "0.29"
 module_db = { git = "https://github.com/vixen256/module_db", features = ["utoipa"] }
 pv_db = { git = "https://github.com/vixen256/pv_db", features = ["utoipa"] }
 quick-xml = { version = "0.37", features = ["serialize"] }

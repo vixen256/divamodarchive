@@ -73,6 +73,10 @@ pub fn route(state: AppState) -> Router {
 		)
 		.route("/api/v1/users/settings", post(user_settings))
 		.route("/api/v1/ids/pvs", get(search_pvs))
+		.route(
+			"/api/v1/ids/pvs_and_reservations",
+			get(search_pvs_and_reservations),
+		)
 		.route("/api/v1/ids/modules", get(search_modules))
 		.route("/api/v1/ids/cstm_items", get(search_cstm_items))
 		.route("/api/v1/ids/nc_songs", get(search_nc_songs))

@@ -424,6 +424,7 @@ async fn user_reservations(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -462,6 +463,7 @@ async fn user_reservations(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -500,6 +502,7 @@ async fn user_reservations(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -541,6 +544,7 @@ async fn user_reservations(
 				(
 					i,
 					Reservation {
+						id: i,
 						user: reservation.user_id,
 						reservation_type: reservation.reservation_type.into(),
 						time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -894,11 +898,11 @@ async fn report(
 #[template(path = "pvs.html")]
 struct PvsTemplate {
 	base: BaseTemplate,
-	pvs: PvSearch,
+	pvs: PvReservationSearch,
 }
 
 async fn pvs(base: BaseTemplate, State(state): State<AppState>) -> PvsTemplate {
-	let Json(pvs) = search_pvs(
+	let Json(pvs) = search_pvs_and_reservations(
 		Query(SearchParams {
 			query: None,
 			filter: None,
@@ -1000,6 +1004,7 @@ async fn pv_spreadsheet(base: BaseTemplate, State(state): State<AppState>) -> Pv
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -1127,6 +1132,7 @@ async fn module_spreadsheet(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -1304,6 +1310,7 @@ async fn cos_spreadsheet(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -1429,6 +1436,7 @@ async fn cstm_item_spreadsheet(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),

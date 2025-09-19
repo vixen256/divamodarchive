@@ -85,6 +85,7 @@ async fn main() {
 	let meilisearch_pvs = client.index("pvs");
 	let meilisearch_modules = client.index("modules");
 	let meilisearch_customize = client.index("cstm_items");
+	let meilisearch_reservations = client.index("reservations");
 	let meilisearch_nc = client.index("nc_songs");
 	let meilisearch_sprite_sets = client.index("sprite_sets");
 	let meilisearch_sprites = client.index("sprites");
@@ -94,7 +95,7 @@ async fn main() {
 	let meilisearch_textures = client.index("textures");
 
 	meilisearch_posts
-		.set_searchable_attributes(&["name", "text", "authors.name"])
+		.set_searchable_attributes(&["authors.name", "name", "text"])
 		.await
 		.unwrap();
 	meilisearch_posts
@@ -107,7 +108,7 @@ async fn main() {
 		.unwrap();
 
 	meilisearch_pvs
-		.set_filterable_attributes(&["post", "pv_id"])
+		.set_filterable_attributes(&["post", "pv_id", "levels"])
 		.await
 		.unwrap();
 	meilisearch_pvs
@@ -182,6 +183,19 @@ async fn main() {
 		.unwrap();
 	meilisearch_customize
 		.set_sortable_attributes(&["customize_item_id"])
+		.await
+		.unwrap();
+
+	meilisearch_reservations
+		.set_filterable_attributes(&["id", "reservation_type", "user"])
+		.await
+		.unwrap();
+	meilisearch_reservations
+		.set_searchable_attributes(&["label", "id"])
+		.await
+		.unwrap();
+	meilisearch_reservations
+		.set_sortable_attributes(&["id"])
 		.await
 		.unwrap();
 

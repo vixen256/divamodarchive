@@ -57,6 +57,16 @@ pub struct MeilisearchCstmItem {
 }
 
 #[derive(Serialize, Deserialize)]
+pub struct MeilisearchReservation {
+	pub uid: u64,
+	pub user: i64,
+	pub id: i32,
+	pub label: String,
+	pub reservation_type: ReservationType,
+	pub time: time::OffsetDateTime,
+}
+
+#[derive(Serialize, Deserialize)]
 pub struct MeilisearchNcSong {
 	pub uid: u64,
 	pub post_id: i32,
@@ -1510,6 +1520,184 @@ pub async fn search_pvs(
 		nc_songs,
 		posts,
 	}))
+}
+
+#[derive(Deserialize)]
+enum MeilisearchEntryOrReservation<T> {
+	#[serde(untagged)]
+	Entry(T),
+	#[serde(untagged)]
+	Reservation(MeilisearchReservation),
+}
+
+#[derive(Serialize, Deserialize)]
+pub enum EntryOrReservation<T> {
+	Entry(T),
+	Reservation(Reservation),
+}
+
+#[derive(Serialize, Deserialize, Default)]
+pub struct PvReservationSearch {
+	pub pvs: Vec<EntryOrReservation<Pv>>,
+	pub nc_songs: BTreeMap<i32, Vec<NcSong>>,
+	pub posts: BTreeMap<i32, Post>,
+	pub users: BTreeMap<i64, User>,
+}
+
+pub async fn search_pvs_and_reservations(
+	Query(query): Query<SearchParams>,
+	State(state): State<AppState>,
+) -> Result<Json<PvReservationSearch>, (StatusCode, String)> {
+	let meilisearch_pvs = state.meilisearch.index("pvs");
+	let meilisearch_reservations = state.meilisearch.index("reservations");
+	let mut pv_search = meilisearch_sdk::search::SearchQuery::new(&meilisearch_pvs);
+	let mut reservation_search =
+		meilisearch_sdk::search::SearchQuery::new(&meilisearch_reservations);
+
+	if let Some(query) = &query.query {
+		pv_search.with_query(query);
+		reservation_search.with_query(query);
+	}
+
+	pv_search.with_sort(&["pv_id:asc"]);
+	reservation_search.with_sort(&["id:asc"]);
+
+	reservation_search.with_filter("reservation_type=Song");
+
+	let federation = meilisearch_sdk::search::FederationOptions {
+		offset: query.offset,
+		limit: query.limit,
+		facets_by_index: None,
+		merge_facets: None,
+	};
+
+	let mut search = meilisearch_sdk::search::MultiSearchQuery::new(&meilisearch_pvs.client);
+	search.with_search_query_and_weight(pv_search, 1.0);
+	search.with_search_query_and_weight(reservation_search, 0.75);
+	let results = search
+		.with_federation(federation)
+		.execute::<MeilisearchEntryOrReservation<MeilisearchPv>>()
+		.await
+		.map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, e.to_string()))?;
+
+	let mut res = PvReservationSearch {
+		pvs: Vec::new(),
+		nc_songs: BTreeMap::new(),
+		posts: BTreeMap::new(),
+		users: BTreeMap::new(),
+	};
+
+	for result in results.hits {
+		match result.result {
+			MeilisearchEntryOrReservation::Entry(pv) => {
+				let post = if pv.post == -1 {
+					None
+				} else if let Some(post) = res.posts.get(&pv.post) {
+					Some(post.id)
+				} else if let Some(mut post) = Post::get_full(pv.post, &state.db).await {
+					for i in 0..post.files.len() {
+						post.files[i] = format!(
+							"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+							post.id
+						);
+						post.local_files[i] = post.local_files[i]
+							.split("/")
+							.last()
+							.map(|s| String::from(s))
+							.unwrap_or(String::new());
+					}
+					res.posts.insert(post.id, post.clone());
+					Some(post.id)
+				} else if pv.post != -1 {
+					let pvs = state.meilisearch.index("pvs");
+					_ = meilisearch_sdk::documents::DocumentDeletionQuery::new(&pvs)
+						.with_filter(&format!("post={}", pv.post))
+						.execute::<crate::api::ids::MeilisearchPv>()
+						.await;
+					None
+				} else {
+					None
+				};
+
+				res.pvs.push(EntryOrReservation::Entry(Pv {
+					uid: BASE64_STANDARD.encode(pv.uid.to_ne_bytes()),
+					id: pv.pv_id,
+					name: pv.song_name,
+					name_en: pv.song_name_en,
+					song_info: pv.song_info,
+					song_info_en: pv.song_info_en,
+					levels: pv.levels,
+					post,
+				}))
+			}
+			MeilisearchEntryOrReservation::Reservation(reservation) => {
+				if !res.users.contains_key(&reservation.user) {
+					if let Some(user) = User::get(reservation.user, &state.db).await {
+						res.users.insert(user.id, user);
+					}
+				}
+				let label = if reservation.label.is_empty() {
+					None
+				} else {
+					Some(reservation.label)
+				};
+				res.pvs.push(EntryOrReservation::Reservation(Reservation {
+					id: reservation.id,
+					user: reservation.user,
+					reservation_type: reservation.reservation_type,
+					time: reservation.time,
+					label,
+				}))
+			}
+		}
+	}
+
+	if res.pvs.iter().any(|pv| match pv {
+		EntryOrReservation::Entry(_) => true,
+		EntryOrReservation::Reservation(_) => false,
+	}) {
+		let filter = res
+			.pvs
+			.iter()
+			.filter_map(|pv| match pv {
+				EntryOrReservation::Entry(pv) => Some(format!("pv_id={}", pv.id)),
+				EntryOrReservation::Reservation(_) => None,
+			})
+			.intersperse(String::from(" OR "))
+			.collect::<String>();
+
+		let search =
+			meilisearch_sdk::documents::DocumentsQuery::new(&state.meilisearch.index("nc_songs"))
+				.with_limit(u32::MAX as usize)
+				.with_filter(&filter)
+				.execute::<MeilisearchNcSong>()
+				.await;
+
+		if let Ok(result) = search {
+			for nc_song in result.results {
+				if let Some(nc_vec) = res.nc_songs.get_mut(&nc_song.pv_id) {
+					nc_vec.push(NcSong {
+						uid: BASE64_STANDARD.encode(nc_song.uid.to_ne_bytes()),
+						post: nc_song.post_id,
+						pv_id: nc_song.pv_id,
+						difficulties: nc_song.difficulties.clone(),
+					});
+				} else {
+					res.nc_songs.insert(
+						nc_song.pv_id,
+						vec![NcSong {
+							uid: BASE64_STANDARD.encode(nc_song.uid.to_ne_bytes()),
+							post: nc_song.post_id,
+							pv_id: nc_song.pv_id,
+							difficulties: nc_song.difficulties.clone(),
+						}],
+					);
+				}
+			}
+		};
+	}
+
+	Ok(Json(res))
 }
 
 #[derive(Serialize, Deserialize, Default, ToSchema)]
@@ -3106,10 +3294,66 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: &Ap
 			_ = transaction.commit().await;
 		}
 	}
+
+	let mut reservations = sqlx::query!(
+		"SELECT * FROM reservations r WHERE reservation_type = $1",
+		reservation_type as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	.iter()
+	.flat_map(|reservation| {
+		(reservation.range_start..(reservation.range_start + reservation.length)).map(move |i| {
+			(
+				i,
+				MeilisearchReservation {
+					uid: (reservation.reservation_type as u64) << 32 | (i as u64),
+					user: reservation.user_id,
+					id: i,
+					label: String::new(),
+					reservation_type: reservation.reservation_type.into(),
+					time: reservation.time.assume_utc(),
+				},
+			)
+		})
+	})
+	.collect::<BTreeMap<_, _>>();
+
+	for label in sqlx::query!(
+		"SELECT rl.id, rl.user_id, rl.label FROM reservation_labels rl WHERE rl.reservation_type = $1",
+		reservation_type as i32,
+	)
+	.fetch_all(&state.db)
+	.await
+	.unwrap_or_default()
+	{
+		let Some(reservation) = reservations.get_mut(&label.id) else {
+			continue;
+		};
+		if reservation.user != label.user_id {
+			continue;
+		};
+		reservation.label = label.label;
+	}
+
+	state
+		.meilisearch
+		.index("reservations")
+		.add_or_update(
+			&reservations
+				.into_iter()
+				.map(|(_, reservation)| reservation)
+				.collect::<Vec<_>>(),
+			Some("uid"),
+		)
+		.await
+		.unwrap();
 }
 
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Reservation {
+	pub id: i32,
 	pub user: i64,
 	pub reservation_type: ReservationType,
 	#[serde(with = "time::serde::rfc3339")]
@@ -3164,6 +3408,7 @@ pub async fn all_pvs(State(state): State<AppState>) -> Result<Json<AllPvs>, (Sta
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -3288,6 +3533,7 @@ pub async fn all_modules(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -3328,6 +3574,7 @@ pub async fn all_modules(
 				(
 					i,
 					Reservation {
+						id: i,
 						user: reservation.user_id,
 						reservation_type: reservation.reservation_type.into(),
 						time: reservation.time.assume_offset(time::UtcOffset::UTC),
@@ -3481,6 +3728,7 @@ pub async fn all_cstm_items(
 			(
 				i,
 				Reservation {
+					id: i,
 					user: reservation.user_id,
 					reservation_type: reservation.reservation_type.into(),
 					time: reservation.time.assume_offset(time::UtcOffset::UTC),
