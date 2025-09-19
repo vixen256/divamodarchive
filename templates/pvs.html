@@ -117,10 +117,10 @@
 			var tr = document.createElement('tr');
 			tr.classList = [document.getElementById("pvs").children.length % 4 == 0 ? '{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}' : 'table-dark'];
 			tr.innerHTML = `
-				<td>${pv.name_en}</td>
-				<td>${pv.name}</td>
+				<td>${escapeHtml(pv.name_en)}</td>
+				<td>${escapeHtml(pv.name)}</td>
 				<td>${pv.id}</td>
-				<td>${pv.post == null ? 'MM+' : posts[pv.post].name}</td>
+				<td>${pv.post == null ? 'MM+' : escapeHtml(posts[pv.post].name)}</td>
 			`;
 			tr.role = "button";
 			tr.setAttribute("data-bs-toggle", "collapse");
@@ -175,8 +175,8 @@
 		<tr class="table-dark">
 			`;
 			html += `
-			<td>${pv.name_en}</td>
-			<td>${pv.name}</td>
+			<td>${escapeHtml(pv.name_en)}</td>
+			<td>${escapeHtml(pv.name)}</td>
 			`;
 
 			html += `
@@ -185,7 +185,7 @@
 			`;
 
 			if (pv.post != null) {
-				html += `<a href="/post/${pv.post}" class="nav-link">${posts[pv.post].name}</a>`;
+				html += `<a href="/post/${pv.post}" class="nav-link">${escapeHtml(posts[pv.post].name)}</a>`;
 			} else {
 				html += 'MM+';
 			}
@@ -220,12 +220,12 @@
 				if (pv.song_info_en != null) {
 					html += '<tr class="table-dark">';
 
-					if (showMusic) html += `<td>${someOrNA(pv.song_info_en.music)}</td>`;
-					if (showLyrics) html += `<td>${someOrNA(pv.song_info_en.lyrics)}</td>`;
-					if (showArranger) html += `<td>${someOrNA(pv.song_info_en.arranger)}</td>`;
-					if (showManipulator) html += `<td>${someOrNA(pv.song_info_en.manipulator)}</td>`;
-					if (showEditor) html += `<td>${someOrNA(pv.song_info_en.pv_editor)}</td>`;
-					if (showGuitar) html += `<td>${someOrNA(pv.song_info_en.guitar_player)}</td>`;
+					if (showMusic) html += `<td>${escapeHtml(someOrNA(pv.song_info_en.music))}</td>`;
+					if (showLyrics) html += `<td>${escapeHtml(someOrNA(pv.song_info_en.lyrics))}</td>`;
+					if (showArranger) html += `<td>${escapeHtml(someOrNA(pv.song_info_en.arranger))}</td>`;
+					if (showManipulator) html += `<td>${escapeHtml(someOrNA(pv.song_info_en.manipulator))}</td>`;
+					if (showEditor) html += `<td>${escapeHtml(someOrNA(pv.song_info_en.pv_editor))}</td>`;
+					if (showGuitar) html += `<td>${escapeHtml(someOrNA(pv.song_info_en.guitar_player))}</td>`;
 
 					for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
 						html += '<td />';
@@ -237,12 +237,12 @@
 				if (pv.song_info != null) {
 					html += '<tr class="table-dark">';
 
-					if (showMusic) html += `<td>${someOrNA(pv.song_info.music)}</td>`;
-					if (showLyrics) html += `<td>${someOrNA(pv.song_info.lyrics)}</td>`;
-					if (showArranger) html += `<td>${someOrNA(pv.song_info.arranger)}</td>`;
-					if (showManipulator) html += `<td>${someOrNA(pv.song_info.manipulator)}</td>`;
-					if (showEditor) html += `<td>${someOrNA(pv.song_info.pv_editor)}</td>`;
-					if (showGuitar) html += `<td>${someOrNA(pv.song_info.guitar_player)}</td>`;
+					if (showMusic) html += `<td>${escapeHtml(someOrNA(pv.song_info.music))}</td>`;
+					if (showLyrics) html += `<td>${escapeHtml(someOrNA(pv.song_info.lyrics))}</td>`;
+					if (showArranger) html += `<td>${escapeHtml(someOrNA(pv.song_info.arranger))}</td>`;
+					if (showManipulator) html += `<td>${escapeHtml(someOrNA(pv.song_info.manipulator))}</td>`;
+					if (showEditor) html += `<td>${escapeHtml(someOrNA(pv.song_info.pv_editor))}</td>`;
+					if (showGuitar) html += `<td>${escapeHtml(someOrNA(pv.song_info.guitar_player))}</td>`;
 
 					for (var i = showMusic + showLyrics + showArranger + showManipulator + showEditor + showGuitar; i < maxLen; i++) {
 						html += '<td />';
@@ -316,7 +316,7 @@
 	</thead>
 	<tbody>
 		<tr class="table-dark">
-			<td><a href="/post/${nc_song.post}" class="nav-link">${posts[nc_song.post].name}</a></td>
+			<td><a href="/post/${nc_song.post}" class="nav-link">${escapeHtml(posts[nc_song.post].name)}</a></td>
 			<td><span class="material-symbols-outlined fs-5">${has_arcade(nc_song, pv) ? 'check' : 'close'}</span></td>
 			<td><span class="material-symbols-outlined fs-5">${has_console(nc_song, pv) ? 'check' : 'close'}</span></td>
 			<td><span class="material-symbols-outlined fs-5">${has_mixed(nc_song, pv) ? 'check' : 'close'}</span></td>
