@@ -485,7 +485,7 @@
 			}
 			tr.innerHTML = `
 				<td class="red-background">${nameHtml}</td>
-				<td class="red-background">${reservation.label}</td>
+				<td class="red-background">${reservation.label == null ? "" : reservation.label}</td>
 				<td class="red-background">${reservation.id}</td>
 				<td class="red-background">${reservation.time.split("T")[0]}</td>
 			`;
@@ -888,6 +888,7 @@
 			<td class="red-background">{{ reservation.id }}</td>
 			<td class="red-background">{{ reservation.time.date() }}</td>
 		</tr>
+		<tr hidden="true" />
 		{% endwhen %}
 		{% endmatch %}
 		{% endfor %}
