@@ -78,13 +78,13 @@
 		var source_name = "MM+";
 		var source_link = source_name;
 		if (module.post != null) {
-			source_name = posts[module.post].name;
+			source_name = escapeHtml(posts[module.post].name);
 			source_link = `<a href="/post/${module.post}" class="nav-link">${source_name}</a>`;
 		}
 
 		tr.innerHTML = `
-			<td>${name_en}</td>
-			<td>${someOrNA(module.module.name_jp)}</td>
+			<td>${escapeHtml(name_en)}</td>
+			<td>${escapeHtml(someOrNA(module.module.name_jp))}</td>
 			<td>${getHumanCharaName(module.module.chara)}</td>
 			<td>${module.id}</td>
 			<td>${source_name}</td>
@@ -121,7 +121,7 @@
 </thead>
 <tbody>
 	<tr class="table-dark">
-		<td>${name_en}</td>
+		<td>${escapeHtml(name_en)}</td>
 		<td>${getHumanCharaName(module.module.chara)}</td>
 		<td>${module.id}</td>
 		<td>${source_link}</td>
@@ -135,10 +135,10 @@
 </thead>
 <tbody class="table-dark">
 	<tr class="table-dark">
-		<td>${someOrNA(module.module.name_jp)}</td>
-		<td>${someOrNA(module.module.name_cn)}</td>
-		<td>${someOrNA(module.module.name_fr)}</td>
-		<td>${someOrNA(module.module.name_ge)}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_jp))}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_cn))}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_fr))}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_ge))}</td>
 	</tr>
 </tbody>
 <thead>
@@ -149,10 +149,10 @@
 </thead>
 <tbody class="table-dark">
 	<tr class="table-dark">
-		<td>${someOrNA(module.module.name_it)}</td>
-		<td>${someOrNA(module.module.name_kr)}</td>
-		<td>${someOrNA(module.module.name_sp)}</td>
-		<td>${someOrNA(module.module.name_tw)}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_it))}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_kr))}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_sp))}</td>
+		<td>${escapeHtml(someOrNA(module.module.name_tw))}</td>
 	</tr>
 </tbody>
 <thead>
@@ -185,7 +185,7 @@
 	<tbody>
 		<tr class="table-dark">
 			<td>${item.id}</td>
-			<td>${item.objset.join(', ')}</td>
+			<td>${escapeHtml(item.objset.join(', '))}</td>
 			<td>${getHumanSubName(item.sub)}</td>
 			<td />
 		</tr>

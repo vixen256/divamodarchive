@@ -58,13 +58,13 @@
 		var source_name = "MM+";
 		var source_link = source_name;
 		if (cstm_item.post != null) {
-			source_name = posts[cstm_item.post].name;
+			source_name = escapeHtml(posts[cstm_item.post].name);
 			source_link = `<a href="/post/${cstm_item.post}" class="nav-link">${source_name}</a>`;
 		}
 
 		tr.innerHTML = `
-			<td>${name_en}</td>
-			<td>${someOrNA(cstm_item.cstm_item.name_jp)}</td>
+			<td>${escapeHtml(name_en)}</td>
+			<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_jp))}</td>
 			<td>${getHumanCharaName(cstm_item.cstm_item.chara)}</td>
 			<td>${getHumanPartName(cstm_item.cstm_item.part)}</td>
 			<td>${cstm_item.id}</td>
@@ -104,7 +104,7 @@
 </thead>
 <tbody>
 	<tr class="table-dark">
-		<td>${name_en}</td>
+		<td>${escapeHtml(name_en)}</td>
 		<td>${getHumanCharaName(cstm_item.cstm_item.chara)}</td>
 		<td>${cstm_item.id}</td>
 		<td>${source_link}</td>
@@ -118,10 +118,10 @@
 </thead>
 <tbody class="table-dark">
 	<tr class="table-dark">
-		<td>${someOrNA(cstm_item.cstm_item.name_jp)}</td>
-		<td>${someOrNA(cstm_item.cstm_item.name_cn)}</td>
-		<td>${someOrNA(cstm_item.cstm_item.name_fr)}</td>
-		<td>${someOrNA(cstm_item.cstm_item.name_ge)}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_jp))}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_cn))}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_fr))}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_ge))}</td>
 	</tr>
 </tbody>
 <thead>
@@ -132,10 +132,10 @@
 </thead>
 <tbody class="table-dark">
 	<tr class="table-dark">
-		<td>${someOrNA(cstm_item.cstm_item.name_it)}</td>
-		<td>${someOrNA(cstm_item.cstm_item.name_kr)}</td>
-		<td>${someOrNA(cstm_item.cstm_item.name_sp)}</td>
-		<td>${someOrNA(cstm_item.cstm_item.name_tw)}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_it))}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_kr))}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_sp))}</td>
+		<td>${escapeHtml(someOrNA(cstm_item.cstm_item.name_tw))}</td>
 	</tr>
 </tbody>`;
 
@@ -152,7 +152,7 @@
 			var source_name = "MM+";
 			var source_link = source_name;
 			if (cstm_item.post != null) {
-				source_name = posts[bind_module.post].name;
+				source_name = escapeHtml(posts[bind_module.post].name);
 				source_link = `<a href="/post/${bind_module.post}" class="nav-link">${source_name}</a>`;
 			}
 
@@ -167,8 +167,8 @@
 </thead>
 <tbody>
 	<tr class="table-dark">
-		<td>${name_en}</td>
-		<td>${someOrNA(bind_module.module.name_jp)}</td>
+		<td>${escapeHtml(name_en)}</td>
+		<td>${escapeHtml(someOrNA(bind_module.module.name_jp))}</td>
 		<td>${bind_module.id}</td>
 		<td>${source_link}</td>
 	</tr>
