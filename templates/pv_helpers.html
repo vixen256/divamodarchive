@@ -1,17 +1,4 @@
-{% macro draw_pv_list(pv_search, show_source) %}
-<table class="table sm-table table-hover">
-	<thead>
-		<tr>
-			<th>Name (EN)</th>
-			<th>Name (JP)</th>
-			<th>ID</th>
-			{% if show_source %}
-			<th>Source</th>
-			{% endif %}
-		</tr>
-	</thead>
-	<tbody id="pvs">
-		{% for (i, pv) in pv_search.pvs.iter().enumerate() %}
+{% macro draw_pv_list_entry(i, pv, pv_search, show_source) %}
 		<tr class="{% if i % 2 == 0 %}{% if base.theme() == Theme::Dark %}table-secondary{% else %}table-light{% endif %}{% else %}table-dark{% endif %}" role="button" data-bs-toggle="collapse" data-bs-target="#pvCollapse{{ pv.uid }}">
 			<td>{{ pv.name_en }}</td>
 			<td>{{ pv.name }}</td>
@@ -334,6 +321,23 @@
 				</div>
 			</td>
 		</tr>
+{% endmacro %}
+
+{% macro draw_pv_list(pv_search, show_source) %}
+<table class="table sm-table table-hover">
+	<thead>
+		<tr>
+			<th>Name (EN)</th>
+			<th>Name (JP)</th>
+			<th>ID</th>
+			{% if show_source %}
+			<th>Source</th>
+			{% endif %}
+		</tr>
+	</thead>
+	<tbody id="pvs">
+		{% for (i, pv) in pv_search.pvs.iter().enumerate() %}
+			{% call draw_pv_list_entry(i, pv, pv_search, show_source) %}
 		{% endfor %}
 	</tbody>
 </table>
