@@ -1675,6 +1675,24 @@ pub async fn search_pvs_and_reservations(
 
 		if let Ok(result) = search {
 			for nc_song in result.results {
+				if !res.posts.contains_key(&nc_song.post_id) {
+					if let Some(mut post) = Post::get_full(nc_song.post_id, &state.db).await {
+						for i in 0..post.files.len() {
+							post.files[i] = format!(
+								"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+								post.id
+							);
+							post.local_files[i] = post.local_files[i]
+								.split("/")
+								.last()
+								.map(|s| String::from(s))
+								.unwrap_or(String::new());
+						}
+
+						res.posts.insert(post.id, post.clone());
+					}
+				}
+
 				if let Some(nc_vec) = res.nc_songs.get_mut(&nc_song.pv_id) {
 					nc_vec.push(NcSong {
 						uid: BASE64_STANDARD.encode(nc_song.uid.to_ne_bytes()),
