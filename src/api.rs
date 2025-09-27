@@ -63,7 +63,9 @@ pub fn route(state: AppState) -> Router {
 		)
 		.route(
 			"/api/v1/posts/{id}/dependency",
-			post(add_dependency).delete(remove_dependency),
+			post(add_dependency)
+				.put(set_dependency_description)
+				.delete(remove_dependency),
 		)
 		.route("/api/v1/posts/{id}/report", post(report))
 		.route("/api/v1/posts/{id}/extract", post(extract_post))

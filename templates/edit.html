@@ -123,7 +123,57 @@
 		var post = await res.json();
 
 		document.getElementById('posts').append(getPostHtml(post));
+		document.getElementById('posts').children[document.getElementById('posts').children.length - 1].id = 'post' + post.id;
+
+		var buttonGroup = document.createElement('div');
+		var input = document.createElement('input');
+		var updateButton = document.createElement('button');
+		var deleteButton = document.createElement('button');
+
+		buttonGroup.classList = 'mx-0 px-3 pb-1 row';
+
+		input.classList = 'col-7'
+		input.type = 'text';
+		input.id = 'Dependency' + post.id + 'Label';
+		input.autcomplete = 'off';
+		buttonGroup.append(input);
+
+		updateButton.classList = 'offset-1 col-4 btn btn-primary btn-sm';
+		updateButton.type = 'button';
+		updateButton.onclick = 'labelDependency(' + post.id + ')';
+		updateButton.innerText = 'Update';
+		buttonGroup.append(updateButton);
+
+		deleteButton.classList = 'mt-2 col-12 btn btn-danger btn-sm';
+		deleteButton.type = 'button';
+		deleteButton.onclick = 'deleteDependency(' + post.id + ')';
+		deleteButton.innerText = 'Delete';
+		buttonGroup.append(deleteButton);
+
+		document.getElementById('post' + post.id).children[0].append(buttonGroup);
+
 		createToast('Successfully added dependency', 'text-bg-success');
+	}
+
+	async function labelDependency(dependencyId) {
+		var options = {
+			method: 'PUT',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ jwt }}'
+			},
+			body: JSON.stringify({
+				'id': dependencyId,
+				'description': document.getElementById('Dependency' + dependencyId + 'Label').value
+			})
+		};
+
+		var res = await fetch('/api/v1/posts/{{ post.id }}/dependency', options);
+		if (!res.ok) {
+			return;
+		}
+
+		createToast('Successfully updated dependency description', 'text-bg-success');
 	}
 
 	async function deleteDependency(dependencyId) {
@@ -675,14 +725,20 @@
 	<div class="card card-body">
 		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
 		{% if let Some(dependencies) = post.dependencies %}
+		{% if let Some(dependency_descriptions) = post.dependency_descriptions %}
 			{% for post in dependencies %}
 				<div class="col" id="post{{ post.id }}">
 					<div class="card shadow h-100">
 						{% call post_helpers::draw_post(post) %}
-						<button class="btn btn-danger" onclick="deleteDependency({{ post.id }})" type="button">Remove</button>
+						<div class="h-100 row align-content-end mx-0 px-3 pb-1">
+							<input class="col-7" type="text" id="Dependency{{ post.id }}Label" autocomplete="off" value="{{ dependency_descriptions[post.id | ref] }}">
+							<button class="offset-1 col-4 btn btn-primary btn-sm" type="button" onclick="labelDependency({{ post.id }})">Update</button>
+							<button class="mt-2 col-12 btn btn-danger btn-sm" onclick="deleteDependency({{ post.id }})" type="button">Remove</button>
+						</div>
 					</div>
 				</div>
 			{% endfor %}
+		{% endif %}
 		{% endif %}
 		</div>
 

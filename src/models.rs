@@ -114,6 +114,7 @@ pub struct Post {
 	pub authors: Vec<User>,
 	#[schema(no_recursion)]
 	pub dependencies: Option<Vec<Post>>,
+	pub dependency_descriptions: Option<HashMap<i32, String>>,
 	#[serde(skip)]
 	#[schema(ignore)]
 	pub comments: Option<Comments>,
@@ -138,6 +139,7 @@ impl Clone for Post {
 			like_count: self.like_count,
 			authors: self.authors.clone(),
 			dependencies: self.dependencies.clone(),
+			dependency_descriptions: self.dependency_descriptions.clone(),
 			comments: None,
 			local_files: self.local_files.clone(),
 			private: self.private,
@@ -258,7 +260,7 @@ impl Post {
 
 		let dependencies = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
+			SELECT pd.description, p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -271,7 +273,8 @@ impl Post {
 		.await
 		.ok()?;
 
-		let mut deps = vec![];
+		let mut deps = Vec::new();
+		let mut dep_descriptions = HashMap::new();
 		for dep in dependencies {
 			let Ok(authors) = sqlx::query_as!(
 				User,
@@ -301,12 +304,15 @@ impl Post {
 				like_count: dep.like_count,
 				authors,
 				dependencies: None,
+				dependency_descriptions: None,
 				comments: None,
 				local_files: dep.local_files,
 				private: false,
 				explicit: dep.explicit,
 				explicit_reason: dep.explicit_reason,
 			});
+
+			dep_descriptions.insert(dep.id, dep.description);
 		}
 
 		let comments = sqlx::query!(
@@ -387,6 +393,11 @@ impl Post {
 		}
 
 		let comments = Comments { tree };
+		let (dependencies, dependency_descriptions) = if deps.len() > 0 {
+			(Some(deps), Some(dep_descriptions))
+		} else {
+			(None, None)
+		};
 
 		Some(Post {
 			id,
@@ -399,7 +410,8 @@ impl Post {
 			download_count: post.download_count,
 			like_count: post.like_count.unwrap_or(0),
 			authors,
-			dependencies: Some(deps),
+			dependencies,
+			dependency_descriptions,
 			comments: Some(comments),
 			local_files: post.local_files,
 			private: post.private,
@@ -449,6 +461,7 @@ impl Post {
 			like_count: post.like_count.unwrap_or(0),
 			authors,
 			dependencies: None,
+			dependency_descriptions: None,
 			comments: None,
 			local_files: post.local_files,
 			private: post.private,

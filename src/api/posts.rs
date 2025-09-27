@@ -1271,6 +1271,42 @@ pub async fn add_dependency(
 	Ok(Json(dependency))
 }
 
+#[derive(Serialize, Deserialize)]
+pub struct DependencyDescription {
+	pub id: i32,
+	pub description: String,
+}
+
+pub async fn set_dependency_description(
+	Path(id): Path<i32>,
+	user: User,
+	State(state): State<AppState>,
+	Json(description): Json<DependencyDescription>,
+) -> Result<(), StatusCode> {
+	let Some(post) = Post::get_short(id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	let Some(dependency) = Post::get_short(description.id, &state.db).await else {
+		return Err(StatusCode::NOT_FOUND);
+	};
+
+	if !post.authors.contains(&user) && !user.is_admin(&state.config) {
+		return Err(StatusCode::UNAUTHORIZED);
+	}
+
+	_ = sqlx::query!(
+		"UPDATE post_dependencies SET description=$1 WHERE post_id=$2 AND dependency_id=$3",
+		description.description,
+		post.id,
+		dependency.id
+	)
+	.execute(&state.db)
+	.await;
+
+	Ok(())
+}
+
 pub async fn remove_dependency(
 	Path(id): Path<i32>,
 	user: User,

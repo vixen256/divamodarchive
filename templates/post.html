@@ -577,11 +577,26 @@
 	{% endif %}
 
 	{% if let Some(dependencies) = post.dependencies %}
+	{% if let Some(dependency_descriptions) = post.dependency_descriptions %}
 	{% if dependencies.len() > 0 %}
 	<div class="card card-body">
 		<h4>This mod requires: </h4>
-		{% call post_helpers::draw_post_list(dependencies) %}
+		<div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-3" id="posts">
+		{% for post in dependencies %}
+			<div class="col">
+				<div class="card shadow h-100">
+					{% if !dependency_descriptions[post.id | ref].is_empty() %}
+					<div class="card-header py-2">
+						<h5 class="my-1"><b>{{ dependency_descriptions[post.id | ref] }}</b></h5>
+					</div>
+					{% endif %}
+					{% call post_helpers::draw_post(post, rounded_images = false) %}
+				</div>
+			</div>
+		{% endfor %}
+		</div>
 	</div>
+	{% endif %}
 	{% endif %}
 	{% endif %}
 
