@@ -742,15 +742,6 @@ async fn post_detail(
 	let body_markdown = comrak::markdown_to_html(&post.post.text, &options)
 		.replace("<img src", "<img style=\"width: 100%\" src");
 
-	let requires_nc = post.requires_nc
-		&& !post
-			.post
-			.dependencies
-			.as_ref()
-			.map_or(false, |dependencies| {
-				dependencies.iter().any(|post| post.id == 169)
-			});
-
 	Ok(PostTemplate {
 		user: base.user.clone(),
 		jwt: base.jwt.clone(),
@@ -790,7 +781,7 @@ async fn post_detail(
 		conflict_posts: post.conflict_posts,
 		conflict_users: post.conflict_users,
 		requires_expatch: post.requires_expatch,
-		requires_nc,
+		requires_nc: post.requires_nc,
 		body_markdown,
 	})
 }
