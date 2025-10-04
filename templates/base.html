@@ -63,13 +63,13 @@
 				<span class="material-symbols-outlined" style="font-size: 0.8rem">favorite</span>${formatter.format(post.like_count)} <span class="material-symbols-outlined" style="font-size: 0.8rem">download</span>${formatter.format(post.download_count)}<br>
 				${post.post_type}
 			</p>
-			<h5 class="text"><b>${post.name}</b></h5>
+			<h5 class="text"><b>${escapeHtml(post.name)}</b></h5>
 			`;
 
 			for (var author of post.authors) {
 				html += `
 			<img class="float-start pe-1 ratio-1x1" style="border-radius: 100%; width: 1.75rem" src="${author.avatar}">
-			<p class="text"> ${author.display_name}</p>
+			<p class="text"> ${escapeHtml(author.display_name)}</p>
 				`;
 			}
 
