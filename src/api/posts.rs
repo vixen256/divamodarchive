@@ -584,8 +584,11 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		for file in &pending_upload.files {
 			_ = tokio::process::Command::new("rclone")
 				.arg("move")
-				.arg(format!("/pixeldrain/{}/pending/{}", user.id, file))
-				.arg(format!("/pixeldrain/{}", user.id))
+				.arg(format!(
+					"pixeldrainfs:/divamodarchive/{}/pending/{}",
+					user.id, file
+				))
+				.arg(format!("pixeldrainfs:/divamodarchive/{}", user.id))
 				.arg("--config=/etc/rclone-mnt.conf")
 				.output()
 				.await;
@@ -647,7 +650,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	let now = time::OffsetDateTime::now_utc();
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
-	_ =sqlx::query!(
+	_ = sqlx::query!(
 		"UPDATE posts SET files = $2, local_files = $3, time = $4, name = $5, text = $6, type = $7, private = $8, explicit = $9, explicit_reason = $10 WHERE id = $1",
 		post.id,
 		&downloads,
