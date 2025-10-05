@@ -44,7 +44,7 @@
 	<a style="text-decoration: none;" href="/post/${post.id}">
 		<div class="card-img-top bg-clear border-none clearfix">
 			<div class="ratio ratio-16x9">
-				<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image w-100" loading="lazy" {% if !base.show_explicit() %}${post.explicit ? "style=\"filter: blur(0.2rem)\"" : ""}{% endif %}>
+				<img src="${post.images[0].replace('/public', '/thumbnail')}" class="rounded-image w-100" loading="lazy" {% if !base.show_explicit() %}${post.explicit ? 'style="filter: blur(0.2rem)"' : ''}{% endif %}>
 			</div>
 			`;
 
