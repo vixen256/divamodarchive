@@ -15,7 +15,7 @@
 	<div class="card-img-top bg-clear border-none clearfix">
 		<div class="ratio ratio-16x9">
 		{% if let Some(image) = post.images.first() %}
-			<img src="{{ image.replace("/public", "/thumbnail") }}" class="{% if rounded_images %}rounded-image{% endif %} w-100" loading="lazy" alt="Preview of {{ post.name }}" {% if post.explicit %}style="filter: blur(0.2rem)"{% endif %}>
+			<img src="{{ image.replace("/public", "/thumbnail") }}" class="{% if rounded_images %}rounded-image{% endif %} w-100" loading="lazy" alt="Preview of {{ post.name }}" {% if post.explicit && !base.show_explicit() %}style="filter: blur(0.2rem)"{% endif %}>
 		{% endif %}
 		</div>
 		{% if post.explicit %}
