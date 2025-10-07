@@ -678,7 +678,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 			.await;
 	};
 
-	tokio::spawn(extract_post_data(post.id, state.clone()));
+	_ = tokio::spawn(extract_post_data(post.id, state.clone())).await;
 }
 
 #[derive(Serialize, Deserialize)]
