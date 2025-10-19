@@ -583,12 +583,12 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 		for file in &pending_upload.files {
 			_ = tokio::process::Command::new("rclone")
-				.arg("move")
+				.arg("moveto")
 				.arg(format!(
 					"pixeldrainfs:/divamodarchive/{}/pending/{}",
 					user.id, file
 				))
-				.arg(format!("pixeldrainfs:/divamodarchive/{}", user.id))
+				.arg(format!("pixeldrainfs:/divamodarchive/{}/{}", user.id, file))
 				.arg("--config=/etc/rclone-mnt.conf")
 				.output()
 				.await;
