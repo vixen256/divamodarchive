@@ -229,46 +229,17 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	for file in &post.local_files {
 		let file = format!("/pixeldrain/{file}");
 		let file = Path::new(&file);
-		let extension = file.extension()?.to_str()?;
 
 		let dir = temp_dir::TempDir::new().ok()?;
 		let dir = dir.path().to_str()?;
 
-		match extension {
-			"zip" => {
-				Command::new("unzip")
-					.arg(file)
-					.arg("-d")
-					.arg(dir)
-					.output()
-					.await
-					.ok()?;
-				()
-			}
-			"rar" => {
-				Command::new("unrar")
-					.arg("x")
-					.arg(file)
-					.arg(dir)
-					.output()
-					.await
-					.ok()?;
-				()
-			}
-			"7z" => {
-				Command::new("7z")
-					.arg("x")
-					.arg(file)
-					.arg(format!("-o{dir}"))
-					.output()
-					.await
-					.ok()?;
-				()
-			}
-			_ => {
-				continue;
-			}
-		}
+		Command::new("7z")
+			.arg("x")
+			.arg(file)
+			.arg(format!("-o{dir}"))
+			.output()
+			.await
+			.ok()?;
 
 		for file in walkdir::WalkDir::new(dir).into_iter().filter(|file| {
 			if let Ok(file) = &file {

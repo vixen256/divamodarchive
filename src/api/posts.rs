@@ -561,37 +561,26 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 	let mut pending_exists = false;
 	for file in &pending_upload.files {
-		if !tokio::fs::try_exists(format!("/pixeldrain/{}/pending/{file}", user.id))
+		if tokio::fs::try_exists(format!("/pixeldrain/{}/pending/{file}", user.id))
 			.await
 			.map_or(false, |exists| exists)
 		{
-			continue;
+			pending_exists = true;
+			break;
 		}
-
-		pending_exists = true;
 	}
 
 	if pending_exists {
 		for file in post.local_files.iter() {
-			_ = tokio::process::Command::new("rclone")
-				.arg("delete")
-				.arg(format!("pixeldrainfs:/divamodarchive/{}", file))
-				.arg("--config=/etc/rclone-mnt.conf")
-				.output()
-				.await;
+			_ = tokio::fs::remove_file(format!("/pixeldrain/{file}")).await;
 		}
 
 		for file in &pending_upload.files {
-			_ = tokio::process::Command::new("rclone")
-				.arg("moveto")
-				.arg(format!(
-					"pixeldrainfs:/divamodarchive/{}/pending/{}",
-					user.id, file
-				))
-				.arg(format!("pixeldrainfs:/divamodarchive/{}/{}", user.id, file))
-				.arg("--config=/etc/rclone-mnt.conf")
-				.output()
-				.await;
+			_ = tokio::fs::rename(
+				format!("/pixeldrain/{}/pending/{}", user.id, file),
+				format!("/pixeldrain/{}/{}", user.id, file),
+			)
+			.await;
 		}
 	}
 
