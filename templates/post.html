@@ -559,7 +559,17 @@
 		</div>
 	</div>
 
-	<div class="card card-body text">{{ body_markdown | safe }}</div>
+	<style>
+		.markdown th, .markdown th {
+			border: .1rem solid black;
+			padding: .25rem;
+		}
+		.markdown img {
+			width: 100%;
+		}
+	</style>
+
+	<div class="card card-body text markdown">{{ body_markdown | safe }}</div>
 
 	{% if post.images.len() > 1 %}
 	<div class="card card-body">
