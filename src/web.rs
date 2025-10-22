@@ -739,8 +739,7 @@ async fn post_detail(
 		render: comrak::RenderOptions::builder().escape(true).build(),
 	};
 
-	let body_markdown = comrak::markdown_to_html(&post.post.text, &options)
-		.replace("<img src", "<img style=\"width: 100%\" src");
+	let body_markdown = comrak::markdown_to_html(&post.post.text, &options);
 
 	Ok(PostTemplate {
 		user: base.user.clone(),
