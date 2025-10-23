@@ -1482,6 +1482,8 @@ pub struct PostDetail {
 	pub conflict_users: BTreeMap<i64, User>,
 	pub requires_expatch: bool,
 	pub requires_nc: bool,
+	pub has_required_sprites: bool,
+	pub has_optional_ftc_sprites: bool,
 }
 
 #[utoipa::path(
@@ -2295,6 +2297,48 @@ pub async fn post_detail(
 			.all(|difficulty| difficulty.arcade.is_none())
 	});
 
+	let required_pv_sprites = pvs
+		.pvs
+		.iter()
+		.map(|pv| {
+			vec![
+				format!("SPR_SEL_PVTMB{}", pv.id),
+				format!("SPR_SEL_PV{}_SONG_BG{}", pv.id, pv.id),
+				format!("SPR_SEL_PV{}_SONG_LOGO{}", pv.id, pv.id),
+				format!("SPR_SEL_PV{}_SONG_JK{}", pv.id, pv.id),
+			]
+		})
+		.flatten();
+
+	let required_module_sprites = modules
+		.modules
+		.iter()
+		.map(|module| format!("SPR_SEL_MD{}CMN_MD_IMG", module.id));
+
+	let required_cstm_item_sprites = cstm_items
+		.cstm_items
+		.iter()
+		.map(|cstm_item| format!("SPR_CMNITM_THMB{}_ITM_IMG", cstm_item.id));
+
+	let has_required_sprites = required_pv_sprites
+		.chain(required_module_sprites)
+		.chain(required_cstm_item_sprites)
+		.all(|sprite| sprites.iter().any(|(_, spr)| &sprite == spr));
+
+	let optional_module_sprites = modules
+		.modules
+		.iter()
+		.map(|module| format!("SPR_SEL_MD{}CMN_MD_IMG_FT", module.id));
+
+	let optional_cstm_item_sprites = cstm_items
+		.cstm_items
+		.iter()
+		.map(|cstm_item| format!("SPR_CMNITM_THMB{}_ITM_IMG_FT", cstm_item.id));
+
+	let has_optional_ftc_sprites = optional_module_sprites
+		.chain(optional_cstm_item_sprites)
+		.all(|sprite| sprites.iter().any(|(_, spr)| &sprite == spr));
+
 	Ok(Json(PostDetail {
 		post,
 		pvs,
@@ -2329,5 +2373,7 @@ pub async fn post_detail(
 		conflict_users,
 		requires_expatch,
 		requires_nc,
+		has_required_sprites,
+		has_optional_ftc_sprites,
 	}))
 }

@@ -666,6 +666,8 @@ struct PostTemplate {
 	conflict_users: BTreeMap<i64, User>,
 	requires_expatch: bool,
 	requires_nc: bool,
+	has_required_sprites: bool,
+	has_optional_ftc_sprites: bool,
 	body_markdown: String,
 }
 
@@ -781,6 +783,8 @@ async fn post_detail(
 		conflict_users: post.conflict_users,
 		requires_expatch: post.requires_expatch,
 		requires_nc: post.requires_nc,
+		has_required_sprites: post.has_required_sprites,
+		has_optional_ftc_sprites: post.has_optional_ftc_sprites,
 		body_markdown,
 	})
 }
