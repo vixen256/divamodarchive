@@ -1501,13 +1501,13 @@ enum MeilisearchEntryOrReservation<T> {
 	Reservation(MeilisearchReservation),
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, ToSchema)]
 pub enum EntryOrReservation<T> {
 	Entry(T),
 	Reservation(Reservation),
 }
 
-#[derive(Serialize, Deserialize, Default)]
+#[derive(Serialize, Deserialize, Default, ToSchema)]
 pub struct PvReservationSearch {
 	pub pvs: Vec<EntryOrReservation<Pv>>,
 	pub nc_songs: BTreeMap<i32, Vec<NcSong>>,
@@ -1515,6 +1515,18 @@ pub struct PvReservationSearch {
 	pub users: BTreeMap<i64, User>,
 }
 
+#[utoipa::path(
+	get,
+	path = "/api/v1/ids/pvs_and_reservations",
+	params(
+		SearchParams
+	),
+	responses(
+		(status = 200, body = PvReservationSearch, content_type = "application/json"),
+		(status = 400, body = String),
+		(status = 500, body = String)
+	)
+)]
 pub async fn search_pvs_and_reservations(
 	Query(query): Query<SearchParams>,
 	State(state): State<AppState>,

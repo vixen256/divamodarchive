@@ -14,6 +14,7 @@ pub mod posts;
 	get_post,
 	post_detail,
 	search_pvs,
+	search_pvs_and_reservations,
 	search_modules,
 	search_cstm_items,
 	search_nc_songs,
