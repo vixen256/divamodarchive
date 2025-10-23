@@ -2302,7 +2302,7 @@ pub async fn post_detail(
 		.iter()
 		.map(|pv| {
 			vec![
-				format!("SPR_SEL_PVTMB{}", pv.id),
+				format!("SPR_SEL_PVTMB_{}", pv.id),
 				format!("SPR_SEL_PV{}_SONG_BG{}", pv.id, pv.id),
 				format!("SPR_SEL_PV{}_SONG_LOGO{}", pv.id, pv.id),
 				format!("SPR_SEL_PV{}_SONG_JK{}", pv.id, pv.id),
