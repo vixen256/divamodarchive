@@ -26,7 +26,7 @@
 		</tr>
 
 		<tr>
-			<td colspan="6" class="p-0" style="border: none">
+			<td colspan="{% if show_source %}6{% else %}5{% endif %}" class="p-0" style="border: none">
 				<div class="collapse" id="cstmItemCollapse{{ cstm_item.uid }}">
 					<div class="card card-body" style="border-radius: 0">
 						<table class="table table-sm m-0">

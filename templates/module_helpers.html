@@ -24,7 +24,7 @@
 		</tr>
 
 		<tr>
-			<td colspan="5" class="p-0" style="border: none">
+			<td colspan="{% if show_source %}5{% else %}4{% endif %}" class="p-0" style="border: none">
 				<div class="collapse" id="moduleCollapse{{ module.uid }}">
 					<div class="card card-body w-100" style="border-radius: 0">
 						<table class="table table-sm m-0">

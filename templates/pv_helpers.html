@@ -16,7 +16,7 @@
 		{% endif -%}
 
 		<tr>
-			<td colspan="4" class="p-0" style="border: none">
+			<td colspan="{% if show_source %}4{% else %}3{% endif %}" class="p-0" style="border: none">
 				<div class="collapse" id="pvCollapse{{ pv.uid }}">
 					<div class="card card-body" style="border-radius: 0">
 						<table class="table table-sm m-0">
@@ -164,7 +164,7 @@
 							<tbody>
 							{% for song in nc_songs %}
 							<tr>
-							<td colspan="5" class="p-0" style="border: none">
+							<td colspan="{{ cols }}" class="p-0" style="border: none">
 							<div class="card card-body" style="border-radius: 0">
 							<table class="table table-sm m-0">
 							<thead>
@@ -397,7 +397,7 @@
 		</tr>
 
 		<tr>
-			<td colspan="5" class="p-0" style="border: none">
+			<td colspan="{% if show_source %}5{% else %}4{% endif %}" class="p-0" style="border: none">
 				<div class="collapse" id="ncCollapse{{ song.uid }}">
 					<div class="card card-body" style="border-radius: 0">
 						<table class="table table-sm m-0">
