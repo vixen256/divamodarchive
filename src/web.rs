@@ -102,7 +102,7 @@ mod filters {
 		if let Some(start) = escaped.find("https://") {
 			let (before, url) = escaped.split_at(start);
 
-			if let Some((end, _)) = url.chars().enumerate().skip(start).find(|(_, c)| *c == ' ') {
+			if let Some((end, _)) = url.chars().enumerate().find(|(_, c)| *c == ' ') {
 				let (url, after) = url.split_at(end);
 				return Ok(Safe(format!("{before}<a href=\"{url}\">{url}</a>{after}")));
 			} else {
