@@ -491,9 +491,9 @@
 					var begin = beginSplit[0];
 					var url = "https://" + beginSplit[1];
 					var endSplit = url.split(" ");
-					if (endSplit.length == 2) {
+					if (endSplit.length > 1) {
 						var realUrl = endSplit[0];
-						var end = endSplit[1];
+						var end = endSplit.slice(1).join(" ");
 						labelHtml = `${begin}<a href="${url}">${url}</a> ${end}`;
 					} else {
 						labelHtml = `${begin}<a href="${url}">${url}</a>`;
