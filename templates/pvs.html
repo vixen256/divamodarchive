@@ -494,7 +494,7 @@
 					if (endSplit.length > 1) {
 						var realUrl = endSplit[0];
 						var end = endSplit.slice(1).join(" ");
-						labelHtml = `${begin}<a href="${url}">${url}</a> ${end}`;
+						labelHtml = `${begin}<a href="${realUrl}">${realUrl}</a> ${end}`;
 					} else {
 						labelHtml = `${begin}<a href="${url}">${url}</a>`;
 					}
