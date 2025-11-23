@@ -2340,10 +2340,10 @@ pub async fn post_detail(
 		.chain(optional_cstm_item_sprites)
 		.all(|sprite| sprites.iter().any(|(_, spr)| &sprite == spr));
 
-	let has_dml_pvtmb = sprites
+	let has_dml_pvtmb = !sprites
 		.iter()
 		.any(|(_, sprite)| sprite.starts_with("SPR_SEL_PVTMB_"))
-		&& sprite_sets
+		|| sprite_sets
 			.iter()
 			.any(|(_, set)| set.starts_with("SPR_SEL_PVTMB_"));
 
