@@ -240,7 +240,7 @@
 </script>
 
 <div class="row align-items-md-stretch gap-3 m-1">
-	{% if requires_expatch || requires_nc || !has_required_sprites || !has_optional_ftc_sprites %}
+	{% if requires_expatch || requires_nc || !has_required_sprites || !has_optional_ftc_sprites || !has_dml_pvtmb %}
 	<div class="alert alert-danger mb-0">
 		{% if requires_expatch %}
 		<p>This mod contains songs that do not have a hard chart, <a href="https://github.com/nastys/ExPatch/releases/latest">ExPatch</a> must be installed to access these songs.</p>
@@ -253,6 +253,9 @@
 		{% endif %}
 		{% if !has_optional_ftc_sprites %}
 		<p>This mod adds modules that do not have <a href="/post/266">Future Tone Customization</a> compatiable sprites, it will not work properly with that mod.</p>
+		{% endif %}
+		{% if !has_dml_pvtmb %}
+		<p>This mod contains songs that do not have modern DML-style thumbnail sprites, <a href="https://gamebanana.com/mods/625557">ThumbnailSplitter</a> must be installed to show these sprites.</p>
 		{% endif %}
 	</div>
 	{% endif %}

@@ -668,6 +668,7 @@ struct PostTemplate {
 	requires_nc: bool,
 	has_required_sprites: bool,
 	has_optional_ftc_sprites: bool,
+	has_dml_pvtmb: bool,
 	body_markdown: String,
 }
 
@@ -785,6 +786,7 @@ async fn post_detail(
 		requires_nc: post.requires_nc,
 		has_required_sprites: post.has_required_sprites,
 		has_optional_ftc_sprites: post.has_optional_ftc_sprites,
+		has_dml_pvtmb: post.has_dml_pvtmb,
 		body_markdown,
 	})
 }

@@ -1484,6 +1484,7 @@ pub struct PostDetail {
 	pub requires_nc: bool,
 	pub has_required_sprites: bool,
 	pub has_optional_ftc_sprites: bool,
+	pub has_dml_pvtmb: bool,
 }
 
 #[utoipa::path(
@@ -2339,6 +2340,13 @@ pub async fn post_detail(
 		.chain(optional_cstm_item_sprites)
 		.all(|sprite| sprites.iter().any(|(_, spr)| &sprite == spr));
 
+	let has_dml_pvtmb = sprites
+		.iter()
+		.any(|(_, sprite)| sprite.starts_with("SPR_SEL_PVTMB_"))
+		&& sprite_sets
+			.iter()
+			.any(|(_, set)| set.starts_with("SPR_SEL_PVTMB_"));
+
 	Ok(Json(PostDetail {
 		post,
 		pvs,
@@ -2375,5 +2383,6 @@ pub async fn post_detail(
 		requires_nc,
 		has_required_sprites,
 		has_optional_ftc_sprites,
+		has_dml_pvtmb,
 	}))
 }
