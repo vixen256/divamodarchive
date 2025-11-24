@@ -2303,10 +2303,10 @@ pub async fn post_detail(
 		.iter()
 		.map(|pv| {
 			vec![
-				format!("SPR_SEL_PVTMB_{}", pv.id),
-				format!("SPR_SEL_PV{}_SONG_BG{}", pv.id, pv.id),
-				format!("SPR_SEL_PV{}_SONG_LOGO{}", pv.id, pv.id),
-				format!("SPR_SEL_PV{}_SONG_JK{}", pv.id, pv.id),
+				format!("SPR_SEL_PVTMB_{:03}", pv.id),
+				format!("SPR_SEL_PV{:03}_SONG_BG{:03}", pv.id, pv.id),
+				format!("SPR_SEL_PV{:03}_SONG_LOGO{:03}", pv.id, pv.id),
+				format!("SPR_SEL_PV{:03}_SONG_JK{:03}", pv.id, pv.id),
 			]
 		})
 		.flatten();
@@ -2314,12 +2314,12 @@ pub async fn post_detail(
 	let required_module_sprites = modules
 		.modules
 		.iter()
-		.map(|module| format!("SPR_SEL_MD{}CMN_MD_IMG", module.id));
+		.map(|module| format!("SPR_SEL_MD{:03}CMN_MD_IMG", module.id));
 
 	let required_cstm_item_sprites = cstm_items
 		.cstm_items
 		.iter()
-		.map(|cstm_item| format!("SPR_CMNITM_THMB{}_ITM_IMG", cstm_item.id));
+		.map(|cstm_item| format!("SPR_CMNITM_THMB{:03}_ITM_IMG", cstm_item.id));
 
 	let has_required_sprites = required_pv_sprites
 		.chain(required_module_sprites)
@@ -2329,12 +2329,12 @@ pub async fn post_detail(
 	let optional_module_sprites = modules
 		.modules
 		.iter()
-		.map(|module| format!("SPR_SEL_MD{}CMN_MD_IMG_FT", module.id));
+		.map(|module| format!("SPR_SEL_MD{:03}CMN_MD_IMG_FT", module.id));
 
 	let optional_cstm_item_sprites = cstm_items
 		.cstm_items
 		.iter()
-		.map(|cstm_item| format!("SPR_CMNITM_THMB{}_ITM_IMG_FT", cstm_item.id));
+		.map(|cstm_item| format!("SPR_CMNITM_THMB{:03}_ITM_IMG_FT", cstm_item.id));
 
 	let has_optional_ftc_sprites = optional_module_sprites
 		.chain(optional_cstm_item_sprites)
