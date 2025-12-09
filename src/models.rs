@@ -686,87 +686,103 @@ pub async fn login(
 	}
 }
 
-pub async fn update_users(state: AppState) {
-	let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60 * 24));
+pub fn routine_tasks(state: AppState) {
+	let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60 * 24 * 7));
 
-	loop {
-		interval.tick().await;
-		for user in sqlx::query!("SELECT u.id, u.name, u.avatar FROM users u")
-			.fetch_all(&state.db)
+	let Ok(rt) = tokio::runtime::Builder::new_multi_thread()
+		.enable_all()
+		.build()
+	else {
+		return;
+	};
+
+	rt.block_on(async {
+		loop {
+			interval.tick().await;
+			rt.spawn(update_users(state.clone()));
+			for i in 0..20 {
+				rt.spawn(optimise_reservations(i.into(), state.clone()));
+			}
+		}
+	});
+}
+
+pub async fn update_users(state: AppState) {
+	for user in sqlx::query!("SELECT u.id, u.name, u.avatar FROM users u")
+		.fetch_all(&state.db)
+		.await
+		.unwrap_or_default()
+	{
+		let Ok(response) = reqwest::Client::new()
+			.get(format!("https://discord.com/api/users/{}", user.id))
+			.header(
+				"Authorization",
+				format!("Bot {}", &state.config.discord_bot_token),
+			)
+			.send()
 			.await
-			.unwrap_or_default()
-		{
-			let Ok(response) = reqwest::Client::new()
-				.get(format!("https://discord.com/api/users/{}", user.id))
-				.header(
-					"Authorization",
-					format!("Bot {}", &state.config.discord_bot_token),
-				)
-				.send()
-				.await
-			else {
+		else {
+			continue;
+		};
+
+		if !response.status().is_success() {
+			continue;
+		}
+
+		if let Some(remaining) = response.headers().get("x-ratelimit-remaining") {
+			let Ok(remaining) = remaining.to_str() else {
 				continue;
 			};
-
-			if !response.status().is_success() {
+			let Ok(remaining) = remaining.parse::<i32>() else {
 				continue;
-			}
-
-			if let Some(remaining) = response.headers().get("x-ratelimit-remaining") {
-				let Ok(remaining) = remaining.to_str() else {
-					continue;
-				};
-				let Ok(remaining) = remaining.parse::<i32>() else {
-					continue;
-				};
-				if remaining == 0 {
-					let reset_after =
-						if let Some(reset) = response.headers().get("x-ratelimit-reset-after") {
-							if let Ok(reset) = reset.to_str() {
-								if let Ok(reset) = reset.parse::<f32>() {
-									reset
-								} else {
-									5.0
-								}
+			};
+			if remaining == 0 {
+				let reset_after =
+					if let Some(reset) = response.headers().get("x-ratelimit-reset-after") {
+						if let Ok(reset) = reset.to_str() {
+							if let Ok(reset) = reset.parse::<f32>() {
+								reset
 							} else {
 								5.0
 							}
 						} else {
 							5.0
-						};
+						}
+					} else {
+						5.0
+					};
 
-					tokio::time::sleep(std::time::Duration::from_secs_f32(reset_after)).await;
-				}
+				tokio::time::sleep(std::time::Duration::from_secs_f32(reset_after)).await;
 			}
+		}
 
-			let Ok(response) = response.json::<DiscordUser>().await else {
-				continue;
-			};
+		let Ok(response) = response.json::<DiscordUser>().await else {
+			continue;
+		};
 
-			let Ok(id): Result<i64, _> = response.id.parse() else {
-				continue;
-			};
+		let Ok(id): Result<i64, _> = response.id.parse() else {
+			continue;
+		};
 
-			let avatar = if let Some(avatar) = response.avatar {
-				format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
-			} else {
-				let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
-				format!(
-					"https://cdn.discordapp.com/embed/avatars/{}.png",
-					discriminator % 5
-				)
-			};
+		let avatar = if let Some(avatar) = response.avatar {
+			format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
+		} else {
+			let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
+			format!(
+				"https://cdn.discordapp.com/embed/avatars/{}.png",
+				discriminator % 5
+			)
+		};
 
-			if user.name != response.username || user.avatar != avatar {
-				_ = sqlx::query!(
-					"UPDATE users SET name=$1, avatar=$2 WHERE id=$3",
-					response.username,
-					avatar,
-					user.id
-				)
-				.execute(&state.db)
-				.await;
-			}
+		if user.name != response.username || user.avatar != avatar {
+			_ = sqlx::query!(
+				"UPDATE users SET name=$1, avatar=$2 WHERE id=$3",
+				response.username,
+				avatar,
+				user.id
+			)
+			.execute(&state.db)
+			.await;
 		}
 	}
 }

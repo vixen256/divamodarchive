@@ -353,19 +353,19 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 		}
 	}
 
-	optimise_reservations(ReservationType::Song, &state).await;
-	optimise_reservations(ReservationType::Module, &state).await;
-	optimise_reservations(ReservationType::CstmItem, &state).await;
-	optimise_reservations(ReservationType::CosMiku, &state).await;
-	optimise_reservations(ReservationType::CosRin, &state).await;
-	optimise_reservations(ReservationType::CosLen, &state).await;
-	optimise_reservations(ReservationType::CosLuka, &state).await;
-	optimise_reservations(ReservationType::CosNeru, &state).await;
-	optimise_reservations(ReservationType::CosHaku, &state).await;
-	optimise_reservations(ReservationType::CosKaito, &state).await;
-	optimise_reservations(ReservationType::CosMeiko, &state).await;
-	optimise_reservations(ReservationType::CosSakine, &state).await;
-	optimise_reservations(ReservationType::CosTeto, &state).await;
+	optimise_reservations(ReservationType::Song, state.clone()).await;
+	optimise_reservations(ReservationType::Module, state.clone()).await;
+	optimise_reservations(ReservationType::CstmItem, state.clone()).await;
+	optimise_reservations(ReservationType::CosMiku, state.clone()).await;
+	optimise_reservations(ReservationType::CosRin, state.clone()).await;
+	optimise_reservations(ReservationType::CosLen, state.clone()).await;
+	optimise_reservations(ReservationType::CosLuka, state.clone()).await;
+	optimise_reservations(ReservationType::CosNeru, state.clone()).await;
+	optimise_reservations(ReservationType::CosHaku, state.clone()).await;
+	optimise_reservations(ReservationType::CosKaito, state.clone()).await;
+	optimise_reservations(ReservationType::CosMeiko, state.clone()).await;
+	optimise_reservations(ReservationType::CosSakine, state.clone()).await;
+	optimise_reservations(ReservationType::CosTeto, state.clone()).await;
 
 	Some(())
 }
@@ -2380,7 +2380,7 @@ pub async fn create_reservation(
 				.await;
 			}
 
-			optimise_reservations(query.reservation_type, &state).await;
+			optimise_reservations(query.reservation_type, state).await;
 		}
 		_ => {}
 	}
@@ -3074,7 +3074,7 @@ pub async fn find_reservable_range(
 	.unwrap_or(-1)
 }
 
-pub async fn optimise_reservations(reservation_type: ReservationType, state: &AppState) {
+pub async fn optimise_reservations(reservation_type: ReservationType, state: AppState) {
 	let users = sqlx::query_as!(
 		User,
 		r#"
