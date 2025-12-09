@@ -1,7 +1,4 @@
-use crate::{
-	AppState, Config,
-	api::ids::{ReservationType, optimise_reservations},
-};
+use crate::{AppState, Config, api::ids::optimise_reservations};
 use askama::Template;
 use axum::RequestPartsExt;
 use axum::extract::*;
