@@ -95,11 +95,6 @@ pub struct MeilisearchDbEntry {
 	pub name: String,
 }
 
-#[derive(Serialize, Deserialize)]
-struct Config {
-	include: Option<Vec<String>>,
-}
-
 pub const ROM_DIRS: [&'static str; 31] = [
 	".",
 	"rom_ps4",
@@ -251,12 +246,32 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 			let file = file.ok()?;
 			let file = file.path();
 			let data = tokio::fs::read_to_string(file).await.ok()?;
-			let config: Config = toml::from_str(&data).ok()?;
-			let Some(include) = config.include else {
+			let config = data.parse::<toml::Table>().ok()?;
+			let Some(toml::Value::Array(includes)) = config.get("include") else {
 				continue;
 			};
 
-			for include in &include {
+			let mut dirs = Vec::new();
+			let mut stack = Vec::new();
+			for include in includes.iter().rev() {
+				stack.push(include);
+			}
+
+			while let Some(value) = stack.pop() {
+				if let toml::Value::String(dir) = value {
+					dirs.push(dir);
+				} else if let toml::Value::Table(includes) = value {
+					if let Some(toml::Value::String(dir)) = includes.get("include") {
+						dirs.push(dir);
+					} else if let Some(toml::Value::Array(sub_includes)) = includes.get("include") {
+						for include in sub_includes.iter().rev() {
+							stack.push(include);
+						}
+					}
+				}
+			}
+
+			for include in &dirs {
 				for rom in &ROM_DIRS {
 					let folder = format!("{}/{include}/{rom}/rom", file.parent()?.to_str()?);
 					let path = Path::new(&folder);
