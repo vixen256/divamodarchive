@@ -687,8 +687,6 @@ pub async fn login(
 }
 
 pub fn routine_tasks(state: AppState) {
-	let mut interval = tokio::time::interval(tokio::time::Duration::from_secs(60 * 60 * 24 * 7));
-
 	let Ok(rt) = tokio::runtime::Builder::new_multi_thread()
 		.enable_all()
 		.build()
@@ -697,11 +695,13 @@ pub fn routine_tasks(state: AppState) {
 	};
 
 	rt.block_on(async {
+		let mut interval =
+			tokio::time::interval(tokio::time::Duration::from_secs(60 * 60 * 24 * 7));
 		loop {
 			interval.tick().await;
-			rt.spawn(update_users(state.clone()));
+			tokio::spawn(update_users(state.clone()));
 			for i in 0..20 {
-				rt.spawn(optimise_reservations(i.into(), state.clone()));
+				tokio::spawn(optimise_reservations(i.into(), state.clone()));
 			}
 		}
 	});
