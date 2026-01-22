@@ -94,6 +94,33 @@ mod filters {
 		Ok(format!("{num}"))
 	}
 
+	pub fn prettify_num_byte<T: std::fmt::Display>(
+		s: T,
+		_: &dyn askama::Values,
+	) -> askama::Result<String> {
+		let num: u64 = match s.to_string().parse() {
+			Ok(num) => num,
+			Err(e) => return Err(askama::Error::Custom(Box::new(e))),
+		};
+
+		let suffixes = ["", "KB", "MB", "GB"];
+		let mut remainder = 0;
+		let mut value = num;
+		for suffix in suffixes {
+			if value < 1024 {
+				if remainder > 0 {
+					return Ok(format!("{value}.{remainder}{suffix}"));
+				} else {
+					return Ok(format!("{value}{suffix}"));
+				}
+			}
+			remainder = (value % 1024) / 100;
+			value /= 1024;
+		}
+
+		Ok(format!("{num}"))
+	}
+
 	pub fn autolink<T: std::fmt::Display>(
 		s: T,
 		_: &dyn askama::Values,

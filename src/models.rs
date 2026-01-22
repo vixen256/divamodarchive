@@ -120,6 +120,7 @@ pub struct Post {
 	pub comments: Option<Comments>,
 	#[serde(rename = "file_names")]
 	pub local_files: Vec<String>,
+	pub file_sizes: Vec<i64>,
 	pub private: bool,
 	pub explicit: bool,
 	pub explicit_reason: Option<String>,
@@ -142,6 +143,7 @@ impl Clone for Post {
 			dependency_descriptions: self.dependency_descriptions.clone(),
 			comments: None,
 			local_files: self.local_files.clone(),
+			file_sizes: self.file_sizes.clone(),
 			private: self.private,
 			explicit: self.explicit,
 			explicit_reason: self.explicit_reason.clone(),
@@ -232,7 +234,7 @@ impl Post {
 	pub async fn get_full(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, p.explicit, p.explicit_reason, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.filesizes, p.private, p.explicit, p.explicit_reason, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -260,7 +262,7 @@ impl Post {
 
 		let dependencies = sqlx::query!(
 			r#"
-			SELECT pd.description, p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
+			SELECT pd.description, p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.filesizes, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -307,6 +309,7 @@ impl Post {
 				dependency_descriptions: None,
 				comments: None,
 				local_files: dep.local_files,
+				file_sizes: dep.filesizes,
 				private: false,
 				explicit: dep.explicit,
 				explicit_reason: dep.explicit_reason,
@@ -414,6 +417,7 @@ impl Post {
 			dependency_descriptions,
 			comments: Some(comments),
 			local_files: post.local_files,
+			file_sizes: post.filesizes,
 			private: post.private,
 			explicit: post.explicit,
 			explicit_reason: post.explicit_reason,
@@ -423,7 +427,7 @@ impl Post {
 	pub async fn get_short(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.private, p.explicit, p.explicit_reason, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.filesizes, p.private, p.explicit, p.explicit_reason, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -464,6 +468,7 @@ impl Post {
 			dependency_descriptions: None,
 			comments: None,
 			local_files: post.local_files,
+			file_sizes: post.filesizes,
 			private: post.private,
 			explicit: post.explicit,
 			explicit_reason: post.explicit_reason,

@@ -538,13 +538,13 @@
 			{% endif %}
 			{% if post.files.is_empty() %}
 			{% else if post.files.len() == 1 %}
-			<a href="/api/v1/posts/{{ post.id }}/download/0" class="btn btn-success btn-success" type="button">Download</a>
+			<a href="/api/v1/posts/{{ post.id }}/download/0" class="btn btn-success btn-success" type="button">Download ({{ post.file_sizes.first().cloned().unwrap_or(0)|prettify_num_byte }})</a>
 			{% else %}
 			<button class="btn btn-success btn-success text-light dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Download</button>
 			<ul class="dropdown-menu" style="width: 89%">
 				{% for (i, file) in post.local_files.iter().enumerate() %}
 					{% if let Some(file) = file.split("/").last() %}
-						<li><a class="dropdown-item btn btn-sm btn-success btn-success" href="/api/v1/posts/{{ post.id }}/download/{{ i }}">{{ file }}</a></li>
+						<li><a class="dropdown-item btn btn-sm btn-success btn-success" href="/api/v1/posts/{{ post.id }}/download/{{ i }}">{{ file }} ({{ post.file_sizes.iter().nth(*i).cloned().unwrap_or(0)|prettify_num_byte }})</a></li>
 					{% endif %}
 				{% endfor %}
 			</ul>

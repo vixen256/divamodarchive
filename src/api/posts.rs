@@ -640,7 +640,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
 	_ = sqlx::query!(
-		"UPDATE posts SET files = $2, local_files = $3, time = $4, name = $5, text = $6, type = $7, private = $8, explicit = $9, explicit_reason = $10 WHERE id = $1",
+		"UPDATE posts SET files = $2, local_files = $3, time = $4, name = $5, text = $6, type = $7, private = $8, explicit = $9, explicit_reason = $10, filesizes = $11 WHERE id = $1",
 		post.id,
 		&downloads,
 		&files,
@@ -650,7 +650,8 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		data.post_type,
 		data.private,
 		data.explicit,
-		explicit_reason
+		explicit_reason,
+		&pending_upload.completed,
 	)
 	.execute(&state.db)
 	.await;
