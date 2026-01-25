@@ -39,6 +39,76 @@
 			existing_reservations.innerText = '{{ existing_cstm_item_reservations}} Customize Item IDs';
 
 			current_max = {{ remaining_cstm_item_reservations }};
+		} else if (type == 'CosMiku') {
+			reservation_count.innerText = '{{ remaining_cos_miku_reservations }} Miku Costume IDs';
+			guide_type.innerText = 'Miku Costumes';
+			upload_total.innerText = '{{ uploaded_cos_mikus }} Miku Costumes';
+			existing_reservations.innerText = '{{ existing_cos_miku_reservations}} Miku Costume IDs';
+
+			current_max = {{ remaining_cos_miku_reservations }};
+		} else if (type == 'CosRin') {
+			reservation_count.innerText = '{{ remaining_cos_rin_reservations }} Rin Costume IDs';
+			guide_type.innerText = 'Rin Costumes';
+			upload_total.innerText = '{{ uploaded_cos_rins }} Rin Costumes';
+			existing_reservations.innerText = '{{ existing_cos_rin_reservations}} Rin Costume IDs';
+
+			current_max = {{ remaining_cos_rin_reservations }};
+		} else if (type == 'CosLen') {
+			reservation_count.innerText = '{{ remaining_cos_len_reservations }} Len Costume IDs';
+			guide_type.innerText = 'Len Costumes';
+			upload_total.innerText = '{{ uploaded_cos_lens }} Len Costumes';
+			existing_reservations.innerText = '{{ existing_cos_len_reservations}} Len Costume IDs';
+
+			current_max = {{ remaining_cos_len_reservations }};
+		} else if (type == 'CosLuka') {
+			reservation_count.innerText = '{{ remaining_cos_luka_reservations }} Luka Costume IDs';
+			guide_type.innerText = 'Luka Costumes';
+			upload_total.innerText = '{{ uploaded_cos_lukas }} Luka Costumes';
+			existing_reservations.innerText = '{{ existing_cos_luka_reservations}} Luka Costume IDs';
+
+			current_max = {{ remaining_cos_luka_reservations }};
+		} else if (type == 'CosNeru') {
+			reservation_count.innerText = '{{ remaining_cos_neru_reservations }} Neru Costume IDs';
+			guide_type.innerText = 'Neru Costumes';
+			upload_total.innerText = '{{ uploaded_cos_nerus }} Neru Costumes';
+			existing_reservations.innerText = '{{ existing_cos_neru_reservations}} Neru Costume IDs';
+
+			current_max = {{ remaining_cos_neru_reservations }};
+		} else if (type == 'CosHaku') {
+			reservation_count.innerText = '{{ remaining_cos_haku_reservations }} Haku Costume IDs';
+			guide_type.innerText = 'Haku Costumes';
+			upload_total.innerText = '{{ uploaded_cos_hakus }} Haku Costumes';
+			existing_reservations.innerText = '{{ existing_cos_haku_reservations}} Haku Costume IDs';
+
+			current_max = {{ remaining_cos_haku_reservations }};
+		} else if (type == 'CosKaito') {
+			reservation_count.innerText = '{{ remaining_cos_kaito_reservations }} Kaito Costume IDs';
+			guide_type.innerText = 'Kaito Costumes';
+			upload_total.innerText = '{{ uploaded_cos_kaitos }} Kaito Costumes';
+			existing_reservations.innerText = '{{ existing_cos_kaito_reservations}} Kaito Costume IDs';
+
+			current_max = {{ remaining_cos_kaito_reservations }};
+		} else if (type == 'CosMeiko') {
+			reservation_count.innerText = '{{ remaining_cos_meiko_reservations }} Meiko Costume IDs';
+			guide_type.innerText = 'Meiko Costumes';
+			upload_total.innerText = '{{ uploaded_cos_meikos }} Meiko Costumes';
+			existing_reservations.innerText = '{{ existing_cos_meiko_reservations}} Meiko Costume IDs';
+
+			current_max = {{ remaining_cos_meiko_reservations }};
+		} else if (type == 'CosSakine') {
+			reservation_count.innerText = '{{ remaining_cos_sakine_reservations }} Sakine Costume IDs';
+			guide_type.innerText = 'Sakine Costumes';
+			upload_total.innerText = '{{ uploaded_cos_sakines }} Sakine Costumes';
+			existing_reservations.innerText = '{{ existing_cos_sakine_reservations}} Sakine Costume IDs';
+
+			current_max = {{ remaining_cos_sakine_reservations }};
+		} else if (type == 'CosTeto') {
+			reservation_count.innerText = '{{ remaining_cos_teto_reservations }} Teto Costume IDs';
+			guide_type.innerText = 'Teto Costumes';
+			upload_total.innerText = '{{ uploaded_cos_tetos }} Teto Costumes';
+			existing_reservations.innerText = '{{ existing_cos_teto_reservations}} Teto Costume IDs';
+
+			current_max = {{ remaining_cos_teto_reservations }};
 		}
 
 		var start = document.getElementById('start_input');
@@ -56,7 +126,7 @@
 		var submit = document.getElementById('submit_reservation_button');
 		var start_div = document.getElementById('start_div');
 		var start_feedback = document.getElementById('start_feedback');
-		
+
 		start.classList = 'form-control'
 		start_div.classList = '';
 		start_feedback.hidden = true;
@@ -278,7 +348,6 @@
 	}
 </script>
 <div class="card card-body">
-	<!-- Currently only accepting song reservations
 	<div class="dropdown">
 		<button class="btn btn-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
 			Change reservation type
@@ -287,9 +356,18 @@
 			<li><button class="dropdown-item" onclick="update_dropdown('Song')">Songs</button></li>
 			<li><button class="dropdown-item" onclick="update_dropdown('Module')">Modules</button></li>
 			<li><button class="dropdown-item" onclick="update_dropdown('CstmItem')">Customize Items</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosMiku')">Miku Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosRin')">Rin Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosLen')">Len Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosLuka')">Luka Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosNeru')">Neru Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosHaku')">Haku Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosKaito')">Kaito Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosMeiko')">Meiko Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosSakine')">Sakine Costume IDs</button></li>
+			<li><button class="dropdown-item" onclick="update_dropdown('CosTeto')">Teto Costume IDs</button></li>
 		</ul>
 	</div>
-	-->
 
 	<p>You can reserve up to <b id="reservation_count">{{ remaining_song_reservations }} Song IDs</b>.</p>
 	<p>You have currently uploaded <b id="upload_total">{{ uploaded_songs }} Songs</b> and reserved <b id="existing_reservations">{{ existing_song_reservations }} Song IDs</b>.</p>

@@ -1546,12 +1546,42 @@ struct ReserveTemplate {
 	remaining_song_reservations: usize,
 	remaining_module_reservations: usize,
 	remaining_cstm_item_reservations: usize,
+	remaining_cos_miku_reservations: usize,
+	remaining_cos_rin_reservations: usize,
+	remaining_cos_len_reservations: usize,
+	remaining_cos_luka_reservations: usize,
+	remaining_cos_neru_reservations: usize,
+	remaining_cos_haku_reservations: usize,
+	remaining_cos_kaito_reservations: usize,
+	remaining_cos_meiko_reservations: usize,
+	remaining_cos_sakine_reservations: usize,
+	remaining_cos_teto_reservations: usize,
 	existing_song_reservations: usize,
 	existing_module_reservations: usize,
 	existing_cstm_item_reservations: usize,
+	existing_cos_miku_reservations: usize,
+	existing_cos_rin_reservations: usize,
+	existing_cos_len_reservations: usize,
+	existing_cos_luka_reservations: usize,
+	existing_cos_neru_reservations: usize,
+	existing_cos_haku_reservations: usize,
+	existing_cos_kaito_reservations: usize,
+	existing_cos_meiko_reservations: usize,
+	existing_cos_sakine_reservations: usize,
+	existing_cos_teto_reservations: usize,
 	uploaded_songs: usize,
 	uploaded_modules: usize,
 	uploaded_cstm_items: usize,
+	uploaded_cos_mikus: usize,
+	uploaded_cos_rins: usize,
+	uploaded_cos_lens: usize,
+	uploaded_cos_lukas: usize,
+	uploaded_cos_nerus: usize,
+	uploaded_cos_hakus: usize,
+	uploaded_cos_kaitos: usize,
+	uploaded_cos_meikos: usize,
+	uploaded_cos_sakines: usize,
+	uploaded_cos_tetos: usize,
 }
 
 async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) -> ReserveTemplate {
@@ -1575,6 +1605,66 @@ async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) 
 			&state,
 		)
 		.await,
+		remaining_cos_miku_reservations: get_user_max_reservations(
+			ReservationType::CosMiku,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_rin_reservations: get_user_max_reservations(
+			ReservationType::CosRin,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_len_reservations: get_user_max_reservations(
+			ReservationType::CosLen,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_luka_reservations: get_user_max_reservations(
+			ReservationType::CosLuka,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_neru_reservations: get_user_max_reservations(
+			ReservationType::CosNeru,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_haku_reservations: get_user_max_reservations(
+			ReservationType::CosHaku,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_kaito_reservations: get_user_max_reservations(
+			ReservationType::CosKaito,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_meiko_reservations: get_user_max_reservations(
+			ReservationType::CosMeiko,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_sakine_reservations: get_user_max_reservations(
+			ReservationType::CosSakine,
+			&user,
+			&state,
+		)
+		.await,
+		remaining_cos_teto_reservations: get_user_max_reservations(
+			ReservationType::CosTeto,
+			&user,
+			&state,
+		)
+		.await,
 		existing_song_reservations: get_user_reservations(ReservationType::Song, &user, &state)
 			.await
 			.len(),
@@ -1588,6 +1678,76 @@ async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) 
 		)
 		.await
 		.len(),
+		existing_cos_miku_reservations: get_user_reservations(
+			ReservationType::CosMiku,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_rin_reservations: get_user_reservations(
+			ReservationType::CosRin,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_len_reservations: get_user_reservations(
+			ReservationType::CosLen,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_luka_reservations: get_user_reservations(
+			ReservationType::CosLuka,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_neru_reservations: get_user_reservations(
+			ReservationType::CosNeru,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_haku_reservations: get_user_reservations(
+			ReservationType::CosHaku,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_kaito_reservations: get_user_reservations(
+			ReservationType::CosKaito,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_meiko_reservations: get_user_reservations(
+			ReservationType::CosMeiko,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_sakine_reservations: get_user_reservations(
+			ReservationType::CosSakine,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
+		existing_cos_teto_reservations: get_user_reservations(
+			ReservationType::CosTeto,
+			&user,
+			&state,
+		)
+		.await
+		.len(),
 		uploaded_songs: get_user_uploads(ReservationType::Song, &user, &state)
 			.await
 			.len(),
@@ -1595,6 +1755,36 @@ async fn reserve(base: BaseTemplate, user: User, State(state): State<AppState>) 
 			.await
 			.len(),
 		uploaded_cstm_items: get_user_uploads(ReservationType::CstmItem, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_mikus: get_user_uploads(ReservationType::CosMiku, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_rins: get_user_uploads(ReservationType::CosRin, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_lens: get_user_uploads(ReservationType::CosLen, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_lukas: get_user_uploads(ReservationType::CosLuka, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_nerus: get_user_uploads(ReservationType::CosNeru, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_hakus: get_user_uploads(ReservationType::CosHaku, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_kaitos: get_user_uploads(ReservationType::CosKaito, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_meikos: get_user_uploads(ReservationType::CosMeiko, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_sakines: get_user_uploads(ReservationType::CosSakine, &user, &state)
+			.await
+			.len(),
+		uploaded_cos_tetos: get_user_uploads(ReservationType::CosTeto, &user, &state)
 			.await
 			.len(),
 	}
