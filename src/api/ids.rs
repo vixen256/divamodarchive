@@ -2268,6 +2268,26 @@ pub enum ReservationType {
 	CosTeto = 19,
 }
 
+impl ToString for ReservationType {
+	fn to_string(&self) -> String {
+		String::from(match self {
+			Self::Song => "Song",
+			Self::Module => "Module",
+			Self::CstmItem => "CstmItem",
+			Self::CosMiku => "CosMiku",
+			Self::CosRin => "CosRin",
+			Self::CosLen => "CosLen",
+			Self::CosLuka => "CosLuka",
+			Self::CosNeru => "CosNeru",
+			Self::CosHaku => "CosHaku",
+			Self::CosKaito => "CosKaito",
+			Self::CosMeiko => "CosMeiko",
+			Self::CosSakine => "CosSakine",
+			Self::CosTeto => "CosTeto",
+		})
+	}
+}
+
 impl From<i32> for ReservationType {
 	fn from(value: i32) -> Self {
 		match value {
@@ -2421,6 +2441,12 @@ pub async fn delete_reservation(
 		)
 		.execute(&state.db)
 		.await;
+
+		_ = state
+			.meilisearch
+			.index("reservations")
+			.delete_document((query.reservation_type as u64) << 32 | (id as u64))
+			.await;
 	}
 
 	let reservered_ids = sqlx::query!(
@@ -3353,10 +3379,24 @@ pub async fn optimise_reservations(reservation_type: ReservationType, state: App
 		reservation.label = label.label;
 	}
 
+	_ = state
+		.meilisearch
+		.index("reservations")
+		.delete_documents_with(
+			meilisearch_sdk::documents::DocumentDeletionQuery::new(
+				&state.meilisearch.index("reservations"),
+			)
+			.with_filter(&format!(
+				"reservation_type = {}",
+				reservation_type.to_string()
+			)),
+		)
+		.await;
+
 	state
 		.meilisearch
 		.index("reservations")
-		.add_or_update(
+		.add_documents(
 			&reservations
 				.into_iter()
 				.map(|(_, reservation)| reservation)
