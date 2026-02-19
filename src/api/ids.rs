@@ -237,11 +237,8 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 			.ok()?;
 
 		for file in walkdir::WalkDir::new(dir).into_iter().filter(|file| {
-			if let Ok(file) = &file {
-				file.path().ends_with("config.toml")
-			} else {
-				false
-			}
+			file.as_ref()
+				.is_ok_and(|file| file.path().ends_with("config.toml"))
 		}) {
 			let file = file.ok()?;
 			let file = file.path();
@@ -289,6 +286,14 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 
 					for prefix in &DB_PREFIXES {
 						let pv_db = format!("{folder}/{prefix}pv_db.txt");
+						let path = Path::new(&pv_db);
+						if path.exists() {
+							if let Ok(data) = tokio::fs::read_to_string(&path).await {
+								parse_pv_db(&data, post_id, state.clone()).await;
+							}
+						}
+
+						let pv_db = format!("{folder}/{prefix}nc_pv_db.txt");
 						let path = Path::new(&pv_db);
 						if path.exists() {
 							if let Ok(data) = tokio::fs::read_to_string(&path).await {
