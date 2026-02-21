@@ -294,7 +294,7 @@
 							<tbody>
 								<tr class="table-dark">
 								{% for i in 0..5 %}
-									{% if let Some(level) = song.get_arcade_level(pv, *i) %}
+									{% if let Some(level) = song.get_mixed_level(pv, *i) %}
 									<td style="background-color: var({{ DIFFICULTY_COLOURS[i] }})">
 										<b>{{ level.to_string() }}</b>
 										<span class="material-symbols-outlined" style="font-size: 0.8rem">star</span>
