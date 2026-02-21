@@ -1086,6 +1086,23 @@ impl Pv {
 		return false;
 	}
 
+	pub fn ex_info_len(&self) -> usize {
+		let mut jp_len = 0;
+		let mut en_len = 0;
+		if let Some(song_info) = &self.song_info {
+			if let Some(ex_info) = &song_info.ex_info {
+				jp_len = ex_info.len();
+			}
+		}
+		if let Some(song_info) = &self.song_info_en {
+			if let Some(ex_info) = &song_info.ex_info {
+				en_len = ex_info.len();
+			}
+		}
+
+		jp_len.max(en_len)
+	}
+
 	pub fn song_info_count(&self) -> isize {
 		self.has_music() as isize
 			+ self.has_lyrics() as isize
@@ -1093,6 +1110,7 @@ impl Pv {
 			+ self.has_manipulator() as isize
 			+ self.has_editor() as isize
 			+ self.has_guitar() as isize
+			+ self.ex_info_len() as isize
 	}
 
 	pub fn owns_nc(&self, nc_songs: &[NcSong]) -> bool {
