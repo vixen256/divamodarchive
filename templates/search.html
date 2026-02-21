@@ -3,7 +3,7 @@
 {% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
-{% call base::draw_embed("", "Search DIVA mods") %}
+{% call base::draw_embed("", "Search DIVA mods") %}{% endcall %}
 {% endblock head %}
 
 {% block content %}
@@ -108,7 +108,7 @@
 </script>
 {% endif %}
 <br><br>
-{% call post_helpers::draw_post_list(posts) %}
+{% call post_helpers::draw_post_list(posts) %}{% endcall %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if posts.len() != 40 %}hidden{% endif %}>Load more</button>
 <br>

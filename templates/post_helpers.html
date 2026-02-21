@@ -3,7 +3,7 @@
 	{% for post in posts %}
 		<div class="col">
 			<div class="card shadow" style="height: 100%">
-				{% call draw_post(post) %}
+				{% call draw_post(post) %}{% endcall %}
 			</div>
 		</div>
 	{% endfor %}

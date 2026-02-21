@@ -3,7 +3,7 @@
 
 {% block head %}
 {% let chara = chara | ref %}
-{% call base::draw_embed(format!("{} Costume Spreadsheet", chara.to_string()), "") %}
+{% call base::draw_embed(format!("{} Costume Spreadsheet", chara.to_string()), "") %}{% endcall %}
 {% endblock head %}
 
 {% block content %}

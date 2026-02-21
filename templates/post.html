@@ -8,7 +8,7 @@
 {% block head %}
 {% let text = post.text.trim().replace('#', "") %}
 {% let text = text.split('\n').next().unwrap_or_default() %}
-{% call base::draw_embed(post.name, text.trim()) %}
+{% call base::draw_embed(post.name, text.trim()) %}{% endcall %}
 <meta property="og:image" content="{{ post.images[0] }}">
 <meta name="twitter:card" content="summary_large_image">
 {% endblock head %}
@@ -609,7 +609,7 @@
 						<h5 class="my-1"><b>{{ dependency_descriptions[post.id | ref] }}</b></h5>
 					</div>
 					{% endif %}
-					{% call post_helpers::draw_post(post, rounded_images = false) %}
+					{% call post_helpers::draw_post(post, rounded_images = false) %}{% endcall %}
 				</div>
 			</div>
 		{% endfor %}
@@ -797,7 +797,7 @@
 			<h4 class="mb-0">This mod adds the following Songs:</h4>
 		</button>
 		<div id="pvList" class="p-0 collapse show m-0 mt-2">
-			{% call pv_helpers::draw_pv_list(pvs, false) %}
+			{% call pv_helpers::draw_pv_list(pvs, false) %}{% endcall %}
 		</div>
 	</div>
 	{% endif %}
@@ -808,7 +808,7 @@
 			<h4 class="mb-0">This mod adds the following Modules:</h4>
 		</button>
 		<div id="moduleList" class="p-0 collapse show m-0 mt-2">
-			{% call module_helpers::draw_module_list(modules, false) %}
+			{% call module_helpers::draw_module_list(modules, false) %}{% endcall %}
 		</div>
 	</div>
 	{% endif %}
@@ -819,7 +819,7 @@
 			<h4 class="mb-0">This mod adds the following Customize Items:</h4>
 		</button>
 		<div id="cstmItemList" class="p-0 collapse show m-0 mt-2">
-			{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}
+			{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, false) %}{% endcall %}
 		</div>
 	</div>
 	{% endif %}
@@ -830,7 +830,7 @@
 			<h4 class="mb-0">This mod adds the following New Classics Songs:</h4>
 		</button>
 		<div id="ncSongList" class="p-0 collapse show m-0 mt-2">
-			{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}
+			{% call pv_helpers::draw_nc_song_list(nc_songs, false) %}{% endcall %}
 		</div>
 	</div>
 	{% endif %}

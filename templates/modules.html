@@ -3,7 +3,7 @@
 {% import "module_helpers.html" as module_helpers %}
 
 {% block head %}
-{% call base::draw_embed("Modules", "") %}
+{% call base::draw_embed("Modules", "") %}{% endcall %}
 {% endblock head %}
 
 {% block content %}
@@ -236,7 +236,7 @@
 	</div>
 </div>
 <br><br>
-{% call module_helpers::draw_module_list(modules, true) %}
+{% call module_helpers::draw_module_list(modules, true) %}{% endcall %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if modules.modules.len() < 100 %}hidden{% endif %}>Load more</button>
 <br>

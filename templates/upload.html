@@ -3,7 +3,7 @@
 
 {% block head %}
 {% if let Some(jwt) = base.jwt %}
-{% call base::draw_embed("Upload", "") %}
+{% call base::draw_embed("Upload", "") %}{% endcall %}
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
 
 <script>

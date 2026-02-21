@@ -9,8 +9,8 @@
 		</tr>
 
 		{% let cols -%}
-		{% if pv.song_info_count() == 6 -%}
-		{% let cols = 6 -%}
+		{% if pv.song_info_count() > 5 -%}
+		{% let cols = pv.song_info_count() -%}
 		{% else -%}
 		{% let cols = 5 -%}
 		{% endif -%}
@@ -64,6 +64,27 @@
 									{% if pv.has_guitar() %}
 									<th>Guitar</th>
 									{% endif %}
+
+									{% if let Some(song_info) = pv.song_info && let Some(song_info_en) = pv.song_info_en && let Some(ex_info) = song_info.ex_info && let Some(ex_info_en) = song_info_en.ex_info %}
+										{% if ex_info.len() > ex_info_en.len() %}
+											{% for info in ex_info %}
+												<th>{{ info.key }}</th>
+											{% endfor %}
+										{% else %}
+											{% for info in ex_info_en %}
+												<th>{{ info.key }}</th>
+											{% endfor %}
+										{% endif %}
+									{% else if let Some(song_info) = pv.song_info && let Some(ex_info) = song_info.ex_info %}
+										{% for info in ex_info %}
+											<th>{{ info.key }}</th>
+										{% endfor %}
+									{% else if let Some(song_info) = pv.song_info_en && let Some(ex_info) = song_info.ex_info %}
+										{% for info in ex_info %}
+											<th>{{ info.key }}</th>
+										{% endfor %}
+									{% endif %}
+
 									{% for _ in pv.song_info_count()..cols %}
 									<th />
 									{% endfor %}
@@ -90,6 +111,20 @@
 									{% if pv.has_guitar() %}
 									<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
 									{% endif %}
+
+									{% if let Some(ex_info) = song_info.ex_info %}
+										{% for info in ex_info %}
+											<td>{{ info.val }}</td>
+										{% endfor %}
+										{% for _ in ex_info.len()..pv.ex_info_len() %}
+											<td />
+										{% endfor %}
+									{% else %}
+										{% for _ in 0..pv.ex_info_len() %}
+											<td />
+										{% endfor %}
+									{% endif %}
+
 									{% for _ in pv.song_info_count()..cols %}
 									<td />
 									{% endfor %}
@@ -116,6 +151,20 @@
 									{% if pv.has_guitar() %}
 									<td>{% if let Some(guitar_player) = song_info.guitar_player %}{{ guitar_player }}{% endif %}</td>
 									{% endif %}
+
+									{% if let Some(ex_info) = song_info.ex_info %}
+										{% for info in ex_info %}
+											<td>{{ info.val }}</td>
+										{% endfor %}
+										{% for _ in ex_info.len()..pv.ex_info_len() %}
+											<td />
+										{% endfor %}
+									{% else %}
+										{% for _ in 0..pv.ex_info_len() %}
+											<td />
+										{% endfor %}
+									{% endif %}
+
 									{% for _ in pv.song_info_count()..cols %}
 									<td />
 									{% endfor %}
@@ -337,7 +386,7 @@
 	</thead>
 	<tbody id="pvs">
 		{% for (i, pv) in pv_search.pvs.iter().enumerate() %}
-			{% call draw_pv_list_entry(i, pv, pv_search, show_source) %}
+			{% call draw_pv_list_entry(i, pv, pv_search, show_source) %}{% endcall %}
 		{% endfor %}
 	</tbody>
 </table>

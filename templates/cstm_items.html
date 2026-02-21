@@ -3,7 +3,7 @@
 {% import "cstm_item_helpers.html" as cstm_item_helpers %}
 
 {% block head %}
-{% call base::draw_embed("Customize Items", "") %}
+{% call base::draw_embed("Customize Items", "") %}{% endcall %}
 {% endblock head %}
 
 {% block content %}
@@ -237,7 +237,7 @@
 	</div>
 </div>
 <br><br>
-{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, true) %}
+{% call cstm_item_helpers::draw_cstm_items_list(cstm_items, true) %}{% endcall %}
 <br>
 <button class="btn btn-sm btn-primary" style="width: 100%" type="button" id="loadMore" onClick="loadMore(false)" {% if cstm_items.cstm_items.len() < 100 %}hidden{% endif %}>Load more</button>
 <br>

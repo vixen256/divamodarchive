@@ -4,7 +4,7 @@
 
 {% block head %}
 {% if let Some(jwt) = base.jwt %}
-{% call base::draw_embed("Edit", "") %}
+{% call base::draw_embed("Edit", "") %}{% endcall %}
 <script src="https://cdn.jsdelivr.net/npm/marked@15.0.6/lib/marked.umd.min.js" async></script>
 
 <script>
@@ -729,7 +729,7 @@
 			{% for post in dependencies %}
 				<div class="col" id="post{{ post.id }}">
 					<div class="card shadow h-100">
-						{% call post_helpers::draw_post(post) %}
+						{% call post_helpers::draw_post(post) %}{% endcall %}
 						<div class="h-100 row align-content-end mx-0 px-3 pb-1">
 							<input class="col-7" type="text" id="Dependency{{ post.id }}Label" autocomplete="off" value="{{ dependency_descriptions[post.id | ref] }}">
 							<button class="offset-1 col-4 btn btn-primary btn-sm" type="button" onclick="labelDependency({{ post.id }})">Update</button>

@@ -3,7 +3,7 @@
 
 {% block head %}
 {% let human_name = human_name | ref %}
-{% call base::draw_embed(format!("{human_name} Spreadsheet"), "") %}
+{% call base::draw_embed(format!("{human_name} Spreadsheet"), "") %}{% endcall %}
 {% endblock head %}
 
 {% block content %}

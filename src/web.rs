@@ -67,6 +67,7 @@ const DIFFICULTY_COLOURS: [&'static str; 5] = [
 mod filters {
 	use askama::filters::*;
 
+	#[askama::filter_fn]
 	pub fn prettify_num<T: std::fmt::Display>(
 		s: T,
 		_: &dyn askama::Values,
@@ -94,6 +95,7 @@ mod filters {
 		Ok(format!("{num}"))
 	}
 
+	#[askama::filter_fn]
 	pub fn prettify_num_byte<T: std::fmt::Display>(
 		s: T,
 		_: &dyn askama::Values,
@@ -103,7 +105,7 @@ mod filters {
 			Err(e) => return Err(askama::Error::Custom(Box::new(e))),
 		};
 
-		let suffixes = ["", "KB", "MB", "GB"];
+		let suffixes = ["B", "KB", "MB", "GB"];
 		let mut remainder = 0;
 		let mut value = num;
 		for suffix in suffixes {
@@ -121,6 +123,7 @@ mod filters {
 		Ok(format!("{num}"))
 	}
 
+	#[askama::filter_fn]
 	pub fn autolink<T: std::fmt::Display>(
 		s: T,
 		_: &dyn askama::Values,
