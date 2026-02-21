@@ -2344,11 +2344,7 @@ pub async fn create_reservation(
 	State(state): State<AppState>,
 	Json(query): Json<ReserveRangeArgs>,
 ) -> Json<ReserveRangeResult> {
-	if query.reservation_type != ReservationType::Song
-		|| query.start < 1
-		|| query.length < 1
-		|| query.start.checked_add(query.length).is_none()
-	{
+	if query.start < 1 || query.length < 1 || query.start.checked_add(query.length).is_none() {
 		return Json(ReserveRangeResult::InvalidRange);
 	}
 
