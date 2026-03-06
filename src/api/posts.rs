@@ -758,10 +758,21 @@ pub async fn extract_post(
 pub async fn download(
 	Path((id, variant)): Path<(i32, i32)>,
 	State(state): State<AppState>,
+	user: Result<User, ErrorTemplate>,
 ) -> Result<Redirect, StatusCode> {
 	let Some(post) = Post::get_short(id, &state.db).await else {
 		return Err(StatusCode::NOT_FOUND);
 	};
+
+	if post.private {
+		if let Ok(user) = user {
+			if !post.authors.contains(&user) && !state.config.admins.contains(&user.id) {
+				return Err(StatusCode::UNAUTHORIZED);
+			}
+		} else {
+			return Err(StatusCode::UNAUTHORIZED);
+		}
+	}
 
 	_ = sqlx::query!(
 		"UPDATE posts SET download_count = download_count +1 WHERE id = $1",
