@@ -71,9 +71,10 @@ async fn main() {
 	let storage_path = std::env::var("STORAGE_PATH").expect("STORAGE_PATH must exist");
 
 	let port = std::env::var("PORT")
-		.unwrap_or("7001")
+		.unwrap_or(String::from("7001"))
 		.parse::<i64>()
 		.unwrap_or(7001);
+
 	let config = Config {
 		decoding_key,
 		encoding_key,
