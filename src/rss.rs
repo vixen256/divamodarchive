@@ -112,7 +112,7 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 							.replace('<', "&lt;")
 							.replace('>', "&rt;"),
 					),
-					link: format!("https://divamodarchive.com/posts/{}", post.id),
+					link: format!("https://taikomodarchive.com/posts/{}", post.id),
 					pub_date: post
 						.time
 						.assume_offset(time::UtcOffset::UTC)
@@ -131,14 +131,14 @@ pub async fn rss(State(state): State<AppState>) -> Result<(HeaderMap, String), S
 		channel: vec![Channel {
 			title: String::from("DMA mods"),
 			description: String::from("Mods"),
-			link: String::from("https://divamodarchive.com"),
+			link: String::from("https://taikomodarchive.com"),
 			last_build_date: last_build_date
 				.assume_offset(time::UtcOffset::UTC)
 				.format(&time::format_description::well_known::Rfc2822)
 				.unwrap(),
 			ttl: 60 * 60 * 24,
 			atom: Atom {
-				href: String::from("https://divamodarchive.com/rss.xml"),
+				href: String::from("https://taikomodarchive.com/rss.xml"),
 				rel: String::from("self"),
 				atom_type: String::from("application/rss+xml"),
 			},

@@ -157,7 +157,7 @@ async fn main() {
 }
 
 pub async fn robots() -> &'static str {
-	"User-agent: *\nDisallow: /api/\nSitemap: https://divamodarchive.com/sitemap.xml"
+	"User-agent: *\nDisallow: /api/\nSitemap: https://taikomodarchive.com/sitemap.xml"
 }
 
 pub async fn favicon() -> (HeaderMap, &'static [u8]) {
