@@ -1,4 +1,4 @@
-use crate::{AppState, Config, api::ids::optimise_reservations};
+use crate::{AppState, Config};
 use askama::Template;
 use axum::RequestPartsExt;
 use axum::extract::*;
@@ -539,7 +539,6 @@ where
 			config: app_state.config.clone(),
 			jwt: None,
 			report_count: None,
-			has_reservations: false,
 			has_likes: false,
 			pending_upload: None,
 			uri: parts.uri.path().to_string(),
@@ -705,9 +704,6 @@ pub fn routine_tasks(state: AppState) {
 		loop {
 			interval.tick().await;
 			tokio::spawn(update_users(state.clone()));
-			for i in 0..20 {
-				tokio::spawn(optimise_reservations(i.into(), state.clone()));
-			}
 		}
 	});
 }

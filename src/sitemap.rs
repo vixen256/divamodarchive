@@ -64,7 +64,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 
 	let base_url = Url {
 		loc: Loc {
-			loc: String::from("https://divamodarchive.com/"),
+			loc: String::from("https://taikomodarchive.com/"),
 		},
 		changefreq: Changefreq {
 			changefreq: String::from("daily"),
@@ -83,7 +83,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 		for post in posts {
 			let url = Url {
 				loc: Loc {
-					loc: format!("https://divamodarchive.com/posts/{}", post.id),
+					loc: format!("https://taikomodarchive.com/posts/{}", post.id),
 				},
 				changefreq: Changefreq {
 					changefreq: String::from("weekly"),
@@ -114,7 +114,7 @@ pub async fn sitemap(State(state): State<AppState>) -> Result<(HeaderMap, String
 			};
 			let url = Url {
 				loc: Loc {
-					loc: format!("https://divamodarchive.com/user/{}", user.id),
+					loc: format!("https://taikomodarchive.com/user/{}", user.id),
 				},
 				changefreq: Changefreq {
 					changefreq: String::from("monthly"),

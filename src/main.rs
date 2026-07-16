@@ -21,6 +21,7 @@ pub struct Config {
 	pub cloudflare_account_id: String,
 	pub admins: Vec<i64>,
 	pub storage_path: String,
+	pub rclone_path: String,
 }
 
 #[derive(Clone)]
@@ -69,6 +70,7 @@ async fn main() {
 
 	let meilisearch_url = std::env::var("MEILISEARCH_URL").expect("MEILISEARCH_URL must exist");
 	let storage_path = std::env::var("STORAGE_PATH").expect("STORAGE_PATH must exist");
+	let rclone_path = std::env::var("RCLONE_PATH").expect("RCLONE_PATH must exist");
 
 	let port = std::env::var("PORT")
 		.unwrap_or(String::from("7001"))
@@ -85,23 +87,12 @@ async fn main() {
 		cloudflare_account_id,
 		admins,
 		storage_path,
+		rclone_path,
 	};
 
 	let client = meilisearch_sdk::client::Client::new(meilisearch_url, None::<&str>).unwrap();
 
 	let meilisearch_posts = client.index("posts");
-	let meilisearch_pvs = client.index("pvs");
-	let meilisearch_modules = client.index("modules");
-	let meilisearch_customize = client.index("cstm_items");
-	let meilisearch_reservations = client.index("reservations");
-	let meilisearch_nc = client.index("nc_songs");
-	let meilisearch_sprite_sets = client.index("sprite_sets");
-	let meilisearch_sprites = client.index("sprites");
-	let meilisearch_aet_sets = client.index("aet_sets");
-	let meilisearch_aet_scenes = client.index("aet_scenes");
-	let meilisearch_objsets = client.index("objsets");
-	let meilisearch_textures = client.index("textures");
-
 	meilisearch_posts
 		.set_searchable_attributes(&["authors.name", "name", "text"])
 		.await
@@ -112,185 +103,6 @@ async fn main() {
 		.unwrap();
 	meilisearch_posts
 		.set_sortable_attributes(&["download_count", "like_count", "time"])
-		.await
-		.unwrap();
-
-	meilisearch_pvs
-		.set_filterable_attributes(&["post", "pv_id", "levels"])
-		.await
-		.unwrap();
-	meilisearch_pvs
-		.set_searchable_attributes(&[
-			"pv_id",
-			"song_name",
-			"song_name_en",
-			"song_info",
-			"song_info_en",
-		])
-		.await
-		.unwrap();
-	meilisearch_pvs
-		.set_sortable_attributes(&["pv_id"])
-		.await
-		.unwrap();
-
-	meilisearch_modules
-		.set_filterable_attributes(&[
-			"post_id",
-			"module_id",
-			"chara",
-			"cos.id",
-			"cos.items.id",
-			"cos.items.objset",
-		])
-		.await
-		.unwrap();
-	meilisearch_modules
-		.set_searchable_attributes(&[
-			"module_id",
-			"chara",
-			"name",
-			"name_jp",
-			"name_en",
-			"name_cn",
-			"name_fr",
-			"name_ge",
-			"name_it",
-			"name_kr",
-			"name_sp",
-			"name_tw",
-		])
-		.await
-		.unwrap();
-	meilisearch_modules
-		.set_sortable_attributes(&["module_id"])
-		.await
-		.unwrap();
-
-	meilisearch_customize
-		.set_filterable_attributes(&["post_id", "customize_item_id"])
-		.await
-		.unwrap();
-	meilisearch_customize
-		.set_searchable_attributes(&[
-			"customize_item_id",
-			"chara",
-			"name",
-			"part",
-			"name_jp",
-			"name_en",
-			"name_cn",
-			"name_fr",
-			"name_ge",
-			"name_it",
-			"name_kr",
-			"name_sp",
-			"name_tw",
-		])
-		.await
-		.unwrap();
-	meilisearch_customize
-		.set_sortable_attributes(&["customize_item_id"])
-		.await
-		.unwrap();
-
-	meilisearch_reservations
-		.set_filterable_attributes(&["id", "reservation_type", "user"])
-		.await
-		.unwrap();
-	meilisearch_reservations
-		.set_searchable_attributes(&["label", "id"])
-		.await
-		.unwrap();
-	meilisearch_reservations
-		.set_sortable_attributes(&["id"])
-		.await
-		.unwrap();
-
-	meilisearch_nc
-		.set_filterable_attributes(&["pv_id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_nc
-		.set_sortable_attributes(&["pv_id", "post_id"])
-		.await
-		.unwrap();
-
-	meilisearch_sprite_sets
-		.set_filterable_attributes(&["id", "post_id", "name"])
-		.await
-		.unwrap();
-	meilisearch_sprite_sets
-		.set_sortable_attributes(&["id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_sprite_sets
-		.set_searchable_attributes(&["name"])
-		.await
-		.unwrap();
-
-	meilisearch_sprites
-		.set_filterable_attributes(&["id", "post_id", "name"])
-		.await
-		.unwrap();
-	meilisearch_sprites
-		.set_sortable_attributes(&["id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_sprites
-		.set_searchable_attributes(&["name"])
-		.await
-		.unwrap();
-
-	meilisearch_aet_sets
-		.set_filterable_attributes(&["id", "post_id", "name"])
-		.await
-		.unwrap();
-	meilisearch_aet_sets
-		.set_sortable_attributes(&["id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_aet_sets
-		.set_searchable_attributes(&["name"])
-		.await
-		.unwrap();
-
-	meilisearch_aet_scenes
-		.set_filterable_attributes(&["id", "post_id", "name"])
-		.await
-		.unwrap();
-	meilisearch_aet_scenes
-		.set_sortable_attributes(&["id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_aet_scenes
-		.set_searchable_attributes(&["name"])
-		.await
-		.unwrap();
-
-	meilisearch_objsets
-		.set_filterable_attributes(&["id", "post_id", "name"])
-		.await
-		.unwrap();
-	meilisearch_objsets
-		.set_sortable_attributes(&["id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_objsets
-		.set_searchable_attributes(&["name"])
-		.await
-		.unwrap();
-
-	meilisearch_textures
-		.set_filterable_attributes(&["id", "post_id", "name"])
-		.await
-		.unwrap();
-	meilisearch_textures
-		.set_sortable_attributes(&["id", "post_id"])
-		.await
-		.unwrap();
-	meilisearch_textures
-		.set_searchable_attributes(&["name"])
 		.await
 		.unwrap();
 

@@ -26,9 +26,6 @@
 			{% if owner.public_likes && has_likes %}
 			<a class="text" href="/liked/{{ owner.id }}">{{ owner.display_name }}'s Liked Mods</a><br>
 			{% endif %}
-			{% if has_reservations %}
-			<a class="text" href="/reservations/{{ owner.id }}">{{ owner.display_name }}'s Reservations</a><br>
-			{% endif %}
 		</div>
 	</div>
 </div>

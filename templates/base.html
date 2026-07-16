@@ -1,17 +1,17 @@
 {% macro draw_embed(title, description) %}
 {% if title != "" %}
-<title>{{ title }} - DIVA Mod Archive</title>
+<title>{{ title }} - TAIKO Mod Archive</title>
 <meta property="og:title" content="{{ title }}">
 {% else %}
-<title>DIVA Mod Archive</title>
-<meta property="og:title" content="DIVA Mod Archive">
+<title>TAIKO Mod Archive</title>
+<meta property="og:title" content="TAIKO Mod Archive">
 {% endif %}
 
 {% if description != "" %}
 <meta name="description" content="{{ description }}">
 <meta property="og:description" content="{{ description }}">
 {% endif %}
-<meta property="og:site_name" content="DIVA Mod Archive">
+<meta property="og:site_name" content="TAIKO Mod Archive">
 {% endmacro %}
 
 <!doctype html>
@@ -204,14 +204,6 @@
 			background: var(--bs-body-bg);
 		}
 
-		:root {
-			--diva-easy: #00bedc;
-			--diva-normal: #30c200;
-			--diva-hard: #dcaa00;
-			--diva-extreme: #e65050;
-			--diva-exex: #a650c4;
-		}
-
 		p {
 			margin-bottom: 0;
 		}
@@ -241,7 +233,7 @@
 		<nav class="navbar navbar-expand-md bg-dark fixed-top" style="--bs-navbar-padding-y: 0.5rem">
 			<div class="container container-fluid">
 				<a class="navbar-brand" href="/">
-					<img src="/dma_black.png" alt="DIVA Mod Archive logo" width="32" height="32">
+					<img src="/dma_black.png" alt="TAIKO Mod Archive logo" width="32" height="32">
 				</a>
 				<button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-expanded="false">
 					<span class="navbar-toggler-icon"></span>
@@ -249,39 +241,7 @@
 				<div class="navbar-collapse collapse" id="navbar">
 					<ul class="navbar-nav me-auto">
 						<li class="nav-item dropdown">
-							<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Search</a>
-							<div class="dropdown-menu">
-								<a class="dropdown-item" href="/">Mods</a>
-								<a class="dropdown-item" href="/pvs">Songs</a>
-								<a class="dropdown-item" href="/modules">Modules</a>
-								<a class="dropdown-item" href="/cstm_items">Customize Items</a>
-							</div>
-						</li>
-						<li class="nav-item dropdown">
-							<a class="nav-link dropdown-toggle" data-bs-toggle="dropdown" role="button" aria-expanded="false">Modding</a>
-							<div class="dropdown-menu">
-								<a class="dropdown-item" href="/pv_spreadsheet">PV IDs</a>
-								<hr class="dropdown-divider">
-								<a class="dropdown-item" href="/module_spreadsheet">Module IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/miku">Miku Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/rin">Rin Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/len">Len Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/luka">Luka Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/neru">Neru Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/haku">Haku Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/kaito">Kaito Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/meiko">Meiko Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/sakine">Sakine Costume IDs</a>
-								<a class="dropdown-item" href="/cos_spreadsheet/teto">Teto Costume IDs</a>
-								<a class="dropdown-item" href="/cstm_item_spreadsheet">Customize Item IDs</a>
-								<hr class="dropdown-divider">
-								<a class="dropdown-item" href="/sprite_set_spreadsheet">Sprite Set IDs</a>
-								<a class="dropdown-item" href="/sprite_spreadsheet">Sprite IDs</a>
-								<a class="dropdown-item" href="/aet_set_spreadsheet">AET Set IDs</a>
-								<a class="dropdown-item" href="/aet_scene_spreadsheet">AET Scene IDs</a>
-								<a class="dropdown-item" href="/objset_spreadsheet">Objset IDs</a>
-								<a class="dropdown-item" href="/texture_spreadsheet">Texture IDs</a>
-							</div>
+							<a class="nav-link dropdown-toggle" href="/">Search</a>
 						</li>
 						<li class="nav-item">
 							<a class="nav-link" href="/about">About</a>
@@ -298,9 +258,6 @@
 							{% if base.has_likes %}
 							<a class="dropdown-item" href="/liked/{{ user.id }}">Liked Mods</a>
 							{% endif %}
-							{% if base.has_reservations %}
-							<a class="dropdown-item" href="/reservations/{{ user.id }}">Reserved IDs</a>
-							{% endif %}
 							<a class="dropdown-item" href="/settings">Settings</a>
 							{% if user.is_admin(base.config) %}
 							<a class="dropdown-item" href="/admin">Admin{% if let Some(report_count) = base.report_count %} - {{ report_count }}{% endif %}</a>
@@ -314,7 +271,7 @@
 					{% let discord_link =
 					format!(
 						"https://discord.com/api/oauth2/authorize?client_id={discord_id}&redirect_uri={}&response_type=code&scope=identify&state={}",
-						url::form_urlencoded::byte_serialize("https://divamodarchive.com/login".as_bytes()).collect::<String>(),
+						url::form_urlencoded::byte_serialize("https://taikomodarchive.com/login".as_bytes()).collect::<String>(),
 						url::form_urlencoded::byte_serialize(uri.as_bytes()).collect::<String>()
 					) %}
 						<div class="nav-item" style="padding: 0.5rem">
