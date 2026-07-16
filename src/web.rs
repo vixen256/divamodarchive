@@ -29,8 +29,6 @@ pub fn route(state: AppState) -> Router {
 }
 
 mod filters {
-	use askama::filters::*;
-
 	#[askama::filter_fn]
 	pub fn prettify_num<T: std::fmt::Display>(
 		s: T,
