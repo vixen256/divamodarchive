@@ -328,21 +328,25 @@ pub async fn create_pending_upload(
 		return StatusCode::CONFLICT;
 	}
 
-	_ = tokio::fs::create_dir_all(format!("/pixeldrain/{}/pending", user.id)).await;
+	_ = tokio::fs::create_dir_all(format!("{}/{}/pending", state.config.storage_path, user.id))
+		.await;
 	for file in &upload_data.files {
 		if file.contains('/') {
 			return StatusCode::BAD_REQUEST;
 		}
 		let path = format!("{}/{file}", user.id);
 		if !post.local_files.contains(&path)
-			&& std::path::Path::new(&format!("/pixeldrain/{path}")).exists()
+			&& std::path::Path::new(&format!("{}/{path}", state.config.storage_path)).exists()
 		{
 			return StatusCode::CONFLICT;
 		}
 
-		if tokio::fs::File::create(&format!("/pixeldrain/{}/pending/{file}", user.id))
-			.await
-			.is_err()
+		if tokio::fs::File::create(&format!(
+			"{}/{}/pending/{file}",
+			state.config.storage_path, user.id
+		))
+		.await
+		.is_err()
 		{
 			return StatusCode::INTERNAL_SERVER_ERROR;
 		};
@@ -419,7 +423,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	let local_files = pending_upload
 		.files
 		.iter()
-		.map(|file| format!("/pixeldrain/{}/pending/{file}", user.id))
+		.map(|file| format!("{}/{}/pending/{file}", state.config.storage_path, user.id))
 		.collect::<Vec<_>>();
 	for (i, file_name) in pending_upload.files.iter().enumerate() {
 		let Ok(mut file) = tokio::fs::OpenOptions::new()
@@ -427,9 +431,12 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 			.open(&local_files[i])
 			.await
 		else {
-			if tokio::fs::try_exists(format!("/pixeldrain/{}/{file_name}", user.id))
-				.await
-				.map_or(false, |exists| exists)
+			if tokio::fs::try_exists(format!(
+				"{}/{}/{file_name}",
+				state.config.storage_path, user.id
+			))
+			.await
+			.map_or(false, |exists| exists)
 			{
 				continue;
 			}
@@ -561,9 +568,12 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 	let mut pending_exists = false;
 	for file in &pending_upload.files {
-		if tokio::fs::try_exists(format!("/pixeldrain/{}/pending/{file}", user.id))
-			.await
-			.map_or(false, |exists| exists)
+		if tokio::fs::try_exists(format!(
+			"{}/{}/pending/{file}",
+			state.config.storage_path, user.id
+		))
+		.await
+		.map_or(false, |exists| exists)
 		{
 			pending_exists = true;
 			break;
@@ -572,13 +582,13 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 
 	if pending_exists {
 		for file in post.local_files.iter() {
-			_ = tokio::fs::remove_file(format!("/pixeldrain/{file}")).await;
+			_ = tokio::fs::remove_file(format!("{}/{file}", state.config.storage_path)).await;
 		}
 
 		for file in &pending_upload.files {
 			_ = tokio::fs::rename(
-				format!("/pixeldrain/{}/pending/{}", user.id, file),
-				format!("/pixeldrain/{}/{}", user.id, file),
+				format!("{}/{}/pending/{}", state.config.storage_path, user.id, file),
+				format!("{}/{}/{}", state.config.storage_path, user.id, file),
 			)
 			.await;
 		}

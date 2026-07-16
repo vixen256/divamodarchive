@@ -20,6 +20,7 @@ pub struct Config {
 	pub cloudflare_image_token: String,
 	pub cloudflare_account_id: String,
 	pub admins: Vec<i64>,
+	pub storage_path: String,
 }
 
 #[derive(Clone)]
@@ -67,6 +68,7 @@ async fn main() {
 		.collect();
 
 	let meilisearch_url = std::env::var("MEILISEARCH_URL").expect("MEILISEARCH_URL must exist");
+	let storage_path = std::env::var("STORAGE_PATH").expect("STORAGE_PATH must exist");
 
 	let config = Config {
 		decoding_key,
@@ -77,6 +79,7 @@ async fn main() {
 		cloudflare_image_token,
 		cloudflare_account_id,
 		admins,
+		storage_path,
 	};
 
 	let client = meilisearch_sdk::client::Client::new(meilisearch_url, None::<&str>).unwrap();

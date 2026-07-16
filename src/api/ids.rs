@@ -222,7 +222,7 @@ pub async fn extract_post_data(post_id: i32, state: AppState) -> Option<()> {
 	.await;
 
 	for file in &post.local_files {
-		let file = format!("/pixeldrain/{file}");
+		let file = format!("{}/{local_file}", state.config.storage_path);
 		let file = Path::new(&file);
 
 		let dir = temp_dir::TempDir::new().ok()?;
