@@ -338,7 +338,7 @@ async fn main() {
 		.merge(web::route(state.clone()))
 		.merge(api::route(state.clone()));
 
-	let listener = tokio::net::TcpListener::bind("0.0.0.0:{port}")
+	let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
 		.await
 		.expect(&format!("Unable to bind on port {port}"));
 	axum::serve(listener, router).await.unwrap();
