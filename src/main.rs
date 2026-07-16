@@ -70,6 +70,10 @@ async fn main() {
 	let meilisearch_url = std::env::var("MEILISEARCH_URL").expect("MEILISEARCH_URL must exist");
 	let storage_path = std::env::var("STORAGE_PATH").expect("STORAGE_PATH must exist");
 
+	let port = std::env::var("PORT")
+		.unwrap_or("7001")
+		.parse::<i64>()
+		.unwrap_or(7001);
 	let config = Config {
 		decoding_key,
 		encoding_key,
@@ -333,9 +337,9 @@ async fn main() {
 		.merge(web::route(state.clone()))
 		.merge(api::route(state.clone()));
 
-	let listener = tokio::net::TcpListener::bind("0.0.0.0:7001")
+	let listener = tokio::net::TcpListener::bind("0.0.0.0:{port}")
 		.await
-		.expect("Unable to bind on port {}");
+		.expect(&format!("Unable to bind on port {port}"));
 	axum::serve(listener, router).await.unwrap();
 }
 
