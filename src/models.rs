@@ -597,7 +597,7 @@ pub async fn login(
 
 	let mut params: HashMap<&str, &str> = std::collections::HashMap::new();
 	params.insert("grant_type", "authorization_code");
-	params.insert("redirect_uri", "https://divamodarchive.com/login");
+	params.insert("redirect_uri", "https://taikomodarchive.com/login");
 	params.insert("code", &code);
 
 	#[derive(Serialize, Deserialize)]
