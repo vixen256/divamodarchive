@@ -66,9 +66,7 @@ pub struct Token {
 #[derive(PartialEq, Serialize, Deserialize, Clone, ToSchema)]
 pub enum PostType {
 	Plugin = 0,
-	Module = 1,
 	Song = 2,
-	Cover = 3,
 	Ui = 4,
 	Other = 5,
 }
@@ -77,9 +75,7 @@ impl From<i32> for PostType {
 	fn from(value: i32) -> Self {
 		match value {
 			0 => Self::Plugin,
-			1 => Self::Module,
 			2 => Self::Song,
-			3 => Self::Cover,
 			4 => Self::Ui,
 			_ => Self::Other,
 		}
@@ -90,9 +86,7 @@ impl std::fmt::Display for PostType {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(match self {
 			PostType::Plugin => "Plugin",
-			PostType::Module => "Module",
 			PostType::Song => "Song",
-			PostType::Cover => "Cover",
 			PostType::Ui => "UI",
 			PostType::Other => "Other",
 		})

@@ -628,9 +628,7 @@
 
 		<select class="form-select list-text mb-1" id="type_tag">
 			<option value="0" {% if post.post_type == PostType::Plugin %}selected{% endif %}>Plugin</option>
-			<option value="1" {% if post.post_type == PostType::Module %}selected{% endif %}>Module</option>
 			<option value="2" {% if post.post_type == PostType::Song %}selected{% endif %}>Song</option>
-			<option value="3" {% if post.post_type == PostType::Cover %}selected{% endif %}>Cover</option>
 			<option value="4" {% if post.post_type == PostType::Ui %}selected{% endif %}>UI</option>
 			<option value="5" {% if post.post_type == PostType::Other %}selected{% endif %}>Other</option>
 		</select>
