@@ -208,6 +208,7 @@ pub struct PostEditData {
 	pub name: String,
 	pub text: String,
 	pub post_type: i32,
+	pub post_game: i32,
 	pub private: bool,
 	pub explicit: bool,
 	pub explicit_reason: String,
@@ -236,11 +237,12 @@ pub async fn edit_post(
 	};
 
 	sqlx::query!(
-		"UPDATE posts SET name = $2, text = $3, type = $4, private = $5, explicit = $6, explicit_reason = $7 WHERE id = $1",
+		"UPDATE posts SET name = $2, text = $3, type = $4, game = $5, private = $6, explicit = $7, explicit_reason = $8 WHERE id = $1",
 		id,
 		data.name,
 		data.text,
 		data.post_type,
+		data.post_game,
 		data.private,
 		data.explicit,
 		explicit_reason
@@ -600,7 +602,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 	let time = time::PrimitiveDateTime::new(now.date(), now.time());
 
 	_ = sqlx::query!(
-		"UPDATE posts SET files = $2, local_files = $3, time = $4, name = $5, text = $6, type = $7, private = $8, explicit = $9, explicit_reason = $10, filesizes = $11 WHERE id = $1",
+		"UPDATE posts SET files = $2, local_files = $3, time = $4, name = $5, text = $6, type = $7, game = $8, private = $9, explicit = $10, explicit_reason = $11, filesizes = $12 WHERE id = $1",
 		post.id,
 		&downloads,
 		&files,
@@ -608,6 +610,7 @@ pub async fn continue_pending_upload_ws(mut socket: ws::WebSocket, state: AppSta
 		data.name,
 		data.text,
 		data.post_type,
+		data.post_game,
 		data.private,
 		data.explicit,
 		explicit_reason,
@@ -634,6 +637,7 @@ pub struct PostCreationData {
 	pub name: String,
 	pub text: String,
 	pub post_type: i32,
+	pub post_game: i32,
 	pub images: Vec<String>,
 }
 
@@ -669,14 +673,15 @@ pub async fn create_post(
 
 	let Ok(id) = sqlx::query!(
 		"
-		INSERT INTO posts (name, text, images, type, time, files, local_files, private)
-		VALUES ($1, $2, $3, $4, '1970-01-01', '{}', '{}', true)
+		INSERT INTO posts (name, text, images, type, game, time, files, local_files, private)
+		VALUES ($1, $2, $3, $4, $5, '1970-01-01', '{}', '{}', true)
 		RETURNING ID
 		",
 		data.name,
 		data.text,
 		&data.images,
-		data.post_type
+		data.post_type,
+		data.post_game,
 	)
 	.fetch_one(&state.db)
 	.await

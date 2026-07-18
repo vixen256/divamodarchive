@@ -16,18 +16,31 @@
 		var query = document.getElementById("searchQuery").value;
 		var sort = document.getElementById("searchSort").value;
 		var filter = document.getElementById("searchFilter").value;
+		var game = document.getElementById("searchGame").value;
 
 		if (query != null && query != "") url.searchParams.append("query", query);
 		if (sort != null && sort != "" && sort != "time:desc") url.searchParams.append("sort", sort);
 		if (filter != null && filter != "" && filter != "null") url.searchParams.append("filter", filter);
+		if (game != null && game != "" && game != "null") url.searchParams.append("game", game);
 
-		window.history.pushState({query: query, sort: sort, filter: filter}, "", url);
+		window.history.pushState({query: query, sort: sort, filter: filter, game: game}, "", url);
 	}
 
 	async function loadMore(clear) {
 		document.getElementById("loadMore").hidden = true;
 
-		var posts = await search(document.getElementById("searchQuery").value, document.getElementById("searchSort").value, document.getElementById("searchFilter").value, clear ? 0 : document.getElementById("posts").children.length);
+		var filter = "";
+		var typeFilter = document.getElementById("searchFilter").value;
+		var gameFilter = document.getElementById("searchGame").value;
+		if (typeFilter != null && typeFilter != "" && typeFilter != "null" && gameFilter != null && gameFilter != "" && gameFilter != "null") {
+			filter = typeFilter + " AND " gameFilter;
+		} else if (typeFilter != null && typeFilter != "" && typeFilter != "null") {
+			filter = typeFilter;
+		} else if (gameFilter != null && gameFilter != "" && gameFilter != "null") {
+			filter = gameFilter;
+		}
+
+		var posts = await search(document.getElementById("searchQuery").value, document.getElementById("searchSort").value, , clear ? 0 : document.getElementById("posts").children.length);
 		if (clear) {
 			document.getElementById("posts").innerHTML = "";
 		}
@@ -45,10 +58,12 @@
 			document.getElementById("searchQuery").value = event.state.query;
 			document.getElementById("searchSort").value = event.state.sort;
 			document.getElementById("searchFilter").value = event.state.filter;
+			document.getElementById("searchGame").value = event.state.game;
 		} else {
 			document.getElementById("searchQuery").value = null;
 			document.getElementById("searchSort").value = "";
 			document.getElementById("searchFilter").value = "null";
+			document.getElementById("searchGame").value = "null";
 		}
 
 		loadMore(true);
@@ -60,7 +75,7 @@
 			<div class="col col-6">
 				<input onchange="newLoad()" class="form-control list-text" type="text" placeholder="Search" name="query" id="searchQuery" autocomplete="off">
 			</div>
-			<div class="col col-3">
+			<div class="col col-2">
 				<select onchange="newLoad()" name="sort" id="searchSort" class="form-select">
 					<option value="" selected disabled hidden>Sort</option>
 					<option value="time:desc">Newest</option>
@@ -69,8 +84,8 @@
 					<option value="like_count:desc">Likes</option>
 				</select>
 			</div>
-			<div class="col col-3">
-				<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select" value="post_type=Cover">
+			<div class="col col-2">
+				<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select" value="">
 					<option value="null" selected disabled hidden>Filter</option>
 					<option value="">Any</option>
 					<option value="post_type=Song">Song</option>
@@ -79,6 +94,62 @@
 					<option value="post_type=UI">UI</option>
 					<option value="post_type=Plugin">Plugin</option>
 					<option value="post_type=Other">Other</option>
+				</select>
+			</div>
+			<div class="col col-2">
+				<select onchange="newLoad()" name="game" id="searchGame" class="form-select" value="">
+					<option value="null" selected disabled hidden>Game</option>
+					<option value="">Any</option>
+					<hr />
+					<optgroup label="Rhythm Festival">
+						<option value="post_game=RhythmFestivalPC">PC</option>
+						<option value="post_game=RhythmFestivalPS5">PS5</option>
+						<option value="post_game=RhythmFestivalSwitch">Switch</option>
+					</optgroup>
+					<hr />
+					<option value="post_game=DrumMaster">The Drum Master (PC)</option>
+					<hr />
+					<optgroup label="Pop Tap Beat">
+						<option value="post_game=PopTapBeatMac">MacOS</option>
+						<option value="post_game=PopTapBeatMobile">iOS</option>
+					</optgroup>
+					<hr />
+					<option value="post_game=DrumSession">Drum Session (PS4)</option>
+					<option value="post_game=DrumNFun">Drum 'n' Fun (Switch)</option>
+					<hr />
+					<optgroup label="Arcade">
+						<option value="post_game=Nijiro">Nijiro</option>
+						<option value="post_game=Sys357">System 357</option>
+						<option value="post_game=Sys256">System 256</option>
+					</optgroup>
+					<hr />
+					<optgroup label="WiiU">
+						<option value="post_game=WiiU1">1</option>
+						<option value="post_game=WiiU2">2</option>
+						<option value="post_game=WiiU3">3</option>
+					</optgroup>
+					<hr />
+					<optgroup label="Wii">
+						<option value="post_game=Wii1">1</option>
+						<option value="post_game=Wii2">2</option>
+						<option value="post_game=Wii3">3</option>
+						<option value="post_game=Wii4">4</option>
+						<option value="post_game=Wii5">5</option>
+					</optgroup>
+					<hr />
+					<optgroup label="3DS">
+						<option value="post_game=N3DS1">1</option>
+						<option value="post_game=N3DS2">2</option>
+						<option value="post_game=N3DS3">3</option>
+					</optgroup>
+					<hr />
+					<optgroup label="DS">
+						<option value="post_game=NDS1">1</option>
+						<option value="post_game=NDS2">2</option>
+						<option value="post_game=NDS3">3</option>
+					</optgroup>
+					<hr />
+					<option value="post_game=Other">Other</option>
 				</select>
 			</div>
 		</div>
@@ -91,6 +162,7 @@
 	var query = "";
 	var sort = "";
 	var filter = "null";
+	var game = "null";
 
 	{% if let Some(query) = query.query %}
 		query = "{{ query }}";
@@ -104,7 +176,11 @@
 		filter = "{{ filter }}";
 		document.getElementById("searchFilter").value = filter;
 	{% endif %}
-	window.history.pushState({query: query, sort: sort, filter: filter}, "");
+	{% if let Some(game) = query.game %}
+		game = "{{ game }}";
+		document.getElementById("searchGame").value = game;
+	{% endif %}
+	window.history.pushState({query: query, sort: sort, filter: filter, game: game}, "");
 </script>
 {% endif %}
 <br><br>

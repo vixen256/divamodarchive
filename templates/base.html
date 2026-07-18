@@ -84,11 +84,12 @@
 			return div;
 		}
 
-		async function search(query, sort, filter, offset) {
+		async function search(query, sort, filter, game, offset) {
 			var params = new URLSearchParams();
 			if (query != null && query != "") params.append("query", query);
 			if (sort != null && sort != "" && sort != "time:desc") params.append("sort", sort);
 			if (filter != null && filter != "" && filter != "null") params.append("filter", filter);
+			if (game != null && game != "" && game != "null") params.append("game", game);
 			if (offset != null && offset != 0) params.append("offset", offset);
 			params.append("limit", "40");
 

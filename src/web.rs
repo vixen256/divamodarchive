@@ -10,6 +10,7 @@ use axum::{
 	routing::*,
 };
 use axum_extra::extract::CookieJar;
+use serde::{Deserialize, Serialize};
 
 pub fn route(state: AppState) -> Router {
 	Router::new()
@@ -422,27 +423,58 @@ async fn post_detail(
 	})
 }
 
+#[derive(Serialize, Deserialize, Clone)]
+struct SearchQuery {
+	pub query: Option<String>,
+	pub sort: Option<String>,
+	pub filter: Option<String>,
+	pub game: Option<String>,
+}
+
 #[derive(Template, WebTemplate)]
 #[template(path = "search.html")]
 struct SearchTemplate {
 	base: BaseTemplate,
 	posts: Vec<Post>,
-	query: Option<crate::api::posts::SearchParams>,
+	query: Option<SearchQuery>,
 }
 
 async fn search(
-	Query(query): Query<crate::api::posts::SearchParams>,
+	Query(query): Query<SearchQuery>,
 	base: BaseTemplate,
 	State(state): State<AppState>,
 ) -> Result<SearchTemplate, ErrorTemplate> {
-	if query.query.is_some() || query.sort.is_some() || query.filter.is_some() {
-		let Json(posts) =
-			crate::api::posts::search_posts(Query(query.clone()), State(state.clone()))
-				.await
-				.map_err(|(status, _)| ErrorTemplate {
-					base: base.clone(),
-					status,
-				})?;
+	if query.query.is_some()
+		|| query.sort.is_some()
+		|| query.filter.is_some()
+		|| query.game.is_some()
+	{
+		let filter = if let Some(filter) = &query.filter
+			&& let Some(game) = &query.game
+		{
+			Some(format!("{filter} AND {game}"))
+		} else if let Some(filter) = &query.filter {
+			Some(filter.clone())
+		} else if let Some(game) = &query.game {
+			Some(game.clone())
+		} else {
+			None
+		};
+		let Json(posts) = crate::api::posts::search_posts(
+			Query(crate::api::posts::SearchParams {
+				query: query.query.clone(),
+				sort: query.filter.clone(),
+				filter,
+				limit: Some(40),
+				offset: None,
+			}),
+			State(state.clone()),
+		)
+		.await
+		.map_err(|(status, _)| ErrorTemplate {
+			base: base.clone(),
+			status,
+		})?;
 
 		return Ok(SearchTemplate {
 			base,

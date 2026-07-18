@@ -99,6 +99,103 @@ impl std::fmt::Display for PostType {
 	}
 }
 
+#[repr(i32)]
+#[derive(PartialEq, Serialize, Deserialize, Clone, ToSchema)]
+pub enum PostGame {
+	RhythmFestivalPC = 0,
+	RhythmFestivalPS5 = 1,
+	RhythmFestivalSwitch = 2,
+	DrumMaster = 3,
+	PopTapBeatMac = 4,
+	PopTapBeatMobile = 5,
+	DrumSession = 6,
+	DrumNFun = 7,
+	Nijiro = 8,
+	Sys357 = 9,
+	Sys256 = 10,
+	WiiU1 = 11,
+	WiiU2 = 12,
+	WiiU3 = 13,
+	Wii1 = 14,
+	Wii2 = 15,
+	Wii3 = 16,
+	Wii4 = 17,
+	Wii5 = 18,
+	N3DS1 = 19,
+	N3DS2 = 20,
+	N3DS3 = 21,
+	NDS1 = 22,
+	NDS2 = 23,
+	NDS3 = 24,
+	Other = 25,
+}
+
+impl From<i32> for PostGame {
+	fn from(value: i32) -> Self {
+		match value {
+			0 => Self::RhythmFestivalPC,
+			1 => Self::RhythmFestivalPS5,
+			2 => Self::RhythmFestivalSwitch,
+			3 => Self::DrumMaster,
+			4 => Self::PopTapBeatMac,
+			5 => Self::PopTapBeatMobile,
+			6 => Self::DrumSession,
+			7 => Self::DrumNFun,
+			8 => Self::Nijiro,
+			9 => Self::Sys357,
+			10 => Self::Sys256,
+			11 => Self::WiiU1,
+			12 => Self::WiiU2,
+			13 => Self::WiiU3,
+			14 => Self::Wii1,
+			15 => Self::Wii2,
+			16 => Self::Wii3,
+			17 => Self::Wii4,
+			18 => Self::Wii5,
+			19 => Self::N3DS1,
+			20 => Self::N3DS2,
+			21 => Self::N3DS3,
+			22 => Self::NDS1,
+			23 => Self::NDS2,
+			24 => Self::NDS3,
+			_ => Self::Other,
+		}
+	}
+}
+
+impl std::fmt::Display for PostGame {
+	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+		f.write_str(match self {
+			Self::RhythmFestivalPC => "Rhythm Festival (PC)",
+			Self::RhythmFestivalPS5 => "Rhythm Festival (PS5)",
+			Self::RhythmFestivalSwitch => "Rhythm Festival (Switch)",
+			Self::DrumMaster => "The Drum Master",
+			Self::PopTapBeatMac => "Pop Tab Beat (MacOS)",
+			Self::PopTapBeatMobile => "Pop Tab Beat (iOS)",
+			Self::DrumSession => "Drum Session",
+			Self::DrumNFun => "Drum 'n' Fun",
+			Self::Nijiro => "Arcade Nijiro",
+			Self::Sys357 => "Arcade System 357",
+			Self::Sys256 => "Arcade System 256",
+			Self::WiiU1 => "Wii U 1",
+			Self::WiiU2 => "Wii U 2",
+			Self::WiiU3 => "Wii U 3",
+			Self::Wii1 => "Wii 1",
+			Self::Wii2 => "Wii 2",
+			Self::Wii3 => "Wii 3",
+			Self::Wii4 => "Wii 4",
+			Self::Wii5 => "Wii 5",
+			Self::N3DS1 => "3DS 1",
+			Self::N3DS2 => "3DS 2",
+			Self::N3DS3 => "3DS 3",
+			Self::NDS1 => "DS 1",
+			Self::NDS2 => "DS 2",
+			Self::NDS3 => "DS 3",
+			Self::Other => "Other",
+		})
+	}
+}
+
 #[derive(Serialize, Deserialize, ToSchema)]
 pub struct Post {
 	pub id: i32,
@@ -109,6 +206,7 @@ pub struct Post {
 	#[serde(with = "time::serde::rfc3339")]
 	pub time: time::OffsetDateTime,
 	pub post_type: PostType,
+	pub post_game: PostGame,
 	pub download_count: i64,
 	pub like_count: i64,
 	pub authors: Vec<User>,
@@ -136,6 +234,7 @@ impl Clone for Post {
 			files: self.files.clone(),
 			time: self.time.clone(),
 			post_type: self.post_type.clone(),
+			post_game: self.post_game.clone(),
 			download_count: self.download_count,
 			like_count: self.like_count,
 			authors: self.authors.clone(),
@@ -234,7 +333,7 @@ impl Post {
 	pub async fn get_full(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.filesizes, p.private, p.explicit, p.explicit_reason, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.game as post_game, p.download_count, p.local_files, p.filesizes, p.private, p.explicit, p.explicit_reason, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -262,7 +361,7 @@ impl Post {
 
 		let dependencies = sqlx::query!(
 			r#"
-			SELECT pd.description, p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.filesizes, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
+			SELECT pd.description, p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.game as post_game, p.download_count, p.local_files, p.filesizes, p.explicit, p.explicit_reason, COALESCE(like_count.count, 0) AS "like_count!"
 			FROM post_dependencies pd
 			LEFT JOIN posts p ON pd.dependency_id = p.id
 			LEFT JOIN (SELECT post_id, COUNT(*) as count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -302,6 +401,7 @@ impl Post {
 				files: dep.files,
 				time: dep.time.assume_offset(time::UtcOffset::UTC),
 				post_type: dep.post_type.into(),
+				post_game: dep.post_game.into(),
 				download_count: dep.download_count,
 				like_count: dep.like_count,
 				authors,
@@ -410,6 +510,7 @@ impl Post {
 			files: post.files,
 			time: post.time.assume_offset(time::UtcOffset::UTC),
 			post_type: post.post_type.into(),
+			post_game: post.post_game.into(),
 			download_count: post.download_count,
 			like_count: post.like_count.unwrap_or(0),
 			authors,
@@ -427,7 +528,7 @@ impl Post {
 	pub async fn get_short(id: i32, db: &sqlx::Pool<sqlx::Postgres>) -> Option<Self> {
 		let post = sqlx::query!(
 			r#"
-			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.download_count, p.local_files, p.filesizes, p.private, p.explicit, p.explicit_reason, like_count.like_count
+			SELECT p.id, p.name, p.text, p.images, p.files, p.time, p.type as post_type, p.game as post_game, p.download_count, p.local_files, p.filesizes, p.private, p.explicit, p.explicit_reason, like_count.like_count
 			FROM posts p
 			LEFT JOIN post_comments c ON p.id = c.post_id
 			LEFT JOIN (SELECT post_id, COUNT(*) as like_count FROM liked_posts GROUP BY post_id) AS like_count ON p.id = like_count.post_id
@@ -461,6 +562,7 @@ impl Post {
 			files: post.files,
 			time: post.time.assume_offset(time::UtcOffset::UTC),
 			post_type: post.post_type.into(),
+			post_game: post.post_game.into(),
 			download_count: post.download_count,
 			like_count: post.like_count.unwrap_or(0),
 			authors,

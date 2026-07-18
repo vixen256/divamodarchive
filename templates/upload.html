@@ -217,8 +217,9 @@
 		let name = document.getElementById('title').value;
 		let text = document.getElementById('text').value;
 		let post_type = document.getElementById('type_tag').value;
+		let post_game = document.getElementById('game_tag').value;
 
-		if (name == '' || text == '' || post_type == '' || post_type == 'null' || imageFiles.length == 0) {
+		if (name == '' || text == '' || post_type == '' || post_type == 'null' || post_game == '' || post_game == 'null' || imageFiles.length == 0) {
 			createToast('Must set all values before uploading', 'text-bg-warning');
 			return null;
 		}
@@ -246,6 +247,7 @@
 				'name': name,
 				'text': text,
 				'post_type': Number(post_type),
+				'post_game': Number(post_game),
 				'images': images,
 			}),
 		};
@@ -344,6 +346,7 @@
 					'name': document.getElementById('title').value,
 					'text': document.getElementById('text').value,
 					'post_type': Number(document.getElementById('type_tag').value),
+					'post_game': Number(document.getElementById('game_tag').value),
 					'private': document.getElementById('private').checked,
 					'explicit': document.getElementById('explicit').checked,
 					'explicit_reason': document.getElementById('explicit_reason').value,
@@ -433,6 +436,59 @@
 			<option value="3">Cover</option>
 			<option value="4">UI</option>
 			<option value="5">Other</option>
+		</select>
+
+		<select class="form-select list-text mb-1" id="game_tag">
+			<option value="null" selected disabled hidden>Game</option>
+			<optgroup label="Rhythm Festival">
+				<option value="0">PC</option>
+				<option value="1">PS5</option>
+				<option value="2">Switch</option>
+			</optgroup>
+			<hr />
+			<option value="3">The Drum Master (PC)</option>
+			<hr />
+			<optgroup label="Pop Tap Beat">
+				<option value="4">MacOS</option>
+				<option value="5">iOS</option>
+			</optgroup>
+			<hr />
+			<option value="6">Drum Session (PS4)</option>
+			<option value="7">Drum 'n' Fun (Switch)</option>
+			<hr />
+			<optgroup label="Arcade">
+				<option value="8">Nijiro</option>
+				<option value="9">System 357</option>
+				<option value="10">System 256</option>
+			</optgroup>
+			<hr />
+			<optgroup label="WiiU">
+				<option value="11">1</option>
+				<option value="12">2</option>
+				<option value="13">3</option>
+			</optgroup>
+			<hr />
+			<optgroup label="Wii">
+				<option value="14">1</option>
+				<option value="15">2</option>
+				<option value="16">3</option>
+				<option value="17">4</option>
+				<option value="18">5</option>
+			</optgroup>
+			<hr />
+			<optgroup label="3DS">
+				<option value="19">1</option>
+				<option value="20">2</option>
+				<option value="21">3</option>
+			</optgroup>
+			<hr />
+			<optgroup label="DS">
+				<option value="22">1</option>
+				<option value="23">2</option>
+				<option value="24">3</option>
+			</optgroup>
+			<hr />
+			<option value="25">Other</option>
 		</select>
 	</div>
 
