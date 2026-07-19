@@ -133,7 +133,7 @@ async fn main() {
 	let router = Router::new()
 		.route("/robots.txt", get(robots))
 		.route("/favicon.ico", get(favicon))
-		.route("/dma_black.png", get(dma_black))
+		.route("/tma.png", get(tma_icon))
 		.route("/sitemap.xml", get(sitemap::sitemap))
 		.route("/rss.xml", get(rss::rss))
 		.route("/login", get(login))
@@ -163,13 +163,16 @@ pub async fn robots() -> &'static str {
 pub async fn favicon() -> (HeaderMap, &'static [u8]) {
 	let mut headers = HeaderMap::new();
 	headers.insert("content-type", "image/vnd.microsoft.icon".parse().unwrap());
-	(headers, include_bytes!("../static/DMA_BLACK_STARLESS.ico"))
+	(headers, include_bytes!("../static/Taiko-Mod-Favicon.ico"))
 }
 
-pub async fn dma_black() -> (HeaderMap, &'static [u8]) {
+pub async fn tma_icon() -> (HeaderMap, &'static [u8]) {
 	let mut headers = HeaderMap::new();
 	headers.insert("content-type", "image/png".parse().unwrap());
-	(headers, include_bytes!("../static/DMA_BLACK.png"))
+	(
+		headers,
+		include_bytes!("../static/Taiko-Mod-Archive_Logo_Drum.png"),
+	)
 }
 
 pub async fn not_found(base: web::BaseTemplate) -> ErrorTemplate {
