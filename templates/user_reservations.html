@@ -21,6 +21,18 @@
 	{% let is_owner = false %}
 {% endif -%}
 
+{% let is_admin -%}
+{% if let Some(user) = base.user -%}
+	{% if user.is_admin(base.config) -%}
+		{% let is_admin = true -%}
+	{% else -%}
+		{% let is_admin = false -%}
+	{% endif -%}
+{% else -%}
+	{% let is_admin = false %}
+{% endif -%}
+
+
 {% if is_owner %}
 <script>
 	async function delete_reservation(type, id) {
@@ -62,6 +74,28 @@
 		document.getElementById(type + id + 'Label').parentElement.innerHTML = document.getElementById(type + id + 'Label').value;
 	}
 </script>
+{% else if is_admin %}
+<script>
+	async function delete_reservation(type, id) {
+		var query = {
+			'reservation_type': type,
+			'start': id,
+			'length': 1,
+		};
+
+		var options = {
+			method: 'DELETE',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': 'Bearer {{ base.jwt.as_ref().unwrap() }}'
+			},
+			body: JSON.stringify(query),
+		}
+
+		await fetch('/api/v1/reservations/{{ owner.id }}', options);
+		document.getElementById(type + id).hidden = true;
+	}
+</script>
 {% endif %}
 
 {% if song_reservations.len() > 0 %}
@@ -72,7 +106,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -96,7 +130,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
@@ -112,7 +146,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -136,7 +170,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
@@ -152,7 +186,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -176,7 +210,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
@@ -193,7 +227,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -217,7 +251,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner %}
+			{% if is_owner | is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Cos{{ chara.to_string() }}', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
