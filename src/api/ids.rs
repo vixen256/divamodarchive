@@ -2443,10 +2443,10 @@ pub async fn create_reservation(
 }
 
 pub async fn delete_reservation_admin(
+	axum::extract::Path(user_id): axum::extract::Path<i64>,
 	user: User,
 	State(state): State<AppState>,
 	query: Json<ReserveRangeArgs>,
-	axum::extract::Path(user_id): axum::extract::Path<i64>,
 ) {
 	if !user.is_admin(&state.config) {
 		return;

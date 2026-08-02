@@ -106,7 +106,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -130,7 +130,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
@@ -146,7 +146,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -170,7 +170,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
@@ -186,7 +186,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -210,7 +210,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
@@ -227,7 +227,7 @@
 			<th>ID</th>
 			<th>Label</th>
 			<th>Time</th>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<th />
 			{% endif %}
 		</tr>
@@ -251,7 +251,7 @@
 				<td />
 			{% endif %}
 			<td>{{ reservation.time.date() }}</td>
-			{% if is_owner | is_admin %}
+			{% if is_owner || is_admin %}
 			<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Cos{{ chara.to_string() }}', {{ id }})">Delete</button></td>
 			{% endif %}
 		</tr>
