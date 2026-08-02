@@ -79,7 +79,7 @@
 			.catch(error => console.error(error))
 	}
 
-	async function delete_reservation(type, id) {
+	async function delete_reservation(type, id, user_id) {
 		var query = {
 			'reservation_type': type,
 			'start': id,
@@ -95,7 +95,7 @@
 			body: JSON.stringify(query),
 		}
 
-		await fetch('/api/v1/reservations/{{ owner.id }}', options);
+		await fetch('/api/v1/reservations/' + user_id, options);
 		document.getElementById(type + id).hidden = true;
 	}
 	{% endif %}
@@ -354,7 +354,7 @@
 						<td>{{ label | autolink }}</td>
 						<td>{{ conflict_users[user].display_name }}</td>
 						{% if is_admin %}
-						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }})">Delete</button></td>
+						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Song', {{ id }}, {{ user }})">Delete</button></td>
 						{% endif %}
 					</tr>
 					{% endfor %}
@@ -412,7 +412,7 @@
 						<td>{{ label | autolink }}</td>
 						<td>{{ conflict_users[user].display_name }}</td>
 						{% if is_admin %}
-						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }})">Delete</button></td>
+						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Module', {{ id }}, {{ user }})">Delete</button></td>
 						{% endif %}
 					</tr>
 					{% endfor %}
@@ -439,13 +439,13 @@
 				<tbody>
 				{% for (user, ids) in reservations %}
 					{% for (id, label) in ids %}
-					<tr id="CstmItem{{id}}">
+					<tr id="Cos{{ chara.to_string() }}{{id}}">
 						<td>{{ id }}</td>
 						<td>{% if let Some(module) = modules.find_cos(**id) %}{{ module.module.name_en.as_ref().unwrap_or(module.module.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
 						<td>{{ label | autolink }}</td>
 						<td>{{ conflict_users[user].display_name }}</td>
 						{% if is_admin %}
-						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }})">Delete</button></td>
+						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Cos{{ chara.to_string() }}', {{ id }}, {{ user }})">Delete</button></td>
 						{% endif %}
 					</tr>
 					{% endfor %}
@@ -498,13 +498,13 @@
 				<tbody>
 				{% for (user, ids) in conflicting_cstm_item_reservations %}
 					{% for (id, label) in ids %}
-					<tr id="Cos{{ chara.to_string() }}{{id}}">
+					<tr id="CstmItem{{id}}">
 						<td>{{ id }}</td>
 						<td>{% if let Some(cstm_item) = cstm_items.find_cstm_item(**id) %}{{ cstm_item.cstm_item.name_en.as_ref().unwrap_or(cstm_item.cstm_item.name.as_ref().unwrap_or(String::new() | ref)) }}{% endif %}</td>
 						<td>{{ label | autolink }}</td>
 						<td>{{ conflict_users[user].display_name }}</td>
 						{% if is_admin %}
-						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('Cos{{ chara.to_string() }}', {{ id }})">Delete</button></td>
+						<td><button class="btn btn-danger btn-sm" type="button" onclick="delete_reservation('CstmItem', {{ id }}, {{ user }})">Delete</button></td>
 						{% endif %}
 					</tr>
 					{% endfor %}
