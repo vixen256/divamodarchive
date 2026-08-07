@@ -637,12 +637,11 @@ where
 }
 
 #[derive(Serialize, Deserialize)]
-struct DiscordUser {
-	id: String,
-	username: String,
-	global_name: Option<String>,
-	discriminator: String,
-	avatar: Option<String>,
+struct GithubUser {
+	id: i64,
+	name: Option<String>,
+	login: String,
+	avatar_url: String,
 }
 
 pub async fn login(
@@ -656,23 +655,22 @@ pub async fn login(
 		.map_or(String::from("/"), |redir| redir.clone());
 
 	let mut params: HashMap<&str, &str> = std::collections::HashMap::new();
-	params.insert("grant_type", "authorization_code");
+	params.insert("client_id", &state.config.github_id);
+	params.insert("client_secret", &state.config.github_secret);
 	params.insert("redirect_uri", "https://hedgemodarchive.com/login");
 	params.insert("code", &code);
 
 	#[derive(Serialize, Deserialize)]
-	struct DiscordTokenResponse {
+	struct GithubTokenResponse {
 		access_token: String,
 		token_type: String,
-		expires_in: i64,
-		refresh_token: String,
 		scope: String,
 	}
 
 	let response = reqwest::Client::new()
-		.post("https://discord.com/api/v10/oauth2/token")
-		.basic_auth(state.config.discord_id, Some(state.config.discord_secret))
-		.form(&params)
+		.post("https://github.com/login/oauth/access_token")
+		.header("accept", "application/json")
+		.json(&params)
 		.send()
 		.await
 		.map_err(|_| StatusCode::BAD_REQUEST)?;
@@ -680,13 +678,13 @@ pub async fn login(
 		return Err(StatusCode::BAD_REQUEST);
 	};
 
-	let response: DiscordTokenResponse = response
+	let response: GithubTokenResponse = response
 		.json()
 		.await
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
 	let response = reqwest::Client::new()
-		.get("https://discord.com/api/users/@me")
+		.get("https://api.github.com/user")
 		.header(
 			"authorization",
 			format!("{} {}", response.token_type, response.access_token),
@@ -699,29 +697,16 @@ pub async fn login(
 		return Err(StatusCode::INTERNAL_SERVER_ERROR);
 	}
 
-	let response: DiscordUser = response
+	let response: GithubUser = response
 		.json()
 		.await
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-	let id: i64 = response
-		.id
-		.parse()
-		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-	let avatar = if let Some(avatar) = response.avatar {
-		format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
-	} else {
-		let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
-		format!(
-			"https://cdn.discordapp.com/embed/avatars/{}.png",
-			discriminator % 5
-		)
-	};
 	sqlx::query!(
 		"INSERT INTO users VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET avatar = excluded.avatar, name = excluded.name",
-		id,
-		response.username.clone(),
-		avatar,
-		response.global_name.unwrap_or(response.username)
+		response.id,
+		response.login.clone(),
+		response.avatar.clone(),
+		response.name.unwrap_or(response.login.clone()),
 	)
 	.execute(&state.db)
 	.await
@@ -730,7 +715,7 @@ pub async fn login(
 	let time = time::OffsetDateTime::now_utc() + time::Duration::weeks(52);
 	let token = Token {
 		exp: time.unix_timestamp(),
-		user_id: id,
+		user_id: response.id,
 	};
 
 	if let Ok(encoded) = encode(&Header::default(), &token, &state.config.encoding_key) {
@@ -775,11 +760,7 @@ pub async fn update_users(state: AppState) {
 		.unwrap_or_default()
 	{
 		let Ok(response) = reqwest::Client::new()
-			.get(format!("https://discord.com/api/users/{}", user.id))
-			.header(
-				"Authorization",
-				format!("Bot {}", &state.config.discord_bot_token),
-			)
+			.get(format!("https://api.github.com/users/{}", user.name))
 			.send()
 			.await
 		else {
@@ -798,47 +779,39 @@ pub async fn update_users(state: AppState) {
 				continue;
 			};
 			if remaining == 0 {
-				let reset_after =
-					if let Some(reset) = response.headers().get("x-ratelimit-reset-after") {
-						if let Ok(reset) = reset.to_str() {
-							if let Ok(reset) = reset.parse::<f32>() {
-								reset
-							} else {
-								5.0
-							}
+				let reset_after = if let Some(reset) = response.headers().get("x-ratelimit-reset") {
+					if let Ok(reset) = reset.to_str() {
+						if let Ok(reset) = reset.parse::<u64>() {
+							std::time::Duration::from_secs(
+								reset.saturating_sub(
+									std::time::SystemTime::now()
+										.duration_since(std::time::UNIX_EPOCH)
+										.unwrap()
+										.as_secs(),
+								),
+							)
 						} else {
-							5.0
+							std::time::Duration::from_secs(0)
 						}
 					} else {
-						5.0
-					};
+						std::time::Duration::from_secs(0)
+					}
+				} else {
+					std::time::Duration::from_secs(0)
+				};
 
-				tokio::time::sleep(std::time::Duration::from_secs_f32(reset_after)).await;
+				tokio::time::sleep(reset_after).await;
 			}
 		}
 
-		let Ok(response) = response.json::<DiscordUser>().await else {
+		let Ok(response) = response.json::<GithubUser>().await else {
 			continue;
 		};
 
-		let Ok(id): Result<i64, _> = response.id.parse() else {
-			continue;
-		};
-
-		let avatar = if let Some(avatar) = response.avatar {
-			format!("https://cdn.discordapp.com/avatars/{}/{}.png", id, avatar)
-		} else {
-			let discriminator: i32 = response.discriminator.parse().unwrap_or_default();
-			format!(
-				"https://cdn.discordapp.com/embed/avatars/{}.png",
-				discriminator % 5
-			)
-		};
-
-		if user.name != response.username || user.avatar != avatar {
+		if user.name != response.login || user.avatar != response.avatar_url {
 			_ = sqlx::query!(
 				"UPDATE users SET name=$1, avatar=$2 WHERE id=$3",
-				response.username,
+				response.login,
 				avatar,
 				user.id
 			)

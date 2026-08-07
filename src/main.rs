@@ -14,9 +14,8 @@ use sqlx::postgres::PgPoolOptions;
 pub struct Config {
 	pub decoding_key: jsonwebtoken::DecodingKey,
 	pub encoding_key: jsonwebtoken::EncodingKey,
-	pub discord_id: String,
-	pub discord_secret: String,
-	pub discord_bot_token: String,
+	pub github_id: String,
+	pub github_secret: String,
 	pub cloudflare_image_token: String,
 	pub cloudflare_account_id: String,
 	pub admins: Vec<i64>,
@@ -52,10 +51,8 @@ async fn main() {
 	let decoding_key = jsonwebtoken::DecodingKey::from_secret(secret_key.as_bytes());
 	let encoding_key = jsonwebtoken::EncodingKey::from_secret(secret_key.as_bytes());
 
-	let discord_id = std::env::var("DISCORD_ID").expect("DISCORD_ID must exist");
-	let discord_secret = std::env::var("DISCORD_SECRET").expect("DISCORD_SECRET must exist");
-	let discord_bot_token =
-		std::env::var("DISCORD_BOT_TOKEN").expect("DISCORD_BOT_TOKEN must exist");
+	let github_id = std::env::var("GITHUB_ID").expect("GITHUB_ID must exist");
+	let github_secret = std::env::var("GITHUB_SECRET").expect("GITHUB_SECRET must exist");
 
 	let cloudflare_image_token =
 		std::env::var("CLOUDFLARE_IMAGE_TOKEN").expect("CLOUDFLARE_IMAGE_TOKEN must exist");
@@ -80,9 +77,8 @@ async fn main() {
 	let config = Config {
 		decoding_key,
 		encoding_key,
-		discord_id,
-		discord_secret,
-		discord_bot_token,
+		github_id,
+		github_secret,
 		cloudflare_image_token,
 		cloudflare_account_id,
 		admins,

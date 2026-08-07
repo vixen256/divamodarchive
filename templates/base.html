@@ -271,16 +271,16 @@
 						</div>
 					</div>
 					{% else %}
-					{% let discord_id = base.config.discord_id.clone() %}
+					{% let github_id = base.config.github_id.clone() %}
 					{% let uri = base.uri.clone() %}
-					{% let discord_link =
+					{% let github_link =
 					format!(
-						"https://discord.com/api/oauth2/authorize?client_id={discord_id}&redirect_uri={}&response_type=code&scope=identify&state={}",
+						"https://github.com/login/oauth/authorize?scope=read:user&client_id={github_id}&redirect_uri={}&state={}",
 						url::form_urlencoded::byte_serialize("https://hedgemodarchive.com/login".as_bytes()).collect::<String>(),
 						url::form_urlencoded::byte_serialize(uri.as_bytes()).collect::<String>()
 					) %}
 						<div class="nav-item" style="padding: 0.5rem">
-						<a class="nav-link" href="{{ discord_link }}">Login</a>
+						<a class="nav-link" href="{{ github_link }}">Login</a>
 					</div>
 					{% endif %}
 				</div>
