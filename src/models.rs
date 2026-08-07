@@ -689,6 +689,8 @@ pub async fn login(
 			"authorization",
 			format!("{} {}", response.token_type, response.access_token),
 		)
+		.header("accept", "application/vnd.github+json")
+		.header("user-agent", "hedgemodarchive")
 		.send()
 		.await
 		.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -761,6 +763,8 @@ pub async fn update_users(state: AppState) {
 	{
 		let Ok(response) = reqwest::Client::new()
 			.get(format!("https://api.github.com/user/{}", user.id))
+			.header("accept", "application/vnd.github+json")
+			.header("user-agent", "hedgemodarchive")
 			.send()
 			.await
 		else {
