@@ -705,7 +705,7 @@ pub async fn login(
 		"INSERT INTO users VALUES ($1, $2, $3, $4) ON CONFLICT (id) DO UPDATE SET avatar = excluded.avatar, name = excluded.name",
 		response.id,
 		response.login.clone(),
-		response.avatar.clone(),
+		response.avatar_url.clone(),
 		response.name.unwrap_or(response.login.clone()),
 	)
 	.execute(&state.db)
@@ -812,7 +812,7 @@ pub async fn update_users(state: AppState) {
 			_ = sqlx::query!(
 				"UPDATE users SET name=$1, avatar=$2 WHERE id=$3",
 				response.login,
-				avatar,
+				response.avatar_url,
 				user.id
 			)
 			.execute(&state.db)
