@@ -760,7 +760,7 @@ pub async fn update_users(state: AppState) {
 		.unwrap_or_default()
 	{
 		let Ok(response) = reqwest::Client::new()
-			.get(format!("https://api.github.com/users/{}", user.name))
+			.get(format!("https://api.github.com/user/{}", user.id))
 			.send()
 			.await
 		else {
