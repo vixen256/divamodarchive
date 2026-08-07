@@ -627,62 +627,27 @@
 		</div>
 
 		<select class="form-select list-text mb-1" id="type_tag">
-			<option value="0" {% if post.post_type == PostType::Plugin %}selected{% endif %}>Plugin</option>
-			<option value="2" {% if post.post_type == PostType::Song %}selected{% endif %}>Song</option>
-			<option value="4" {% if post.post_type == PostType::Ui %}selected{% endif %}>UI</option>
-			<option value="5" {% if post.post_type == PostType::Other %}selected{% endif %}>Other</option>
+			<option value="0" {% if post.post_type == PostType::Skin %}selected{% endif %}>Skin</option>
+			<option value="1" {% if post.post_type == PostType::UI %}selected{% endif %}>UI</option>
+			<option value="2" {% if post.post_type == PostType::Script %}selected{% endif %}>Script</option>
+			<option value="3" {% if post.post_type == PostType::Stage %}selected{% endif %}>Stage</option>
+			<option value="4" {% if post.post_type == PostType::Graphic %}selected{% endif %}>Graphic</option>
+			<option value="5" {% if post.post_type == PostType::Animation %}selected{% endif %}>Animation</option>
+			<option value="6" {% if post.post_type == PostType::Sound %}selected{% endif %}>Sound</option>
+			<option value="7" {% if post.post_type == PostType::Other %}selected{% endif %}>Other</option>
 		</select>
 
 		<select class="form-select list-text mb-1" id="game_tag">
-			<optgroup label="Rhythm Festival">
-				<option value="0" {% if post.post_game == PostGame::RhythmFestivalPC %}selected{% endif %}>PC</option>
-				<option value="1" {% if post.post_game == PostGame::RhythmFestivalPS5 %}selected{% endif %}>PS5</option>
-				<option value="2" {% if post.post_game == PostGame::RhythmFestivalSwitch %}selected{% endif %}>Switch</option>
-			</optgroup>
-			<hr />
-			<option value="3" {% if post.post_game == PostGame::DrumMaster %}selected{% endif %}>The Drum Master (PC)</option>
-			<hr />
-			<optgroup label="Pop Tap Beat">
-				<option value="4" {% if post.post_game == PostGame::PopTapBeatMac %}selected{% endif %}>MacOS</option>
-				<option value="5" {% if post.post_game == PostGame::PopTapBeatMobile %}selected{% endif %}>iOS</option>
-			</optgroup>
-			<hr />
-			<option value="6" {% if post.post_game == PostGame::DrumSession %}selected{% endif %}>Drum Session (PS4)</option>
-			<option value="7" {% if post.post_game == PostGame::DrumNFun %}selected{% endif %}>Drum 'n' Fun (Switch)</option>
-			<hr />
-			<optgroup label="Arcade">
-				<option value="8" {% if post.post_game == PostGame::Nijiiro %}selected{% endif %}>Nijiiro</option>
-				<option value="9" {% if post.post_game == PostGame::Sys357 %}selected{% endif %}>System 357</option>
-				<option value="10" {% if post.post_game == PostGame::Sys256 %}selected{% endif %}>System 256</option>
-			</optgroup>
-			<hr />
-			<optgroup label="WiiU">
-				<option value="11" {% if post.post_game == PostGame::WiiU1 %}selected{% endif %}>1</option>
-				<option value="12" {% if post.post_game == PostGame::WiiU2 %}selected{% endif %}>2</option>
-				<option value="13" {% if post.post_game == PostGame::WiiU3 %}selected{% endif %}>3</option>
-			</optgroup>
-			<hr />
-			<optgroup label="Wii">
-				<option value="14" {% if post.post_game == PostGame::Wii1 %}selected{% endif %}>1</option>
-				<option value="15" {% if post.post_game == PostGame::Wii2 %}selected{% endif %}>2</option>
-				<option value="16" {% if post.post_game == PostGame::Wii3 %}selected{% endif %}>3</option>
-				<option value="17" {% if post.post_game == PostGame::Wii4 %}selected{% endif %}>4</option>
-				<option value="18" {% if post.post_game == PostGame::Wii5 %}selected{% endif %}>5</option>
-			</optgroup>
-			<hr />
-			<optgroup label="3DS">
-				<option value="19" {% if post.post_game == PostGame::N3DS1 %}selected{% endif %}>1</option>
-				<option value="20" {% if post.post_game == PostGame::N3DS2 %}selected{% endif %}>2</option>
-				<option value="21" {% if post.post_game == PostGame::N3DS3 %}selected{% endif %}>3</option>
-			</optgroup>
-			<hr />
-			<optgroup label="DS">
-				<option value="22" {% if post.post_game == PostGame::NDS1 %}selected{% endif %}>1</option>
-				<option value="23" {% if post.post_game == PostGame::NDS2 %}selected{% endif %}>2</option>
-				<option value="24" {% if post.post_game == PostGame::NDS3 %}selected{% endif %}>3</option>
-			</optgroup>
-			<hr />
-			<option value="25" {% if post.post_game == PostGame::Other %}selected{% endif %}>Other</option>
+			<option value="0" {% if post.post_game == PostGame::Unleashed %}selected{% endif %}>Unleashed</option>
+			<option value="1" {% if post.post_game == PostGame::Colors %}selected{% endif %}>Colors (2010)</option>
+			<option value="2" {% if post.post_game == PostGame::ColorsUltimate %}selected{% endif %}>Colors Ultimate (2021)</option>
+			<option value="3" {% if post.post_game == PostGame::Generations %}selected{% endif %}>Generations (2011)</option>
+			<option value="4" {% if post.post_game == PostGame::ShadowGenerations %}selected{% endif %}>Shadow Generations (2024)</option>
+			<option value="5" {% if post.post_game == PostGame::LostWorld %}selected{% endif %}>Lost World</option>
+			<option value="6" {% if post.post_game == PostGame::Forces %}selected{% endif %}>Forces</option>
+			<option value="7" {% if post.post_game == PostGame::Origins %}selected{% endif %}>Origins</option>
+			<option value="8" {% if post.post_game == PostGame::Frontiers %}selected{% endif %}>Frontiers</option>
+			<option value="9" {% if post.post_game == PostGame::Other %}selected{% endif %}>Other</option>
 		</select>
 
 		<div class="mb-1">
