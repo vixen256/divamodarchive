@@ -133,7 +133,7 @@ async fn main() {
 	let router = Router::new()
 		.route("/robots.txt", get(robots))
 		.route("/favicon.ico", get(favicon))
-		.route("/tma.png", get(tma_icon))
+		.route("/hma.png", get(hma_icon))
 		.route("/sitemap.xml", get(sitemap::sitemap))
 		.route("/rss.xml", get(rss::rss))
 		.route("/login", get(login))
@@ -157,22 +157,19 @@ async fn main() {
 }
 
 pub async fn robots() -> &'static str {
-	"User-agent: *\nDisallow: /api/\nSitemap: https://taikomodarchive.com/sitemap.xml"
+	"User-agent: *\nDisallow: /api/\nSitemap: https://hedgemodarchive.com/sitemap.xml"
 }
 
 pub async fn favicon() -> (HeaderMap, &'static [u8]) {
 	let mut headers = HeaderMap::new();
 	headers.insert("content-type", "image/vnd.microsoft.icon".parse().unwrap());
-	(headers, include_bytes!("../static/Taiko-Mod-Favicon.ico"))
+	(headers, &[])
 }
 
-pub async fn tma_icon() -> (HeaderMap, &'static [u8]) {
+pub async fn hma_icon() -> (HeaderMap, &'static [u8]) {
 	let mut headers = HeaderMap::new();
 	headers.insert("content-type", "image/png".parse().unwrap());
-	(
-		headers,
-		include_bytes!("../static/Taiko-Mod-Archive_Logo_Drum.png"),
-	)
+	(headers, &[])
 }
 
 pub async fn not_found(base: web::BaseTemplate) -> ErrorTemplate {

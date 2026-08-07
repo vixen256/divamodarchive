@@ -1,17 +1,17 @@
 {% macro draw_embed(title, description) %}
 {% if title != "" %}
-<title>{{ title }} - Taiko Mod Archive</title>
+<title>{{ title }} - Hedge Mod Archive</title>
 <meta property="og:title" content="{{ title }}">
 {% else %}
-<title>Taiko Mod Archive</title>
-<meta property="og:title" content="Taiko Mod Archive">
+<title>Hedh=ge Mod Archive</title>
+<meta property="og:title" content="Hedge Mod Archive">
 {% endif %}
 
 {% if description != "" %}
 <meta name="description" content="{{ description }}">
 <meta property="og:description" content="{{ description }}">
 {% endif %}
-<meta property="og:site_name" content="Taiko Mod Archive">
+<meta property="og:site_name" content="Hedge Mod Archive">
 {% endmacro %}
 
 <!doctype html>
@@ -238,7 +238,7 @@
 		<nav class="navbar navbar-expand-md bg-dark fixed-top" style="--bs-navbar-padding-y: 0.5rem">
 			<div class="container container-fluid">
 				<a class="navbar-brand" href="/">
-					<img src="/tma.png" alt="Taiko Mod Archive logo" width="32" height="32">
+					<img src="/hma.png" alt="Hedge Mod Archive logo" width="32" height="32">
 				</a>
 				<button class="navbar-toggler collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-expanded="false">
 					<span class="navbar-toggler-icon"></span>
@@ -276,7 +276,7 @@
 					{% let discord_link =
 					format!(
 						"https://discord.com/api/oauth2/authorize?client_id={discord_id}&redirect_uri={}&response_type=code&scope=identify&state={}",
-						url::form_urlencoded::byte_serialize("https://taikomodarchive.com/login".as_bytes()).collect::<String>(),
+						url::form_urlencoded::byte_serialize("https://hedgemodarchive.com/login".as_bytes()).collect::<String>(),
 						url::form_urlencoded::byte_serialize(uri.as_bytes()).collect::<String>()
 					) %}
 						<div class="nav-item" style="padding: 0.5rem">

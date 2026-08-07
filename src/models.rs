@@ -65,26 +65,26 @@ pub struct Token {
 #[repr(i32)]
 #[derive(PartialEq, Serialize, Deserialize, Clone, ToSchema)]
 pub enum PostType {
-	Skins = 0,
+	Skin = 0,
 	UI = 1,
-	Scripts = 2,
-	Stages = 3,
-	Graphics = 4,
-	Animations = 5,
-	Sounds = 6,
+	Script = 2,
+	Stage = 3,
+	Graphic = 4,
+	Animation = 5,
+	Sound = 6,
 	Other = 7,
 }
 
 impl From<i32> for PostType {
 	fn from(value: i32) -> Self {
 		match value {
-			0 => Self::Skins,
+			0 => Self::Skin,
 			1 => Self::UI,
-			2 => Self::Scripts,
-			3 => Self::Stages,
-			4 => Self::Graphics,
-			5 => Self::Animations,
-			6 => Self::Sounds,
+			2 => Self::Script,
+			3 => Self::Stage,
+			4 => Self::Graphic,
+			5 => Self::Animation,
+			6 => Self::Sound,
 			_ => Self::Other,
 		}
 	}
@@ -93,13 +93,13 @@ impl From<i32> for PostType {
 impl std::fmt::Display for PostType {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(match self {
-			Self::Skins => "Skins",
+			Self::Skin => "Skin",
 			Self::UI => "UI",
-			Self::Scripts => "Scripts",
-			Self::Stages => "Stages",
-			Self::Graphics => "Graphics",
-			Self::Animations => "Animations",
-			Self::Sounds => "Sounds",
+			Self::Script => "Script",
+			Self::Stage => "Stage",
+			Self::Graphic => "Graphic",
+			Self::Animation => "Animation",
+			Self::Sound => "Sound",
 			Self::Other => "Other",
 		})
 	}
@@ -657,7 +657,7 @@ pub async fn login(
 
 	let mut params: HashMap<&str, &str> = std::collections::HashMap::new();
 	params.insert("grant_type", "authorization_code");
-	params.insert("redirect_uri", "https://taikomodarchive.com/login");
+	params.insert("redirect_uri", "https://hedgemodarchive.com/login");
 	params.insert("code", &code);
 
 	#[derive(Serialize, Deserialize)]

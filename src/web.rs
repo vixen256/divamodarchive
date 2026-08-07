@@ -350,7 +350,7 @@ struct PostTemplate {
 }
 
 async fn post_redirect(Path(id): Path<i32>) -> Redirect {
-	Redirect::permanent(&format!("https://taikomodarchive.com/post/{id}"))
+	Redirect::permanent(&format!("https://hedgemodarchive.com/post/{id}"))
 }
 
 async fn post_detail(

@@ -3,7 +3,7 @@
 {% import "post_helpers.html" as post_helpers %}
 
 {% block head %}
-{% call base::draw_embed("", "Search Taiko mods") %}{% endcall %}
+{% call base::draw_embed("", "Search Sonic mods") %}{% endcall %}
 {% endblock head %}
 
 {% block content %}
@@ -88,9 +88,13 @@
 				<select onchange="newLoad()" name="filter" id="searchFilter" class="form-select" value="">
 					<option value="null" selected disabled hidden>Filter</option>
 					<option value="">Any</option>
-					<option value="post_type=Song">Song</option>
+					<option value="post_type=Skin">Skin</option>
 					<option value="post_type=UI">UI</option>
-					<option value="post_type=Plugin">Plugin</option>
+					<option value="post_type=Script">Script</option>
+					<option value="post_type=Stage">Stage</option>
+					<option value="post_type=Graphic">Graphic</option>
+					<option value="post_type=Animation">Animation</option>
+					<option value="post_type=Sound">Sound</option>
 					<option value="post_type=Other">Other</option>
 				</select>
 			</div>
@@ -98,55 +102,15 @@
 				<select onchange="newLoad()" name="game" id="searchGame" class="form-select" value="">
 					<option value="null" selected disabled hidden>Game</option>
 					<option value="">Any</option>
-					<hr />
-					<optgroup label="Rhythm Festival">
-						<option value="post_game=RhythmFestivalPC">PC</option>
-						<option value="post_game=RhythmFestivalPS5">PS5</option>
-						<option value="post_game=RhythmFestivalSwitch">Switch</option>
-					</optgroup>
-					<hr />
-					<option value="post_game=DrumMaster">The Drum Master (PC)</option>
-					<hr />
-					<optgroup label="Pop Tap Beat">
-						<option value="post_game=PopTapBeatMac">MacOS</option>
-						<option value="post_game=PopTapBeatMobile">iOS</option>
-					</optgroup>
-					<hr />
-					<option value="post_game=DrumSession">Drum Session (PS4)</option>
-					<option value="post_game=DrumNFun">Drum 'n' Fun (Switch)</option>
-					<hr />
-					<optgroup label="Arcade">
-						<option value="post_game=Nijiiro">Nijiiro</option>
-						<option value="post_game=Sys357">System 357</option>
-						<option value="post_game=Sys256">System 256</option>
-					</optgroup>
-					<hr />
-					<optgroup label="WiiU">
-						<option value="post_game=WiiU1">1</option>
-						<option value="post_game=WiiU2">2</option>
-						<option value="post_game=WiiU3">3</option>
-					</optgroup>
-					<hr />
-					<optgroup label="Wii">
-						<option value="post_game=Wii1">1</option>
-						<option value="post_game=Wii2">2</option>
-						<option value="post_game=Wii3">3</option>
-						<option value="post_game=Wii4">4</option>
-						<option value="post_game=Wii5">5</option>
-					</optgroup>
-					<hr />
-					<optgroup label="3DS">
-						<option value="post_game=N3DS1">1</option>
-						<option value="post_game=N3DS2">2</option>
-						<option value="post_game=N3DS3">3</option>
-					</optgroup>
-					<hr />
-					<optgroup label="DS">
-						<option value="post_game=NDS1">1</option>
-						<option value="post_game=NDS2">2</option>
-						<option value="post_game=NDS3">3</option>
-					</optgroup>
-					<hr />
+					<option value="post_game=Unleashed">Unleashed</option>
+					<option value="post_game=Colors">Colors (2010)</option>
+					<option value="post_game=ColorsUltimate">Colors Ultimate (2021)</option>
+					<option value="post_game=Generations">Generations (2011)</option>
+					<option value="post_game=ShadowGenerations">Shadow Generations (2024)</option>
+					<option value="post_game=LostWorld">Lost World</option>
+					<option value="post_game=Forces">Forces</option>
+					<option value="post_game=Origins">Origins</option>
+					<option value="post_game=Frontiers">Frontiers</option>
 					<option value="post_game=Other">Other</option>
 				</select>
 			</div>
