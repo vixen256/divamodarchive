@@ -65,18 +65,26 @@ pub struct Token {
 #[repr(i32)]
 #[derive(PartialEq, Serialize, Deserialize, Clone, ToSchema)]
 pub enum PostType {
-	Plugin = 0,
-	Song = 2,
-	Ui = 4,
-	Other = 5,
+	Skins = 0,
+	UI = 1,
+	Scripts = 2,
+	Stages = 3,
+	Graphics = 4,
+	Animations = 5,
+	Sounds = 6,
+	Other = 7,
 }
 
 impl From<i32> for PostType {
 	fn from(value: i32) -> Self {
 		match value {
-			0 => Self::Plugin,
-			2 => Self::Song,
-			4 => Self::Ui,
+			0 => Self::Skins,
+			1 => Self::UI,
+			2 => Self::Scripts,
+			3 => Self::Stages,
+			4 => Self::Graphics,
+			5 => Self::Animations,
+			6 => Self::Sounds,
 			_ => Self::Other,
 		}
 	}
@@ -85,10 +93,14 @@ impl From<i32> for PostType {
 impl std::fmt::Display for PostType {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(match self {
-			PostType::Plugin => "Plugin",
-			PostType::Song => "Song",
-			PostType::Ui => "UI",
-			PostType::Other => "Other",
+			Self::Skins => "Skins",
+			Self::UI => "UI",
+			Self::Scripts => "Scripts",
+			Self::Stages => "Stages",
+			Self::Graphics => "Graphics",
+			Self::Animations => "Animations",
+			Self::Sounds => "Sounds",
+			Self::Other => "Other",
 		})
 	}
 }
@@ -96,62 +108,30 @@ impl std::fmt::Display for PostType {
 #[repr(i32)]
 #[derive(PartialEq, Serialize, Deserialize, Clone, ToSchema)]
 pub enum PostGame {
-	RhythmFestivalPC = 0,
-	RhythmFestivalPS5 = 1,
-	RhythmFestivalSwitch = 2,
-	DrumMaster = 3,
-	PopTapBeatMac = 4,
-	PopTapBeatMobile = 5,
-	DrumSession = 6,
-	DrumNFun = 7,
-	Nijiiro = 8,
-	Sys357 = 9,
-	Sys256 = 10,
-	WiiU1 = 11,
-	WiiU2 = 12,
-	WiiU3 = 13,
-	Wii1 = 14,
-	Wii2 = 15,
-	Wii3 = 16,
-	Wii4 = 17,
-	Wii5 = 18,
-	N3DS1 = 19,
-	N3DS2 = 20,
-	N3DS3 = 21,
-	NDS1 = 22,
-	NDS2 = 23,
-	NDS3 = 24,
-	Other = 25,
+	Unleashed = 0,
+	Colors = 1,
+	ColorsUltimate = 2,
+	Generations = 3,
+	ShadowGenerations = 4,
+	LostWorld = 5,
+	Forces = 6,
+	Origins = 7,
+	Frontiers = 8,
+	Other = 9,
 }
 
 impl From<i32> for PostGame {
 	fn from(value: i32) -> Self {
 		match value {
-			0 => Self::RhythmFestivalPC,
-			1 => Self::RhythmFestivalPS5,
-			2 => Self::RhythmFestivalSwitch,
-			3 => Self::DrumMaster,
-			4 => Self::PopTapBeatMac,
-			5 => Self::PopTapBeatMobile,
-			6 => Self::DrumSession,
-			7 => Self::DrumNFun,
-			8 => Self::Nijiiro,
-			9 => Self::Sys357,
-			10 => Self::Sys256,
-			11 => Self::WiiU1,
-			12 => Self::WiiU2,
-			13 => Self::WiiU3,
-			14 => Self::Wii1,
-			15 => Self::Wii2,
-			16 => Self::Wii3,
-			17 => Self::Wii4,
-			18 => Self::Wii5,
-			19 => Self::N3DS1,
-			20 => Self::N3DS2,
-			21 => Self::N3DS3,
-			22 => Self::NDS1,
-			23 => Self::NDS2,
-			24 => Self::NDS3,
+			0 => Self::Unleashed,
+			1 => Self::Colors,
+			2 => Self::ColorsUltimate,
+			3 => Self::Generations,
+			4 => Self::ShadowGenerations,
+			5 => Self::LostWorld,
+			6 => Self::Forces,
+			7 => Self::Origins,
+			8 => Self::Frontiers,
 			_ => Self::Other,
 		}
 	}
@@ -160,31 +140,15 @@ impl From<i32> for PostGame {
 impl std::fmt::Display for PostGame {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
 		f.write_str(match self {
-			Self::RhythmFestivalPC => "Rhythm Festival (PC)",
-			Self::RhythmFestivalPS5 => "Rhythm Festival (PS5)",
-			Self::RhythmFestivalSwitch => "Rhythm Festival (Switch)",
-			Self::DrumMaster => "The Drum Master",
-			Self::PopTapBeatMac => "Pop Tab Beat (MacOS)",
-			Self::PopTapBeatMobile => "Pop Tab Beat (iOS)",
-			Self::DrumSession => "Drum Session",
-			Self::DrumNFun => "Drum 'n' Fun",
-			Self::Nijiiro => "Arcade Nijiiro",
-			Self::Sys357 => "Arcade System 357",
-			Self::Sys256 => "Arcade System 256",
-			Self::WiiU1 => "Wii U 1",
-			Self::WiiU2 => "Wii U 2",
-			Self::WiiU3 => "Wii U 3",
-			Self::Wii1 => "Wii 1",
-			Self::Wii2 => "Wii 2",
-			Self::Wii3 => "Wii 3",
-			Self::Wii4 => "Wii 4",
-			Self::Wii5 => "Wii 5",
-			Self::N3DS1 => "3DS 1",
-			Self::N3DS2 => "3DS 2",
-			Self::N3DS3 => "3DS 3",
-			Self::NDS1 => "DS 1",
-			Self::NDS2 => "DS 2",
-			Self::NDS3 => "DS 3",
+			Self::Unleashed => "Unleashed",
+			Self::Colors => "Colors (2010)",
+			Self::ColorsUltimate => "Colors Ultimate (2021)",
+			Self::Generations => "Generations (2011)",
+			Self::ShadowGenerations => "Shadow Generations (2024)",
+			Self::LostWorld => "Lost World",
+			Self::Forces => "Forces",
+			Self::Origins => "Origins",
+			Self::Frontiers => "Frontiers",
 			Self::Other => "Other",
 		})
 	}
