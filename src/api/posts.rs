@@ -152,7 +152,7 @@ pub async fn append_image(
 		return StatusCode::UNAUTHORIZED;
 	}
 
-	if !image.starts_with("https://divamodarchive.com/cdn-cgi/imagedelivery")
+	if !image.starts_with("https://taikomodarchive.com/cdn-cgi/imagedelivery")
 		|| !image.ends_with("/public")
 		|| reqwest::get(&image).await.is_err()
 	{
@@ -647,7 +647,7 @@ pub async fn create_post(
 	Json(data): Json<PostCreationData>,
 ) -> Result<Json<Post>, StatusCode> {
 	for image in &data.images {
-		if !image.starts_with("https://divamodarchive.com/cdn-cgi/imagedelivery")
+		if !image.starts_with("https://taikomodarchive.com/cdn-cgi/imagedelivery")
 			|| reqwest::get(image).await.is_err()
 		{
 			return Err(StatusCode::BAD_REQUEST);
@@ -831,7 +831,7 @@ pub async fn get_post(
 
 	for i in 0..post.files.len() {
 		post.files[i] = format!(
-			"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+			"https://taikomodarchive.com/api/v1/posts/{}/download/{i}",
 			post.id
 		);
 		post.local_files[i] = post.local_files[i]
@@ -940,7 +940,7 @@ pub async fn search_posts(
 		if let Some(mut post) = Post::get_full(id, &state.db).await {
 			for i in 0..post.files.len() {
 				post.files[i] = format!(
-					"https://divamodarchive.com/api/v1/posts/{}/download/{i}",
+					"https://taikomodarchive.com/api/v1/posts/{}/download/{i}",
 					post.id
 				);
 				post.local_files[i] = post.local_files[i]
