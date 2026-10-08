@@ -236,7 +236,7 @@ where
 			.await
 			{
 				Post::get_short(post_id.post_id, &state.db).await
-			} else if if let Ok(post_id) = sqlx::query!(
+			} else if let Ok(post_id) = sqlx::query!(
 				"SELECT p.id
 				FROM post_authors pa
 				LEFT JOIN posts p ON pa.post_id = p.id
@@ -246,7 +246,8 @@ where
 				user.id
 			)
 			.fetch_one(&state.db)
-			.await {
+			.await
+			{
 				Post::get_short(post_id.post_id, &state.db).await
 			} else {
 				None
