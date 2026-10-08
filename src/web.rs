@@ -248,7 +248,7 @@ where
 			.fetch_one(&state.db)
 			.await
 			{
-				Post::get_short(post_id.post_id, &state.db).await
+				Post::get_short(post_id.id, &state.db).await
 			} else {
 				None
 			}
